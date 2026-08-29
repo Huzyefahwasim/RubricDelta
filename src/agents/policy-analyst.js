@@ -67,11 +67,33 @@ function requireTrace(trace) {
   return trace;
 }
 
+function traceEvent(trace, agent, type, payload) {
+  trace.record({ agent, phase: agent === "rule-compiler" ? "rule-compilation" : "change-analysis", type, payload });
+}
+
 export function analyzePolicy({ oldGuideline, newGuideline, trace } = {}) {
   requireTrace(trace);
-  trace.record({ agent: "policy-analyst", phase: "analysis", type: "instruction", payload: { oldGuidelineVersion: oldGuideline?.version, newGuidelineVersion: newGuideline?.version } });
+  traceEvent(trace, "rule-compiler", "instruction", {
+    oldGuidelineVersion: oldGuideline?.version,
+    newGuidelineVersion: newGuideline?.version,
+    goal: "Compile cited routing rules without interpreting record content.",
+  });
   const oldRules = extractRoutingRules(oldGuideline);
   const newRules = extractRoutingRules(newGuideline);
+  traceEvent(trace, "rule-compiler", "action-result", {
+    oldRuleCount: oldRules.length,
+    newRuleCount: newRules.length,
+  });
+  traceEvent(trace, "rule-compiler", "final-evidence", {
+    ruleIds: [...oldRules, ...newRules].map((rule) => rule.id),
+    citationCount: [...oldRules, ...newRules].filter((rule) => rule.citation).length,
+  });
+
+  traceEvent(trace, "change-analyst", "instruction", {
+    oldRuleIds: oldRules.map((rule) => rule.id),
+    newRuleIds: newRules.map((rule) => rule.id),
+    goal: "Pair cited rules and classify behavioral changes and precedence.",
+  });
   const deltas = [];
   const pairedNew = new Set();
   for (const oldRule of oldRules) {
@@ -91,8 +113,15 @@ export function analyzePolicy({ oldGuideline, newGuideline, trace } = {}) {
     if (!related) throw new EvidenceError(`No evidence establishes a relationship for added rule ${newRule.id}`);
     deltas.push(details(related, newRule, "added"));
   }
-  trace.record({ agent: "policy-analyst", phase: "analysis", type: "action-result", payload: { oldRuleCount: oldRules.length, newRuleCount: newRules.length, deltaIds: deltas.map((delta) => delta.id) } });
+  traceEvent(trace, "change-analyst", "action-result", {
+    deltaIds: deltas.map((delta) => delta.id),
+    precedenceDeltaIds: deltas.filter((delta) => delta.precedenceChanged).map((delta) => delta.id),
+  });
   const result = { oldRules, newRules, deltas, boundaryCases: [...new Set(deltas.flatMap((delta) => delta.boundaryCases))] };
-  trace.record({ agent: "policy-analyst", phase: "analysis", type: "final-evidence", payload: { deltaIds: deltas.map((delta) => delta.id), citationCount: deltas.flatMap((delta) => delta.citations).length } });
+  traceEvent(trace, "change-analyst", "final-evidence", {
+    deltaIds: deltas.map((delta) => delta.id),
+    citationCount: deltas.flatMap((delta) => delta.citations).length,
+    boundaryCaseCount: result.boundaryCases.length,
+  });
   return result;
 }

@@ -30,59 +30,55 @@ test("policy analyst identifies the fraud precedence exception with exact source
     assert.ok(citation.quote.length > 0);
   }
   assert.ok(fraudDelta.boundaryCases.some((item) => item.includes("refund")));
-  assert.deepEqual(trace.events().map((event) => event.type), ["instruction", "action-result", "final-evidence"]);
+  assert.deepEqual(trace.events().map(({ agent, type }) => ({ agent, type })), [
+    { agent: "rule-compiler", type: "instruction" },
+    { agent: "rule-compiler", type: "action-result" },
+    { agent: "rule-compiler", type: "final-evidence" },
+    { agent: "change-analyst", type: "instruction" },
+    { agent: "change-analyst", type: "action-result" },
+    { agent: "change-analyst", type: "final-evidence" },
+  ]);
 });
 
 test("policy analyst suppresses wording-only routing changes", () => {
   const oldGuideline = { version: "v1", text: "Route password reset requests to Technical Access." };
   const newGuideline = { version: "v2", text: "Route requests to reset a password to Technical Access." };
-
-  const result = analyzePolicy({ oldGuideline, newGuideline, trace: recorder("wording") });
-
-  assert.deepEqual(result.deltas, []);
+  assert.deepEqual(analyzePolicy({ oldGuideline, newGuideline, trace: recorder("wording") }).deltas, []);
 });
 
 test("policy analyst rejects a behavioral delta when either source citation cannot be derived", () => {
   const oldGuideline = { version: "v1", text: "Route refund requests to Billing Refunds." };
   const newGuideline = { text: "Route unauthorized purchases to Fraud Review even when a refund is requested." };
-
   assert.throws(() => analyzePolicy({ oldGuideline, newGuideline, trace: recorder("missing-citation") }), EvidenceError);
 });
 
 test("policy analyst rejects an unpaired removed rule instead of silently discarding it", () => {
   const oldGuideline = { version: "v1", text: "Route refund requests to Billing Refunds." };
   const newGuideline = { version: "v2", text: "Route delivery tracking questions to Delivery Support." };
-
   assert.throws(() => analyzePolicy({ oldGuideline, newGuideline, trace: recorder("removed") }), EvidenceError);
 });
 
 test("policy analyst rejects an unrelated new route instead of fabricating a citation pair", () => {
   const oldGuideline = { version: "v1", text: "Route refund requests to Billing Refunds." };
   const newGuideline = { version: "v2", text: "Route delivery tracking questions to Delivery Support." };
-
   assert.throws(() => analyzePolicy({ oldGuideline, newGuideline, trace: recorder("addition") }), /no evidence establishes/i);
 });
 
 test("policy analyst classifies a routing exception before scope expansion", () => {
   const oldGuideline = { version: "v1", text: "Route refund requests to Billing Refunds." };
   const newGuideline = { version: "v2", text: "Route refund requests to Billing Refunds along with stolen-card cases." };
-
-  const result = analyzePolicy({ oldGuideline, newGuideline, trace: recorder("exception") });
-
-  assert.equal(result.deltas[0].type, "exception-changed");
+  assert.equal(analyzePolicy({ oldGuideline, newGuideline, trace: recorder("exception") }).deltas[0].type, "exception-changed");
 });
 
 test("policy analyst validates guideline versions before parsing routes", () => {
   const oldGuideline = { text: "This guideline has no routing sentence." };
   const newGuideline = { version: "v2", text: "This guideline also has no routing sentence." };
-
   assert.throws(() => analyzePolicy({ oldGuideline, newGuideline, trace: recorder("version") }), /guideline version/i);
 });
 
 test("policy analyst requires a trace recorder and records each analysis phase", () => {
   const oldGuideline = { version: "v1", text: "Route refund requests to Billing Refunds." };
   const newGuideline = { version: "v2", text: "Route refund requests to Billing Refunds." };
-
   assert.throws(() => analyzePolicy({ oldGuideline, newGuideline }), /trace recorder/i);
   assert.throws(() => analyzePolicy({ oldGuideline, newGuideline, trace: { record() {} } }), /trace recorder/i);
 });

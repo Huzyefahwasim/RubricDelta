@@ -16,6 +16,7 @@ export function createAdvancedPredictions(benchmark, options = {}) {
         maxRecords: options.maxRecords ?? scenario.records.length,
         maxRetries: options.maxRetries ?? 2,
         runId: `evaluation-${scenario.id}`,
+        now: options.now,
       }), scenario);
     } catch (error) {
       throw new Error(`Invalid advanced workflow result for ${scenario.id}: ${error.code ?? "INVALID_ADVANCED_RESULT"}`, { cause: error });

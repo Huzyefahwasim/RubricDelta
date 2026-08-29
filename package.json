@@ -11,10 +11,12 @@
     "start": "node src/server/index.js",
     "dev": "node --watch src/server/index.js",
     "test": "node --test",
-    "eval": "node scripts/evaluate.js --mode=both",
-    "eval:baseline": "node scripts/evaluate.js --mode=baseline",
-    "eval:advanced": "node scripts/evaluate.js --mode=advanced",
-    "validate": "node scripts/validate-submission.js"
+    "eval": "node scripts/evaluate.js --mode both",
+    "eval:baseline": "node scripts/evaluate.js --mode baseline",
+    "eval:advanced": "node scripts/evaluate.js --mode advanced",
+    "evidence": "node scripts/generate-evidence.js",
+    "validate": "node scripts/validate-submission.js --mode build",
+    "validate:final": "node scripts/validate-submission.js --mode final-strict"
   },
   "license": "UNLICENSED"
 }

@@ -4,7 +4,7 @@ RubricDelta finds existing labels that may have become invalid after an annotati
 
 ## Status
 
-The repository is under active hackathon development. The deterministic benchmark and offline replay path remain the source of truth while the live model adapter stays optional.
+The repository is under active hackathon development. The deterministic benchmark and offline demo are operational. Replay and OpenAI providers are intentionally unavailable until their versioned instructions and adapters land in Task 8; the CLI fails clearly instead of substituting deterministic output.
 
 ## Product flow
 
@@ -34,25 +34,41 @@ npm start
 
 Open `http://localhost:4173` and choose **Load benchmark example**.
 
-Run the complete verification suite:
+Run the current offline verification gate:
 
 ```bash
 npm test
 npm run eval
+npm run evidence
 npm run validate
 ```
 
-The included benchmark and replay mode require no API key or network access.
+`npm run validate` is explicitly the **BUILD — NON-FINAL** gate during Task 7. `npm run validate:final` must fail until the deferred Task 8 provider/prompt work and Task 9 release evidence exist.
 
-## Optional live model mode
+## Reproducible evaluation artifacts
 
-Copy `.env.example` to `.env`, provide `OPENAI_API_KEY`, and choose the OpenAI provider in the run manifest. RubricDelta uses the Responses API with structured output. The application never exposes the key to browser code.
+```bash
+npm run eval:baseline
+npm run eval:advanced
+npm run eval
+```
 
-The final benchmark report must state the provider, model, seed, review budget, runtime, token use, and estimated cost.
+The combined command writes under `artifacts/evaluation/`:
+
+- `manifest.json` with benchmark hash, ordered cases and records, provider/model/seed, fixed budget, versions, runtime environment, truthful run timing, and resource disclosure;
+- gold-free `baseline-predictions.json` and `advanced-predictions.json` written before scoring;
+- full paired results in `comparison.json` and a judge-facing `report.md`;
+- one complete JSONL trajectory per ordered benchmark case.
+
+The frozen deterministic result is baseline 16/20 = 0.80 versus advanced 18/20 = 0.90 affected-record recall at the fixed 20% review budget.
+
+## Provider status
+
+Task 7 accepts `--provider deterministic|replay|openai` syntactically. Only `deterministic` is operational in this build. `replay` and `openai` return an explicit Task 8 unavailable error; they never fall back or relabel deterministic output.
 
 ## Declared evaluation
 
-The primary metric is **affected-record recall at a 20% human-review budget**. The evaluator runs the baseline and final system on the same versioned cases and writes complete per-case results to `artifacts/evaluation/`.
+The primary metric is **affected-record recall at a 20% human-review budget**. Both systems use the same frozen cases, ordered records, deterministic provider, null model, seed 0, and exactly two review slots per case.
 
 Read [the evaluation contract](docs/EVALUATION.md) before changing ranking behavior.
 
