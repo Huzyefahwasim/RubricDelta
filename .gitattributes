@@ -1,0 +1,7 @@
+# Hash-bound benchmark and generated evidence must have identical bytes on every OS.
+/.gitattributes text eol=lf
+/data/benchmark/*.json text eol=lf
+/data/benchmark/**/*.json text eol=lf
+/artifacts/evaluation/** text eol=lf
+/artifacts/representative-trajectories/** text eol=lf
+/artifacts/expected-replay-report/** text eol=lf

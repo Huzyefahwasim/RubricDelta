@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { toPublicScenario } from "../src/domain/scenario.js";
 import { reviewBudgetForCase } from "../src/evaluation/benchmark.js";
@@ -9,6 +9,8 @@ import { reviewBudgetForCase } from "../src/evaluation/benchmark.js";
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const GOLD = /groundTruth|affectedRecordIds|expectedLabels|rationales/i;
 const TRACE_TIME = "2000-01-01T00:00:00.000Z";
+const SAFE_CASE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const WINDOWS_RESERVED = /^(?:CON|PRN|AUX|NUL|COM[1-9¹²³]|LPT[1-9¹²³])(?:\..*)?$/i;
 
 function freeze(value) {
   if (value && typeof value === "object" && !Object.isFrozen(value)) {
@@ -24,24 +26,114 @@ function writeJson(path, value) { mkdirSync(dirname(path), { recursive: true });
 function round(value) { return Number(value.toFixed(6)); }
 function list(values) { return values.length === 0 ? "none" : values.join(", "); }
 
+function contained(root, target) {
+  const item = relative(root, target);
+  return item !== "" && item !== ".." && !item.startsWith(`..${sep}`) && !isAbsolute(item);
+}
+
+function trajectoryPath(root, caseId) {
+  if (typeof caseId !== "string" || !SAFE_CASE_ID.test(caseId) || WINDOWS_RESERVED.test(caseId)) {
+    throw new Error(`unsafe benchmark case ID: ${String(caseId)}`);
+  }
+  const target = resolve(root, `${caseId}.jsonl`);
+  if (!contained(root, target)) throw new Error(`unsafe benchmark case ID: ${caseId}`);
+  return target;
+}
+
+function managedArtifactPath(root, name) {
+  const target = resolve(root, name);
+  if (!contained(root, target)) throw new Error(`unsafe managed artifact path: ${name}`);
+  return target;
+}
+
+function prepareModeArtifacts(target, mode) {
+  const baselinePath = managedArtifactPath(target, "baseline-predictions.json");
+  const advancedPath = managedArtifactPath(target, "advanced-predictions.json");
+  const trajectoryRoot = managedArtifactPath(target, "trajectories");
+  const stalePaths = mode === "baseline"
+    ? [advancedPath, trajectoryRoot]
+    : mode === "advanced"
+      ? [baselinePath, trajectoryRoot]
+      : [trajectoryRoot];
+  for (const path of stalePaths) {
+    if (!contained(target, path)) throw new Error("refusing to prune a managed artifact outside the output directory");
+    if (existsSync(path)) rmSync(path, { recursive: true, force: true });
+  }
+  return { baselinePath, advancedPath, trajectoryRoot };
+}
+
 function git(args, fallback) {
   try { return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); }
   catch { return fallback; }
 }
 
-export function createGitState(runGit = git) {
-  const baseRevision = runGit(["rev-parse", "HEAD"], "unavailable");
-  const status = runGit(["status", "--porcelain", "--untracked-files=no"], "unknown");
-  const dirty = status === "unknown" ? null : status.length > 0;
+function dirtyStatus(status) {
+  return status === "unknown" ? null : status.length > 0;
+}
+
+function managedGitPaths(paths) {
+  return [...new Set(paths.map((path) => {
+    const item = relative(repositoryRoot, resolve(path));
+    if (item === "" || item === ".." || item.startsWith(`..${sep}`) || isAbsolute(item)) return null;
+    return item.replaceAll("\\", "/");
+  }).filter(Boolean))];
+}
+
+export function classifyGitState({
+  baseRevision,
+  branch,
+  trackedStatus,
+  wholeStatus,
+  sourceTrackedStatus,
+  sourceUntrackedStatus,
+  managedStatus,
+}) {
+  const trackedWorkingTreeDirty = dirtyStatus(trackedStatus);
+  const wholeWorkingTreeDirty = dirtyStatus(wholeStatus);
+  const sourceTrackedWorkingTreeDirty = dirtyStatus(sourceTrackedStatus);
+  const sourceUntrackedWorkingTreeDirty = dirtyStatus(sourceUntrackedStatus);
+  const managedArtifactDirty = dirtyStatus(managedStatus);
+  const sourceWorkingTreeDirty = sourceTrackedWorkingTreeDirty === true || sourceUntrackedWorkingTreeDirty === true
+    ? true
+    : sourceTrackedWorkingTreeDirty === false && sourceUntrackedWorkingTreeDirty === false
+      ? false
+      : null;
+  let sourceState = "unknown";
+  if (sourceWorkingTreeDirty === true) sourceState = "source-working-tree-dirty";
+  else if (sourceWorkingTreeDirty === false && wholeWorkingTreeDirty === false && managedArtifactDirty === false) sourceState = "clean-commit";
+  else if (sourceWorkingTreeDirty === false && wholeWorkingTreeDirty === true && managedArtifactDirty === true) sourceState = "clean-source-managed-artifacts-dirty";
+  const revisionAvailable = typeof baseRevision === "string" && /^[a-f0-9]{40}$/.test(baseRevision);
   return {
-    revision: dirty === false ? baseRevision : null,
+    revision: revisionAvailable && sourceWorkingTreeDirty === false && sourceState !== "unknown" ? baseRevision : null,
     baseRevision,
-    branch: runGit(["branch", "--show-current"], "unavailable"),
-    trackedWorkingTreeDirty: dirty,
+    branch,
+    trackedWorkingTreeDirty,
+    wholeWorkingTreeDirty,
+    sourceTrackedWorkingTreeDirty,
+    sourceUntrackedWorkingTreeDirty,
+    sourceWorkingTreeDirty,
+    managedArtifactDirty,
     packagingCommit: null,
     provenanceNote: "revision identifies the clean source commit; generated evidence is added by the subsequent packaging commit",
-    sourceState: dirty === null ? "unknown" : dirty ? "tracked-working-tree-dirty" : "clean-commit",
+    sourceState,
   };
+}
+
+export function createGitState(runGit = git, managedArtifactPaths = []) {
+  const managed = managedGitPaths(managedArtifactPaths);
+  const exclusions = managed.map((path) => `:(top,exclude,literal)${path}`);
+  const managedIncludes = managed.map((path) => `:(top,literal)${path}`);
+  return classifyGitState({
+    baseRevision: runGit(["rev-parse", "HEAD"], "unavailable"),
+    branch: runGit(["branch", "--show-current"], "unavailable"),
+    trackedStatus: runGit(["status", "--porcelain=v1", "--untracked-files=no"], "unknown"),
+    wholeStatus: runGit(["status", "--porcelain=v1", "--untracked-files=all"], "unknown"),
+    sourceTrackedStatus: runGit(["status", "--porcelain=v1", "--untracked-files=no", "--", ".", ...exclusions], "unknown"),
+    sourceUntrackedStatus: runGit(["ls-files", "--others", "--exclude-standard", "--", ".", ...exclusions], "unknown"),
+    managedStatus: managed.length === 0
+      ? ""
+      : runGit(["status", "--porcelain=v1", "--untracked-files=all", "--", ...managedIncludes], "unknown"),
+  });
 }
 
 export function createPublicBenchmarkProjection(benchmark) {
@@ -86,12 +178,12 @@ function metric(result) {
   return { numerator: result.primaryMetric.numerator, denominator: result.primaryMetric.denominator, value: result.primaryMetric.value };
 }
 
-function manifest({ benchmark, benchmarkSource, provider, model, repeats, execution }) {
+function manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState }) {
   const hard = benchmark.cases.find((item) => item.difficulty === "hard" && item.changeType === "precedence_exception");
   return {
     schemaVersion: 1,
     artifactKind: "rubricdelta-evaluation-manifest",
-    git: createGitState(),
+    git: gitState,
     benchmark: {
       id: benchmark.benchmarkId,
       schemaVersion: benchmark.schemaVersion,
@@ -208,7 +300,11 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
   if (provider !== "deterministic") throw new Error(`Provider ${provider} is unavailable in Task 7; Task 8 must install it before use`);
   if (model !== null) throw new Error("--model cannot be used with the deterministic provider");
   if (!Number.isInteger(repeats) || repeats < 1) throw new Error("repeats must be a positive integer");
-  const target = resolve(outputDir); mkdirSync(target, { recursive: true });
+  const target = resolve(outputDir);
+  const trajectoryRoot = managedArtifactPath(target, "trajectories");
+  for (const item of benchmark.cases) trajectoryPath(trajectoryRoot, item.id);
+  const gitState = createGitState(git, [target]);
+  mkdirSync(target, { recursive: true });
   const publicBenchmark = createPublicBenchmarkProjection(benchmark); const baselineRuns = []; const advancedRuns = [];
   for (let repeat = 0; repeat < repeats; repeat += 1) {
     if (mode !== "advanced") {
@@ -222,18 +318,19 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
   }
   const baselinePredictions = baselineRuns.length ? identical(baselineRuns, "baseline") : null;
   const advancedPredictions = advancedRuns.length ? identical(advancedRuns, "advanced") : null;
-  if (baselinePredictions) writeJson(resolve(target, "baseline-predictions.json"), baselinePredictions);
-  if (advancedPredictions) writeJson(resolve(target, "advanced-predictions.json"), advancedPredictions);
+  const artifactPaths = prepareModeArtifacts(target, mode);
+  if (baselinePredictions) writeJson(artifactPaths.baselinePath, baselinePredictions);
+  if (advancedPredictions) writeJson(artifactPaths.advancedPath, advancedPredictions);
   const baseline = baselinePredictions ? score(benchmark, baselinePredictions) : null;
   const advanced = advancedPredictions ? score(benchmark, advancedPredictions) : null;
   const execution = { startedAt, endedAt: new Date().toISOString(), runtimeMs: Number((performance.now() - startedMs).toFixed(3)) };
-  const manifestValue = manifest({ benchmark, benchmarkSource, provider, model, repeats, execution });
+  const manifestValue = manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState });
   const comparisonValue = comparison(manifestValue, baseline, advanced, repeats);
   writeJson(resolve(target, "manifest.json"), manifestValue); writeJson(resolve(target, "comparison.json"), comparisonValue);
   writeFileSync(resolve(target, "report.md"), report(manifestValue, comparisonValue), "utf8");
   if (advancedPredictions) {
-    const traces = resolve(target, "trajectories"); mkdirSync(traces, { recursive: true });
-    for (const item of advancedPredictions.cases) writeFileSync(resolve(traces, `${item.caseId}.jsonl`), `${item.trajectory.map(JSON.stringify).join("\n")}\n`, "utf8");
+    mkdirSync(trajectoryRoot, { recursive: true });
+    for (const item of advancedPredictions.cases) writeFileSync(trajectoryPath(trajectoryRoot, item.caseId), `${item.trajectory.map(JSON.stringify).join("\n")}\n`, "utf8");
   }
   return { manifest: manifestValue, baselinePredictions, advancedPredictions, comparison: comparisonValue, outputDir: target };
 }

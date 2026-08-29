@@ -59,22 +59,80 @@ function collectFiles(path) {
   return readdirSync(path).flatMap((entry) => collectFiles(join(path, entry)));
 }
 
-function findMp4DurationSeconds(buffer) {
-  const marker = Buffer.from("mvhd");
-  const position = buffer.indexOf(marker);
-  if (position < 0 || position + 24 >= buffer.length) return null;
-  const version = buffer[position + 4];
-  if (version === 0 && position + 24 <= buffer.length) {
-    const timescale = buffer.readUInt32BE(position + 16);
-    const duration = buffer.readUInt32BE(position + 20);
+function parseIsoBoxes(buffer, start = 0, end = buffer.length) {
+  const boxes = [];
+  let offset = start;
+  while (offset < end) {
+    if (end - offset < 8) throw new Error("truncated ISO-BMFF box header");
+    const size32 = buffer.readUInt32BE(offset);
+    const rawType = buffer.toString("ascii", offset + 4, offset + 8);
+    const type = /^[\x20-\x7e]{4}$/.test(rawType) ? rawType : "unknown";
+    let headerSize = 8;
+    let size = size32;
+    if (size32 === 1) {
+      if (end - offset < 16) throw new Error(`truncated extended ${type} box header`);
+      const extended = buffer.readBigUInt64BE(offset + 8);
+      if (extended > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error(`${type} box is too large`);
+      size = Number(extended);
+      headerSize = 16;
+    } else if (size32 === 0) {
+      size = end - offset;
+    }
+    if (size < headerSize || offset + size > end) throw new Error(`invalid ${type || "unknown"} box bounds`);
+    boxes.push({ type, start: offset, end: offset + size, dataStart: offset + headerSize });
+    offset += size;
+  }
+  return boxes;
+}
+
+function childBoxes(buffer, box) {
+  return parseIsoBoxes(buffer, box.dataStart, box.end);
+}
+
+function movieDurationSeconds(buffer, mvhd) {
+  if (mvhd.end - mvhd.dataStart < 20) throw new Error("mvhd box is truncated");
+  const version = buffer[mvhd.dataStart];
+  if (version === 0) {
+    const timescale = buffer.readUInt32BE(mvhd.dataStart + 12);
+    const duration = buffer.readUInt32BE(mvhd.dataStart + 16);
     return timescale === 0 ? null : duration / timescale;
   }
-  if (version === 1 && position + 36 <= buffer.length) {
-    const timescale = buffer.readUInt32BE(position + 28);
-    const duration = Number(buffer.readBigUInt64BE(position + 32));
+  if (version === 1) {
+    if (mvhd.end - mvhd.dataStart < 32) throw new Error("version 1 mvhd box is truncated");
+    const timescale = buffer.readUInt32BE(mvhd.dataStart + 20);
+    const duration = Number(buffer.readBigUInt64BE(mvhd.dataStart + 24));
     return timescale === 0 ? null : duration / timescale;
   }
-  return null;
+  throw new Error(`unsupported mvhd version ${version}`);
+}
+
+function inspectMp4(buffer) {
+  const top = parseIsoBoxes(buffer);
+  const ftyp = top.find((box) => box.type === "ftyp");
+  const moov = top.find((box) => box.type === "moov");
+  const mdat = top.find((box) => box.type === "mdat" && box.end > box.dataStart);
+  if (!ftyp || ftyp.end - ftyp.dataStart < 8) throw new Error("ISO-BMFF ftyp box is missing or truncated");
+  if (!moov) throw new Error("ISO-BMFF moov box is missing");
+  if (!mdat) throw new Error("ISO-BMFF media data is missing or empty");
+  const movie = childBoxes(buffer, moov);
+  const mvhd = movie.find((box) => box.type === "mvhd");
+  if (!mvhd) throw new Error("ISO-BMFF moov box has no mvhd metadata");
+  const duration = movieDurationSeconds(buffer, mvhd);
+  if (!Number.isFinite(duration) || duration <= 0) throw new Error("MP4 duration must be positive");
+  const tracks = movie.filter((box) => box.type === "trak");
+  const hasVideoTrack = tracks.some((trak) => {
+    const track = childBoxes(buffer, trak);
+    const mdia = track.find((box) => box.type === "mdia");
+    if (!track.some((box) => box.type === "tkhd") || !mdia) return false;
+    const media = childBoxes(buffer, mdia);
+    const hdlr = media.find((box) => box.type === "hdlr");
+    const minf = media.find((box) => box.type === "minf");
+    if (!media.some((box) => box.type === "mdhd") || !hdlr || !minf || hdlr.end - hdlr.dataStart < 12) return false;
+    const handler = buffer.toString("ascii", hdlr.dataStart + 8, hdlr.dataStart + 12);
+    return handler === "vide" && childBoxes(buffer, minf).some((box) => box.type === "stbl");
+  });
+  if (!hasVideoTrack) throw new Error("ISO-BMFF moov box has no complete video trak/mdia/minf/stbl structure");
+  return duration;
 }
 
 class Validation {
@@ -99,7 +157,26 @@ class Validation {
       this.fail("MISSING", relativePath, "create or regenerate this required item");
       return null;
     }
+    if (!statSync(path).isFile()) {
+      this.fail("INVALID TYPE", relativePath, "required item must be a regular file");
+      return null;
+    }
     return path;
+  }
+
+  substantive(relativePath, { minCharacters = 80, requirements = [] } = {}) {
+    const path = this.required(relativePath);
+    if (!path) return null;
+    const source = readFileSync(path, "utf8");
+    const count = source.replace(/\s/g, "").length;
+    if (count < minCharacters) {
+      this.fail("INSUBSTANTIAL", relativePath, `requires at least ${minCharacters} non-whitespace characters, found ${count}`);
+      return null;
+    }
+    for (const [label, pattern] of requirements) {
+      if (!pattern.test(source)) this.fail("MISSING CONTRACT", relativePath, label);
+    }
+    return source;
   }
 
   json(relativePath) {
@@ -187,7 +264,26 @@ function validateEvaluation(validation) {
     const orderedRecords = Object.fromEntries(benchmark.cases.map((item) => [item.id, item.records.map((record) => record.id)]));
     if (JSON.stringify(manifest.benchmark?.orderedRecordIdsByCase) !== JSON.stringify(orderedRecords)) validation.fail("ORDER MISMATCH", "manifest.benchmark.orderedRecordIdsByCase", "must equal frozen record order");
     if (manifest.provider?.name !== "deterministic" || manifest.provider?.model !== null || manifest.provider?.seed !== 0) validation.fail("MISMATCH", "manifest.provider", "build evidence must be deterministic with model null and seed 0");
-    if (typeof manifest.git?.revision !== "string" || !/^[a-f0-9]{40}$/.test(manifest.git.revision) || manifest.git.trackedWorkingTreeDirty !== false || manifest.git.sourceState !== "clean-commit") validation.fail("MISMATCH", "manifest.git", "evidence must identify a clean 40-character source revision with trackedWorkingTreeDirty=false");
+    const gitState = manifest.git ?? {};
+    const disclosedDirtyBooleans = [
+      "trackedWorkingTreeDirty",
+      "wholeWorkingTreeDirty",
+      "sourceTrackedWorkingTreeDirty",
+      "sourceUntrackedWorkingTreeDirty",
+      "sourceWorkingTreeDirty",
+      "managedArtifactDirty",
+    ].every((field) => typeof gitState[field] === "boolean");
+    const cleanRevision = typeof gitState.revision === "string" && /^[a-f0-9]{40}$/.test(gitState.revision);
+    const cleanSource = gitState.sourceWorkingTreeDirty === false
+      && gitState.sourceTrackedWorkingTreeDirty === false
+      && gitState.sourceUntrackedWorkingTreeDirty === false;
+    const consistentState = gitState.sourceState === "clean-commit"
+      ? gitState.wholeWorkingTreeDirty === false && gitState.managedArtifactDirty === false
+      : gitState.sourceState === "clean-source-managed-artifacts-dirty"
+        && gitState.wholeWorkingTreeDirty === true && gitState.managedArtifactDirty === true;
+    if (!cleanRevision || !disclosedDirtyBooleans || !cleanSource || !consistentState) {
+      validation.fail("MISMATCH", "manifest.git", "source working tree is dirty or provenance fields are incomplete/inconsistent; regenerate from a clean source state");
+    }
     if (!String(manifest.git?.provenanceNote ?? "").includes("subsequent packaging commit")) validation.fail("MISSING FIELD", "manifest.git.provenanceNote", "explain that evidence is added by the packaging commit");
     if (manifest.reviewBudget?.fraction !== 0.2 || Object.values(manifest.reviewBudget?.slotsByCase ?? {}).some((slots) => slots !== 2)) validation.fail("MISMATCH", "manifest.reviewBudget", "expected 20% and exactly two slots per case");
     for (const field of ["startedAt", "endedAt", "runtimeMs"]) if (!Object.hasOwn(manifest.execution ?? {}, field)) validation.fail("MISSING FIELD", `manifest.execution.${field}`, "record truthful run timing");
@@ -322,9 +418,16 @@ function finalTask8Paths() {
     "prompts/impact-investigator.v1.md",
     "prompts/independent-verifier.v1.md",
     "prompts/direct-baseline.v1.md",
+    "src/providers/contracts.js",
     "src/providers/openai.js",
     "src/providers/replay.js",
+    "src/agents/prompt-registry.js",
+    "src/agents/provider-workflow.js",
+    "src/evaluation/provider-predictions.js",
+    "scripts/capture-replay.js",
+    "data/benchmark/replay/rubricdelta-deterministic-source.v1.json",
     "tests/providers.test.js",
+    "tests/provider-evaluation.test.js",
   ];
 }
 
@@ -337,19 +440,136 @@ function finalTask9Paths() {
   ];
 }
 
+function validateFinalJavaScript(validation, relativePath) {
+  const source = validation.substantive(relativePath, { minCharacters: 16 });
+  if (!source) return false;
+  const absolute = join(validation.root, ...relativePath.split("/"));
+  const syntax = spawnSync(process.execPath, ["--check", absolute], {
+    encoding: "utf8",
+    timeout: 10_000,
+    maxBuffer: 256 * 1024,
+    windowsHide: true,
+  });
+  if (syntax.status !== 0) {
+    validation.fail("INVALID SCRIPT", relativePath, (syntax.stderr || syntax.stdout || syntax.error?.message || "syntax check failed").split("\n")[0]);
+    return false;
+  }
+  return true;
+}
+
+function validateFinalText(validation, relativePath) {
+  if (relativePath.startsWith("prompts/")) {
+    return validation.substantive(relativePath, {
+      minCharacters: 120,
+      requirements: [
+        ["declare a stable prompt ID and version", /(?:prompt\s*id|\bid\s*:).*\bversion\s*:/is],
+        ["treat guideline and record text as untrusted data", /untrusted/i],
+        ["forbid external tools", /(?:no|forbid|without).*external tool|external tool.*(?:not|forbid)/i],
+        ["require JSON output", /json/i],
+        ["abstain or escalate instead of inventing evidence", /abstain|escalat/i],
+        ["exclude benchmark ground truth", /ground truth/i],
+      ],
+    });
+  }
+  const requirements = relativePath === "artifacts/qa/README.md"
+    ? [["document viewport coverage", /mobile|desktop|viewport/i], ["document accessibility checks", /accessib|keyboard|focus/i], ["document test outcome", /pass|fail|result/i]]
+    : relativePath === "docs/MODEL_AND_COSTS.md"
+      ? [["document model selection", /model/i], ["document token or cost accounting", /token|cost|price/i]]
+      : relativePath === "docs/MAIN_FAILURE_MODE.md"
+        ? [["name the main failure mode", /failure|risk/i], ["document mitigation or recovery", /mitigat|recover|detect/i]]
+        : [["state the submission claim", /claim|thesis|hot take|argument/i]];
+  return validation.substantive(relativePath, { minCharacters: 100, requirements });
+}
+
+function runBounded(validation, kind, path, command, args, timeout) {
+  const result = spawnSync(command, args, {
+    cwd: validation.root,
+    encoding: "utf8",
+    timeout,
+    maxBuffer: 1024 * 1024,
+    windowsHide: true,
+  });
+  if (result.status !== 0) {
+    const reason = result.error?.code === "ETIMEDOUT" ? `timed out after ${timeout} ms` : "failed or contains invalid contracts";
+    validation.fail(kind, path, reason);
+    return false;
+  }
+  validation.pass(`${kind.toLowerCase()} passed`);
+  return true;
+}
+
 function validateFinalGates(validation, mode) {
   const task8 = finalTask8Paths();
   const task9 = finalTask9Paths();
   if (mode === "build") return { task8, task9 };
-  for (const path of [...task8, ...task9]) validation.required(path);
+
+  const promptPaths = task8.filter((path) => path.startsWith("prompts/"));
+  const javascriptPaths = task8.filter((path) => path.endsWith(".js"));
+  const testPaths = task8.filter((path) => path.startsWith("tests/"));
+  for (const path of promptPaths) validateFinalText(validation, path);
+  const javascriptValidity = new Map(javascriptPaths.map((path) => [path, validateFinalJavaScript(validation, path)]));
+  for (const path of task9) validateFinalText(validation, path);
+
+  const sourceContracts = [
+    ["src/providers/contracts.js", /ProviderError/],
+    ["src/providers/openai.js", /createOpenAIProvider/],
+    ["src/providers/replay.js", /createReplayProvider/],
+    ["src/agents/prompt-registry.js", /rule-compiler/],
+    ["src/agents/provider-workflow.js", /analyzeScenarioWithProvider/],
+    ["src/evaluation/provider-predictions.js", /provider/i],
+    ["scripts/capture-replay.js", /--check/],
+    ["tests/providers.test.js", /node:test/],
+    ["tests/provider-evaluation.test.js", /node:test/],
+  ];
+  for (const [path, pattern] of sourceContracts) {
+    const absolute = join(validation.root, ...path.split("/"));
+    if (existsSync(absolute) && statSync(absolute).isFile() && !pattern.test(readFileSync(absolute, "utf8"))) {
+      validation.fail("MISSING CONTRACT", path, `required marker ${pattern}`);
+    }
+  }
+
+  const replaySource = validation.substantive("data/benchmark/replay/rubricdelta-deterministic-source.v1.json", { minCharacters: 40 });
+  if (replaySource) {
+    try {
+      const fixture = JSON.parse(replaySource);
+      if (fixture.binding?.source?.kind !== "deterministic-role-capture") {
+        validation.fail("MISSING CONTRACT", "data/benchmark/replay/rubricdelta-deterministic-source.v1.json", "set binding.source.kind to deterministic-role-capture");
+      }
+    } catch (error) {
+      validation.fail("INVALID JSON", "data/benchmark/replay/rubricdelta-deterministic-source.v1.json", error.message);
+    }
+  }
+
+  if (testPaths.every((path) => javascriptValidity.get(path) === true)) {
+    runBounded(validation, "PROVIDER TESTS", testPaths.join(", "), process.execPath, ["--test", ...testPaths], 60_000);
+  } else if (testPaths.every((path) => existsSync(join(validation.root, ...path.split("/"))))) {
+    validation.fail("PROVIDER TESTS", testPaths.join(", "), "failed or contains invalid contracts");
+  }
+
+  let packageValue = null;
+  try {
+    packageValue = JSON.parse(readFileSync(join(validation.root, "package.json"), "utf8"));
+  } catch {
+    // The base validator reports package failures separately.
+  }
+  if (typeof packageValue?.scripts?.["replay:check"] !== "string") {
+    validation.fail("MISSING CONTRACT", "package.json#scripts.replay:check", "Task 8 must expose the bounded offline replay verifier");
+  } else if (javascriptValidity.get("scripts/capture-replay.js") === true && replaySource) {
+    const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+    runBounded(validation, "REPLAY CHECK", "package.json#scripts.replay:check", npm, ["run", "replay:check", "--silent"], 60_000);
+  }
+
   const videoPath = join(validation.root, "artifacts", "submission", "demo.mp4");
   if (!existsSync(videoPath)) {
     validation.fail("MISSING", "artifacts/submission/demo.mp4", "add the final hackathon video or revise the final gate to a documented hosted-video manifest");
   } else {
-    const duration = findMp4DurationSeconds(readFileSync(videoPath));
-    if (duration === null) validation.fail("INVALID VIDEO", "artifacts/submission/demo.mp4", "could not read MP4 duration");
-    else if (duration > 300) validation.fail("VIDEO TOO LONG", "artifacts/submission/demo.mp4", `${duration.toFixed(2)} seconds exceeds five minutes`);
-    else validation.pass(`local video duration ${duration.toFixed(2)} seconds`);
+    try {
+      const duration = inspectMp4(readFileSync(videoPath));
+      if (duration > 300) validation.fail("VIDEO TOO LONG", "artifacts/submission/demo.mp4", `${duration.toFixed(2)} seconds exceeds five minutes`);
+      else validation.pass(`local structurally valid video duration ${duration.toFixed(2)} seconds`);
+    } catch (error) {
+      validation.fail("INVALID VIDEO", "artifacts/submission/demo.mp4", `invalid ISO-BMFF container: ${error.message}`);
+    }
   }
   return { task8, task9 };
 }

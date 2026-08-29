@@ -46,7 +46,8 @@ function normalizedArtifact(file, source) {
   if (file === "manifest.json") {
     const value = JSON.parse(source);
     value.execution = { startedAt: "<volatile>", endedAt: "<volatile>", runtimeMs: "<volatile>" };
-    value.git = { revision: "<volatile>", baseRevision: "<volatile>", branch: value.git.branch, sourceState: "<volatile>" };
+    value.git.revision = "<volatile>";
+    value.git.baseRevision = "<volatile>";
     return JSON.stringify(value);
   }
   if (file === "report.md") {
