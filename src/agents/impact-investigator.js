@@ -47,9 +47,8 @@ function scoreFor(record, delta, analysis) {
   const exact = scopeEvidence.filter((item) => item.matchType === "exact");
   const semantic = scopeEvidence.filter((item) => item.matchType === "semantic-equivalent");
   const sourceLabels = new Set(delta.sourceLabels.map(cleanLabel));
-  const isKnownOldLabel = analysis.oldRules.some((rule) => cleanLabel(rule.label) === cleanLabel(record.existingLabel));
   const transition = targetLabel !== cleanLabel(record.existingLabel)
-    && (sourceLabels.has(cleanLabel(record.existingLabel)) || isKnownOldLabel);
+    && sourceLabels.has(cleanLabel(record.existingLabel));
   const boundary = boundaryMatches(delta.boundaryCases ?? analysis.boundaryCases ?? [], record.text);
   const alreadyTarget = targetLabel === cleanLabel(record.existingLabel);
   const exclusionEvidence = explicitExclusionMatches(delta, analysis, record.text);
@@ -107,7 +106,7 @@ export function rankImpactCandidates({ scenario, analysis, trace } = {}) {
       proposedLabel: best.targetLabel,
       score: best.score,
       scoreBreakdown: best.breakdown,
-      ruleDeltaIds: [best.delta.id],
+      ruleDeltaIds: best.delta.id === "unresolved" ? [] : [best.delta.id],
       evidence: best.evidence,
       status: "pending",
       inputIndex,

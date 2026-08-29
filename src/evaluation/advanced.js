@@ -1,5 +1,6 @@
 import { toPublicScenario } from "../domain/scenario.js";
 import { analyzeScenario } from "../agents/workflow.js";
+import { validateAdvancedWorkflowResult } from "../agents/contracts.js";
 
 export function createAdvancedPredictions(benchmark, options = {}) {
   const scenarioAnalyzer = options.scenarioAnalyzer ?? analyzeScenario;
@@ -8,12 +9,17 @@ export function createAdvancedPredictions(benchmark, options = {}) {
   if (provider !== "deterministic") throw new Error("The offline advanced adapter requires provider=deterministic");
   const cases = benchmark.cases.map((testCase) => {
     const scenario = toPublicScenario(testCase);
-    const result = scenarioAnalyzer(scenario, {
-      mode: "deterministic",
-      maxRecords: options.maxRecords ?? scenario.records.length,
-      maxRetries: options.maxRetries ?? 2,
-      runId: `evaluation-${scenario.id}`,
-    });
+    let result;
+    try {
+      result = validateAdvancedWorkflowResult(scenarioAnalyzer(scenario, {
+        mode: "deterministic",
+        maxRecords: options.maxRecords ?? scenario.records.length,
+        maxRetries: options.maxRetries ?? 2,
+        runId: `evaluation-${scenario.id}`,
+      }), scenario);
+    } catch (error) {
+      throw new Error(`Invalid advanced workflow result for ${scenario.id}: ${error.code ?? "INVALID_ADVANCED_RESULT"}`, { cause: error });
+    }
     return {
       caseId: scenario.id,
       rankedRecordIds: result.rankedCandidates.map((candidate) => candidate.recordId),

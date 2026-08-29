@@ -52,15 +52,18 @@ function phraseAt(recordTerms, phraseTerms, start) {
   return phraseTerms.every((term, offset) => recordTerms[start + offset]?.term === term);
 }
 
-function numericPriceEvidence(scopeTerm, recordTerms) {
-  if (!groupByTerm.get(scopeTerm)?.includes("price")) return null;
+function numericPriceEvidence(rawScope, scopeTerm, recordText, recordTerms) {
+  const priceContext = /\b(?:price|cost|amount|money|total|charge|charged|currency)s?\b/i;
+  const currencyContext = /[$€£¥₹]|\b(?:usd|eur|gbp|pkr|cad|aud|jpy|inr)\b/i;
+  if (!groupByTerm.get(scopeTerm)?.includes("price") || !priceContext.test(rawScope)) return null;
+  if (!priceContext.test(recordText) && !currencyContext.test(recordText)) return null;
   const numeric = [...new Set(recordTerms.filter(({ raw }) => /^\d+(?:\.\d+)?$/.test(raw)).map(({ raw }) => raw))];
   if (numeric.length < 2) return null;
   return {
-    scopeTerm,
+    scopeTerm: rawScope,
     recordTerm: numeric.join("→"),
     matchType: "semantic-equivalent",
-    explanation: `Scope term “${scopeTerm}” matches a record containing different numeric values (${numeric.join(", ")}).`,
+    explanation: `Money-context scope “${rawScope}” matches distinct currency or price values (${numeric.join(", ")}).`,
   };
 }
 
@@ -105,7 +108,7 @@ export function matchSemanticScope(scopeTerms, recordText) {
         });
         continue;
       }
-      const numeric = numericPriceEvidence(scopeTerm, recordTerms);
+      const numeric = numericPriceEvidence(rawScope, scopeTerm, recordText, recordTerms);
       if (numeric) evidence.push(numeric);
     }
   }
