@@ -10,4 +10,5 @@ export {
   rankBaselineCase,
   tokenize,
 } from "./baseline.js";
+export { createAdvancedPredictions } from "./advanced.js";
 export { evaluateCase, evaluatePredictions } from "./metrics.js";
