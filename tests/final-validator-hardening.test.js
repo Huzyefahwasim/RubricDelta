@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -38,7 +46,10 @@ function fixture(t) {
     recursive: true,
     filter(source) {
       const item = source.slice(root.length).replaceAll("\\", "/");
-      return !item.startsWith("/.git") && !item.startsWith("/.superpowers") && !item.startsWith("/tmp") && !item.startsWith("/artifacts/runs");
+      return !item.startsWith("/.git")
+        && !item.startsWith("/.superpowers")
+        && !item.startsWith("/tmp")
+        && !item.startsWith("/artifacts/runs");
     },
   });
   t.after(() => rmSync(dirname(path), { recursive: true, force: true }));
@@ -51,8 +62,28 @@ function write(rootPath, relativePath, value) {
   writeFileSync(path, value);
 }
 
+function writeJson(rootPath, relativePath, value) {
+  write(rootPath, relativePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
 function run(rootPath) {
-  return spawnSync(process.execPath, [validator, "--mode", "final-strict", "--root", rootPath], { encoding: "utf8" });
+  return spawnSync(process.execPath, [validator, "--mode", "final-strict", "--root", rootPath], {
+    encoding: "utf8",
+    timeout: 180_000,
+    maxBuffer: 4 * 1024 * 1024,
+  });
+}
+
+function output(result) {
+  return `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
+}
+
+function failLines(result) {
+  return output(result).split(/\r?\n/).filter((line) => line.startsWith("[FAIL]")).join("\n");
+}
+
+function passLines(result) {
+  return output(result).split(/\r?\n/).filter((line) => line.startsWith("[PASS]")).join("\n");
 }
 
 function fakeMvhdOnly() {
@@ -72,7 +103,7 @@ function box(type, ...payloads) {
   return Buffer.concat([header, payload]);
 }
 
-function structurallyValidMp4({ timescale = 1_000, duration = 120_000 } = {}) {
+function forgedOneByteMp4({ timescale = 1_000, duration = 120_000 } = {}) {
   const ftyp = box("ftyp", Buffer.from("isom", "ascii"), Buffer.alloc(4));
   const mvhdPayload = Buffer.alloc(20);
   mvhdPayload.writeUInt32BE(timescale, 12);
@@ -89,17 +120,68 @@ function structurallyValidMp4({ timescale = 1_000, duration = 120_000 } = {}) {
   return Buffer.concat([ftyp, movie, box("mdat", Buffer.from([1]))]);
 }
 
+function git(project, args) {
+  const result = spawnSync("git", ["-C", project, ...args], {
+    encoding: "utf8",
+    timeout: 30_000,
+    maxBuffer: 2 * 1024 * 1024,
+  });
+  assert.equal(result.status, 0, `git ${args.join(" ")}\n${output(result)}`);
+  return result.stdout.trim();
+}
+
+function initializeGitProvenance(project, { addQaAndVideoEvidence = false } = {}) {
+  git(project, ["init", "--initial-branch=main"]);
+  git(project, ["config", "user.email", "validator@example.invalid"]);
+  git(project, ["config", "user.name", "Validator Test"]);
+  git(project, ["add", "--all"]);
+  git(project, ["commit", "-m", "source revision"]);
+  const sourceRevision = git(project, ["rev-parse", "HEAD"]);
+
+  const manifestPath = "artifacts/evaluation/manifest.json";
+  const manifest = JSON.parse(readFileSync(join(project, ...manifestPath.split("/")), "utf8"));
+  manifest.git = {
+    ...(manifest.git ?? {}),
+    revision: sourceRevision,
+    baseRevision: sourceRevision,
+    branch: "main",
+    trackedWorkingTreeDirty: true,
+    wholeWorkingTreeDirty: true,
+    sourceTrackedWorkingTreeDirty: false,
+    sourceUntrackedWorkingTreeDirty: false,
+    sourceWorkingTreeDirty: false,
+    managedArtifactDirty: true,
+    packagingCommit: null,
+    provenanceNote: "revision identifies the clean source commit; generated evidence is added by the subsequent packaging commit",
+    sourceState: "clean-source-managed-artifacts-dirty",
+  };
+  writeJson(project, manifestPath, manifest);
+
+  if (addQaAndVideoEvidence) {
+    writeJson(project, "artifacts/qa/release.json", {
+      schemaVersion: 1,
+      artifactKind: "rubricdelta-release-qa",
+      revision: sourceRevision,
+      categories: { browser: { status: "PENDING" } },
+    });
+    write(project, "artifacts/submission/demo.mp4", forgedOneByteMp4());
+  }
+  git(project, ["add", "--all"]);
+  git(project, ["commit", "-m", "package release evidence"]);
+  return sourceRevision;
+}
+
 test("final-strict rejects whitespace placeholders and an mvhd-only fake video", (t) => {
   const project = fixture(t);
   for (const path of [...task8, ...task9]) write(project, path, " \n");
   write(project, "artifacts/submission/demo.mp4", fakeMvhdOnly());
 
   const result = run(project);
-  const output = `${result.stdout}\n${result.stderr}`;
-  assert.notEqual(result.status, 0, output);
-  assert.match(output, /INSUBSTANTIAL.*prompts\/rule-compiler\.v1\.md/i);
-  assert.match(output, /INSUBSTANTIAL.*docs\/MAIN_FAILURE_MODE\.md/i);
-  assert.match(output, /INVALID VIDEO.*(?:ftyp|moov|ISO-BMFF)/i);
+  const combined = output(result);
+  assert.notEqual(result.status, 0, combined);
+  assert.match(combined, /INSUBSTANTIAL.*prompts\/rule-compiler\.v1\.md/i);
+  assert.match(combined, /INSUBSTANTIAL.*docs\/MAIN_FAILURE_MODE\.md/i);
+  assert.match(combined, /INVALID VIDEO.*(?:ftyp|moov|ISO-BMFF)/i);
 });
 
 test("final-strict syntax-checks provider modules and executes provider contract tests", (t) => {
@@ -112,38 +194,178 @@ test("final-strict syntax-checks provider modules and executes provider contract
   write(project, "artifacts/submission/demo.mp4", fakeMvhdOnly());
 
   const result = run(project);
-  const output = `${result.stdout}\n${result.stderr}`;
-  assert.notEqual(result.status, 0, output);
-  assert.match(output, /INVALID SCRIPT.*src\/providers\/openai\.js/i);
-  assert.match(output, /PROVIDER TESTS.*(?:failed|invalid)/i);
+  const combined = output(result);
+  assert.notEqual(result.status, 0, combined);
+  assert.match(combined, /INVALID SCRIPT.*src\/providers\/openai\.js/i);
+  assert.match(combined, /(?:TASK 8|PROVIDER).*TESTS.*(?:failed|invalid)/i);
 });
 
-test("final-strict accepts the structure of a bounded positive-duration MP4", (t) => {
+test("final-strict rejects a forged MP4 with metadata but only one media byte", (t) => {
   const project = fixture(t);
-  write(project, "artifacts/submission/demo.mp4", structurallyValidMp4());
+  write(project, "artifacts/submission/demo.mp4", forgedOneByteMp4());
 
   const result = run(project);
-  const output = `${result.stdout}\n${result.stderr}`;
-  assert.match(output, /local structurally valid video duration 120\.00 seconds/i);
-  assert.doesNotMatch(output, /INVALID VIDEO|VIDEO TOO LONG/i);
+  const combined = output(result);
+  assert.notEqual(result.status, 0, combined);
+  assert.match(combined, /INVALID VIDEO.*(?:media|sample|decode|payload|substantial)/i);
+  assert.doesNotMatch(passLines(result), /video/i);
 });
 
 test("final-strict rejects zero movie timing and videos over five minutes", (t) => {
   const project = fixture(t);
   const video = "artifacts/submission/demo.mp4";
 
-  write(project, video, structurallyValidMp4({ timescale: 0, duration: 1 }));
+  write(project, video, forgedOneByteMp4({ timescale: 0, duration: 1 }));
   const zeroTimescale = run(project);
-  let output = `${zeroTimescale.stdout}\n${zeroTimescale.stderr}`;
-  assert.match(output, /INVALID VIDEO.*duration must be positive/i);
+  let combined = output(zeroTimescale);
+  assert.match(combined, /INVALID VIDEO.*duration must be positive/i);
 
-  write(project, video, structurallyValidMp4({ timescale: 1_000, duration: 0 }));
+  write(project, video, forgedOneByteMp4({ timescale: 1_000, duration: 0 }));
   const zero = run(project);
-  output = `${zero.stdout}\n${zero.stderr}`;
-  assert.match(output, /INVALID VIDEO.*duration must be positive/i);
+  combined = output(zero);
+  assert.match(combined, /INVALID VIDEO.*duration must be positive/i);
 
-  write(project, video, structurallyValidMp4({ timescale: 1_000, duration: 301_000 }));
+  write(project, video, forgedOneByteMp4({ timescale: 1_000, duration: 301_000 }));
   const long = run(project);
-  output = `${long.stdout}\n${long.stderr}`;
-  assert.match(output, /VIDEO TOO LONG.*301\.00 seconds/i);
+  combined = output(long);
+  assert.match(combined, /VIDEO TOO LONG.*301\.00 seconds/i);
+});
+
+test("final-strict rejects protocol-only QA, a generated reviewer, pending development evidence, and non-Git provenance", (t) => {
+  const project = fixture(t);
+  const result = run(project);
+  const failures = failLines(result);
+  assert.notEqual(result.status, 0, output(result));
+  assert.match(failures, /(?:artifacts\/qa\/release\.json|QA.*(?:NOT RUN|structured|result))/i);
+  assert.match(failures, /(?:human|participant).*(?:hackathon-evidence-generator|generated|owner)/i);
+  assert.match(failures, /development.*(?:pending|trajectory)|trajectory.*development/i);
+  assert.match(failures, /Git provenance.*(?:non-Git|repository)|non-Git.*provenance/i);
+  assert.doesNotMatch(passLines(result), /(?:release QA|human review|development-agent|Git provenance)/i);
+});
+
+test("final-strict requires every structured QA category to PASS at a concrete revision", (t) => {
+  const project = fixture(t);
+  write(
+    project,
+    "artifacts/qa/README.md",
+    `# Release QA\n\nEverything passed: browser, keyboard, accessibility, responsive, security, clean clone, human review, video, and tests. Final revision passed.\n${"All release work passed. ".repeat(12)}\n`,
+  );
+  writeJson(project, "artifacts/qa/release.json", {
+    schemaVersion: 1,
+    artifactKind: "rubricdelta-release-qa",
+    revision: "PENDING",
+    categories: {
+      automated: { status: "PASS" },
+      browser: { status: "PASS" },
+      keyboard: { status: "PASS" },
+      accessibility: { status: "PASS" },
+      security: { status: "PENDING" },
+      cleanCheckout: { status: "PASS" },
+      humanReview: { status: "PASS" },
+      video: { status: "PASS" },
+    },
+  });
+
+  const result = run(project);
+  const failures = failLines(result);
+  assert.notEqual(result.status, 0, output(result));
+  assert.match(failures, /artifacts\/qa\/release\.json.*revision|revision.*artifacts\/qa\/release\.json/i);
+  assert.match(failures, /(?:QA|release\.json).*(?:responsive.*missing|missing.*responsive)/i);
+  assert.match(failures, /(?:QA|release\.json).*security.*(?:PENDING|PASS)/i);
+  assert.doesNotMatch(passLines(result), /release QA/i);
+});
+
+test("final-strict does not count a generated approve/reject/escalate/undo sequence as human proof", (t) => {
+  const project = fixture(t);
+  const reviewer = "hackathon-evidence-generator";
+  const decisions = [
+    { type: "human-decision", recordId: "fraud-08", decision: "approve" },
+    { type: "human-undo", recordId: "fraud-08", undoneSequence: 1 },
+    { type: "human-decision", recordId: "fraud-03", decision: "reject" },
+    { type: "human-decision", recordId: "fraud-05", decision: "escalate" },
+  ];
+  const lines = decisions.map((item, index) => JSON.stringify({
+    runId: "generated-proof",
+    scenarioId: "fraud-overrides-refunds",
+    sequence: index + 1,
+    timestamp: `2026-08-30T00:00:0${index}.000Z`,
+    agent: "human-reviewer",
+    phase: "human-checkpoint",
+    type: item.type,
+    payload: {
+      type: item.type === "human-undo" ? "undo" : "decision",
+      sequence: index + 1,
+      timestamp: `2026-08-30T00:00:0${index}.000Z`,
+      reviewer,
+      ...item,
+    },
+  }));
+  write(project, "artifacts/representative-trajectories/human-checkpoint.jsonl", `${lines.join("\n")}\n`);
+
+  const result = run(project);
+  assert.notEqual(result.status, 0, output(result));
+  assert.match(failLines(result), /(?:human|participant).*(?:hackathon-evidence-generator|generated|owner)/i);
+  assert.doesNotMatch(passLines(result), /human review/i);
+});
+
+test("final-strict credential scan covers structured QA and development disclosure without echoing values", (t) => {
+  const project = fixture(t);
+  const qaSecret = "github_pat_11VALIDATORPRIVATEQASECRET123456789";
+  const qaProseSecret = "validator-private-qa-bearer-123456789";
+  const developmentSecret = "validator-private-development-key-987654321";
+  writeJson(project, "artifacts/qa/release.json", {
+    schemaVersion: 1,
+    artifactKind: "rubricdelta-release-qa",
+    credential: qaSecret,
+  });
+  appendFileSync(
+    join(project, "artifacts", "qa", "README.md"),
+    `\nAuthorization: Bearer ${qaProseSecret}\n`,
+    "utf8",
+  );
+  appendFileSync(
+    join(project, "docs", "DEVELOPMENT_AGENT_DISCLOSURE.md"),
+    `\nOPENAI_API_KEY=${developmentSecret}\n`,
+    "utf8",
+  );
+
+  const result = run(project);
+  const combined = output(result);
+  assert.notEqual(result.status, 0, combined);
+  for (const path of [
+    "artifacts/qa/release.json",
+    "artifacts/qa/README.md",
+    "docs/DEVELOPMENT_AGENT_DISCLOSURE.md",
+  ]) {
+    assert.match(combined, new RegExp(`\\[FAIL\\].*SECRET.*${path.replaceAll("/", "\\/")}`, "i"));
+  }
+  for (const secret of [qaSecret, qaProseSecret, developmentSecret]) {
+    assert.doesNotMatch(combined, new RegExp(secret));
+  }
+  assert.doesNotMatch(passLines(result), /credential|secret/i);
+});
+
+test("final-strict allows a clean source revision followed only by QA and video evidence commits", (t) => {
+  const project = fixture(t);
+  initializeGitProvenance(project, { addQaAndVideoEvidence: true });
+
+  const result = run(project);
+  assert.doesNotMatch(
+    failLines(result),
+    /manifest\.git\.revision|Git provenance|source-to-HEAD.*outside|source working tree.*dirty/i,
+  );
+});
+
+test("final-strict measures source dirtiness instead of trusting clean manifest booleans", (t) => {
+  const project = fixture(t);
+  initializeGitProvenance(project);
+  appendFileSync(join(project, "src", "providers", "openai.js"), "\n// uncommitted source drift\n", "utf8");
+
+  const result = run(project);
+  assert.notEqual(result.status, 0, output(result));
+  assert.match(
+    failLines(result),
+    /(?:Git provenance|manifest\.git).*(?:dirty|uncommitted|working tree)|(?:dirty|uncommitted).*(?:Git provenance|manifest\.git)/i,
+  );
+  assert.doesNotMatch(passLines(result), /Git provenance/i);
 });

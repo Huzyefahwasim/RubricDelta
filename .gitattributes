@@ -5,3 +5,6 @@
 /artifacts/evaluation/** text eol=lf
 /artifacts/representative-trajectories/** text eol=lf
 /artifacts/expected-replay-report/** text eol=lf
+/prompts/*.md text eol=lf
+/artifacts/experiments/** text eol=lf
+/data/benchmark/replay/*.json text eol=lf

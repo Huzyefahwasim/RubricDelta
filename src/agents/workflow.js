@@ -1,6 +1,6 @@
 import { validateScenario } from "../domain/validation.js";
 import { extractRoutingRules } from "../domain/rules.js";
-import { analyzePolicy } from "./policy-analyst.js";
+import { analyzePolicy, recoverRuleChanges } from "./policy-analyst.js";
 import { createTraceRecorder } from "./trace.js";
 import { rankImpactCandidates } from "./impact-investigator.js";
 import { verifyCandidate } from "./verifier.js";
@@ -15,62 +15,14 @@ const EMPTY_BREAKDOWN = Object.freeze({
   explicitExclusionMatch: 0,
 });
 
-function cleanLabel(label) {
-  return String(label ?? "").replace(/[,:;.!?]+$/g, "").trim();
-}
-
-function ruleTerms(rule) {
-  return [...rule.conditions, ...rule.exceptions];
-}
-
-function overlap(left, right) {
-  const rightSet = new Set(right);
-  return left.filter((item) => rightSet.has(item)).length;
-}
-
 function recoverPolicyAnalysis(scenario) {
   const oldRules = extractRoutingRules(scenario.oldGuideline);
   const newRules = extractRoutingRules(scenario.newGuideline);
-  if (oldRules.length === 0 || newRules.length === 0) throw new ContractError("Policy recovery requires cited old and new routing rules", "POLICY_RECOVERY_UNAVAILABLE");
-  const deltas = [];
-  const linkedOldIds = new Set();
-  const unresolvedRuleIds = [];
-  for (const newRule of newRules) {
-    const sameLabel = oldRules.find((rule) => cleanLabel(rule.label) === cleanLabel(newRule.label));
-    const candidates = oldRules
-      .map((rule, inputIndex) => ({ rule, inputIndex, score: overlap(ruleTerms(rule), ruleTerms(newRule)) }))
-      .sort((left, right) => right.score - left.score || left.inputIndex - right.inputIndex);
-    const oldRule = sameLabel ?? (candidates[0]?.score > 0 ? candidates[0].rule : null);
-    if (!oldRule) {
-      unresolvedRuleIds.push(newRule.id);
-      continue;
-    }
-    linkedOldIds.add(oldRule.id);
-    const scopeTerms = [...new Set([...ruleTerms(oldRule), ...ruleTerms(newRule)])];
-    deltas.push({
-      id: `recovered-delta-${deltas.length + 1}`,
-      type: cleanLabel(oldRule.label) === cleanLabel(newRule.label) ? "scope-changed" : "label-changed",
-      oldRuleIds: [oldRule.id],
-      newRuleIds: [newRule.id],
-      targetLabel: cleanLabel(newRule.label),
-      sourceLabels: [cleanLabel(oldRule.label)],
-      scopeTerms,
-      boundaryCases: scopeTerms.map((term) => `Cases mentioning ${term}`),
-      precedenceChanged: oldRule.precedence !== newRule.precedence,
-      citations: [oldRule.citation, newRule.citation],
-      ambiguity: "high",
-    });
+  try {
+    return { oldRules, newRules, ...recoverRuleChanges({ oldRules, newRules }) };
+  } catch {
+    throw new ContractError("Policy recovery requires cited old and new routing rules", "POLICY_RECOVERY_UNAVAILABLE");
   }
-  for (const oldRule of oldRules) if (!linkedOldIds.has(oldRule.id)) unresolvedRuleIds.push(oldRule.id);
-  return {
-    oldRules,
-    newRules,
-    deltas,
-    boundaryCases: [...new Set(deltas.flatMap((delta) => delta.boundaryCases))],
-    recovered: true,
-    unresolved: unresolvedRuleIds.length > 0 || deltas.length === 0,
-    unresolvedRuleIds,
-  };
 }
 
 function unresolvedAnalysis(scenario) {
@@ -223,7 +175,9 @@ export function analyzeScenario(scenario, options = {}) {
   const verificationLimit = Math.min(maxRecords, ranked.length);
   const candidateVerifier = options.candidateVerifier ?? verifyCandidate;
   const rankedCandidates = ranked.map((candidate, index) => {
-    if (index >= verificationLimit || rankingFailed) return { ...candidate, verifier: uncertainVerifier(index >= verificationLimit ? "Verification budget was exhausted before this candidate could be challenged." : undefined) };
+    if (index >= verificationLimit || rankingFailed) {
+      return { ...candidate, verifier: uncertainVerifier(index >= verificationLimit ? "Verification budget was exhausted before this candidate could be challenged." : undefined) };
+    }
     const { score: _score, scoreBreakdown: _scoreBreakdown, ...verifierCandidate } = candidate;
     let verifier;
     let lastError;

@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-removed-experiment-manifest",
+  "experimentId": "EXP-002",
+  "title": "Remove unsupported cross-delta label-transition inference",
+  "reconstruction": {
+    "type": "retrospective",
+    "method": "isolated-git-archives",
+    "node": "v24.19.0",
+    "legacyRuntimeExposed": false,
+    "perSystemRuntimeClaim": null
+  },
+  "revisions": {
+    "before": "21e5cc4b2dc2d1612b50e479e9639c9f0279e79e",
+    "after": "ba60a574ad3ec065039687651c808521ee420634"
+  },
+  "sharedGitObjects": {
+    "data/benchmark/benchmark.json": "5dafb1adde80ffbc5598bbfa6a0ba36bd6c1030c",
+    "src/evaluation/metrics.js": "ba90be783b4795a7511722b4eeb72daf108bce90",
+    "src/evaluation/benchmark.js": "f97f206b694e7506df4cd42848d9c9b563a9b662",
+    "src/evaluation/baseline.js": "37a573c9c6569596360929b0e638f57b15efce38"
+  },
+  "changedGitObjects": {
+    "src/agents/impact-investigator.js": {
+      "before": "c5b75b3624debdc1696dd04ded8e8fd422d4f7cd",
+      "after": "bd0e3b9746fb9d082aa329ae730d0b79cf9603fc"
+    },
+    "src/evaluation/advanced.js": {
+      "before": "87ef2e5b388e89b887cdf5bff9b1b5367110227e",
+      "after": "78e738f29e691241f28cb08d8238e9eb13576b15"
+    }
+  },
+  "frozenEvaluation": {
+    "benchmarkId": "support-routing-drift-v1",
+    "caseCount": 10,
+    "recordCount": 100,
+    "affectedRecordCount": 20,
+    "reviewBudgetFraction": 0.2,
+    "reviewSlotsPerCase": 2,
+    "provider": "deterministic",
+    "seed": 0,
+    "protocolV1AndV2Equivalent": true
+  },
+  "files": {
+    "before-predictions.json": {
+      "sha256": "e2696b9ac7b8221c9a7b8ab553c88acd0568f85ba4873b990834ba1af40990ac",
+      "bytes": 8084
+    },
+    "after-predictions.json": {
+      "sha256": "c0cfc16c1cdaa1c4ef73c727bcb6cbe013eac6438da7a209bc2ed60ec896bff9",
+      "bytes": 4883
+    },
+    "comparison.json": {
+      "sha256": "cd8fb9a7348b6604f5836f40baf893655a5cb9d06f7d0592aad6e61ba76124a8",
+      "bytes": 3190
+    },
+    "tests.json": {
+      "sha256": "3ee466f479fbc2815873706f07301838dd5b74489ab5319b76c3f6a99c5e5a01",
+      "bytes": 889
+    },
+    "README.md": {
+      "sha256": "aa6be8d86b4e9d86a5edd5719f44a051ee642d75fdcc556ac3ce680857b39942",
+      "bytes": 2129
+    }
+  },
+  "fileHashing": {
+    "algorithm": "sha256",
+    "input": "raw-file-bytes",
+    "lineEndings": "lf-enforced-by-gitattributes"
+  }
+}

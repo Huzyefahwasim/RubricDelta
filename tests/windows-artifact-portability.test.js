@@ -177,5 +177,7 @@ test("validator rejects a source commit added after the disclosed evidence revis
   git(clone, ["commit", "-m", "source change after evidence"]);
   const result = validate(clone);
   assert.notEqual(result.status, 0);
-  assert.match(`${result.stdout}\n${result.stderr}`, /manifest\.git\.revision.*outside the managed evidence roots/i);
+  const diagnostic = result.stdout + "\n" + result.stderr;
+  assert.match(diagnostic, /manifest\.git\.revision.*source-to-HEAD commits contain non-evidence changes/i);
+  assert.doesNotMatch(diagnostic, /bounded fail-closed validator error/i);
 });

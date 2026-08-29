@@ -18,8 +18,12 @@ function temp(t, prefix) {
   return path;
 }
 
-function run(script, args) {
-  return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: "utf8", env: { ...process.env } });
+function run(script, args, env = {}) {
+  return spawnSync(process.execPath, [script, ...args], {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, ...env },
+  });
 }
 
 function json(path) {
@@ -128,7 +132,7 @@ test("paired CLI writes fair complete artifacts, exact improvement, hard case, a
   assert.match(manifest.execution.endedAt, /^2026-/);
   assert.ok(manifest.execution.runtimeMs >= 0);
   assert.equal(manifest.execution.status, "complete");
-  assert.equal(manifest.replay.status, "deferred-task-8");
+  assert.equal(manifest.replay.status, "not-selected");
   assert.equal(manifest.replay.substituted, false);
   assert.deepEqual(comparison.improvement, {
     metric: "microAffectedRecallAtReviewBudget",
@@ -180,15 +184,15 @@ test("only declared volatile fields differ across deterministic repeats; equals,
   const predictions = run(scripts.evaluate, ["--predictions", join(first, "advanced-predictions.json"), "--compact"]);
   assert.equal(predictions.status, 0, predictions.stderr);
   assert.equal(JSON.parse(predictions.stdout).primaryMetric.value, 0.9);
-  for (const [args, pattern] of [
+  for (const [args, pattern, env = {}] of [
     [["--mode", "bad"], /--mode.*baseline.*advanced.*both/i],
     [["--mode", "both", "--repeats", "0"], /--repeats.*positive integer/i],
     [["--baseline", "--mode", "baseline"], /conflict/i],
     [["--mode", "both", "--provider", "deterministic", "--model", "x"], /--model.*deterministic/i],
-    [["--mode", "both", "--provider", "replay"], /replay.*unavailable.*Task 8/i],
-    [["--mode", "both", "--provider", "openai", "--model", "pinned"], /openai.*unavailable.*Task 8/i],
+    [["--mode", "both", "--provider", "replay"], /--replay-fixture.*required/i],
+    [["--mode", "both", "--provider", "openai", "--model", "pinned"], /OPENAI_API_KEY.*required/i, { OPENAI_API_KEY: "" }],
   ]) {
-    const failed = run(scripts.evaluate, args);
+    const failed = run(scripts.evaluate, args, env);
     assert.notEqual(failed.status, 0, args.join(" "));
     assert.match(failed.stderr, pattern);
     assert.doesNotMatch(failed.stderr, /falling back|substitut/i);
@@ -210,7 +214,7 @@ test("evidence generator captures real workflow/server branches and a hash-bound
   assert.ok(jsonl(join(representative, "uncertain-abstention.jsonl")).some((event) => event.agent === "skeptical-verifier" && event.payload?.verdict === "uncertain"));
   assert.ok(jsonl(join(representative, "human-checkpoint.jsonl")).some((event) => event.agent === "human-reviewer" && event.type === "human-decision" && event.payload?.reviewer === "hackathon-evidence-generator"));
   const reference = json(join(replay, "reference-comparison.json"));
-  assert.equal(reference.status, "expected-reference-only-task-7");
+  assert.equal(reference.status, "deterministic-reference-post-task-8");
   assert.equal(reference.replayOperational, false);
   assert.equal(reference.baseline.primaryMetric.value, 0.8);
   assert.equal(reference.advanced.primaryMetric.value, 0.9);
@@ -218,7 +222,7 @@ test("evidence generator captures real workflow/server branches and a hash-bound
   assert.match(reference.artifacts.advancedPredictionsSha256, /^[a-f0-9]{64}$/);
 });
 
-test("build validator is explicitly NON-FINAL/pass and final-strict fails on named Task 8/9 gates", () => {
+test("build validator is explicitly NON-FINAL/pass and final-strict still fails on named Task 9 gates", () => {
   const build = run(scripts["validate-submission"], ["--mode", "build", "--root", root]);
   assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
   assert.ok(build.stdout.startsWith("MODE: BUILD — NON-FINAL\n"));
@@ -229,8 +233,23 @@ test("build validator is explicitly NON-FINAL/pass and final-strict fails on nam
   const strict = run(scripts["validate-submission"], ["--mode=final-strict", `--root=${root}`]);
   assert.notEqual(strict.status, 0);
   assert.ok(strict.stdout.startsWith("MODE: FINAL-STRICT\n"));
-  assert.match(strict.stdout, /prompts\/rule-compiler\.v1\.md/);
-  assert.match(strict.stdout, /docs\/MAIN_FAILURE_MODE\.md/);
+  for (const role of [
+    "rule-compiler",
+    "change-analyst",
+    "impact-investigator",
+    "independent-verifier",
+    "direct-baseline",
+  ]) {
+    assert.ok(existsSync(join(root, "prompts", `${role}.v1.md`)), role);
+  }
+  for (const path of [
+    "docs/MAIN_FAILURE_MODE.md",
+    "docs/HOT_TAKE.md",
+    "docs/MODEL_AND_COSTS.md",
+    "artifacts/qa/README.md",
+  ]) {
+    assert.ok(existsSync(join(root, ...path.split("/"))), path);
+  }
   assert.match(strict.stdout, /video/i);
 });
 

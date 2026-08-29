@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-removed-experiment-comparison",
+  "experimentId": "EXP-002",
+  "reconstruction": "retrospective",
+  "benchmark": {
+    "id": "support-routing-drift-v1",
+    "blob": "5dafb1adde80ffbc5598bbfa6a0ba36bd6c1030c",
+    "caseCount": 10,
+    "recordCount": 100,
+    "affectedRecordCount": 20,
+    "reviewBudgetFraction": 0.2,
+    "reviewSlotsPerCase": 2
+  },
+  "protocolEquivalence": {
+    "historicalImplementation": {
+      "id": "rubricdelta-evaluation-v1",
+      "calculation": "max(1, ceil(recordCount * fraction))",
+      "slotsForTenRecordsAtTwentyPercent": 2
+    },
+    "currentImplementation": {
+      "id": "rubricdelta-evaluation-v2",
+      "calculation": "max(1, floor(recordCount * fraction))",
+      "slotsForTenRecordsAtTwentyPercent": 2
+    },
+    "equivalentOnThisBenchmark": true
+  },
+  "scores": {
+    "baseline": {
+      "before": { "numerator": 16, "denominator": 20, "value": 0.8 },
+      "after": { "numerator": 16, "denominator": 20, "value": 0.8 }
+    },
+    "advanced": {
+      "before": { "numerator": 19, "denominator": 20, "value": 0.95 },
+      "after": { "numerator": 18, "denominator": 20, "value": 0.9 },
+      "absoluteChange": -0.05,
+      "truePositiveChange": -1
+    }
+  },
+  "selectedQueueDifferences": [
+    {
+      "caseId": "assistive-technology-blocker",
+      "beforeSelectedRecordIds": ["a11y-02", "a11y-04"],
+      "afterSelectedRecordIds": ["a11y-03", "a11y-07"],
+      "beforeTruePositiveIds": ["a11y-02", "a11y-04"],
+      "afterTruePositiveIds": [],
+      "truePositiveChange": -2
+    },
+    {
+      "caseId": "bank-chargeback-filed",
+      "beforeSelectedRecordIds": ["dispute-02", "dispute-04"],
+      "afterSelectedRecordIds": ["dispute-02", "dispute-07"],
+      "beforeTruePositiveIds": ["dispute-02"],
+      "afterTruePositiveIds": ["dispute-02", "dispute-07"],
+      "truePositiveChange": 1
+    }
+  ],
+  "unchangedSelectedQueueCaseIds": [
+    "fraud-overrides-refunds",
+    "identity-check-login",
+    "deceased-account-owner",
+    "perishable-delivery-quality",
+    "legal-data-deletion",
+    "security-vulnerability",
+    "multi-customer-outage",
+    "regulated-text-translation"
+  ],
+  "engineeringChange": {
+    "name": "remove-unsupported-cross-delta-label-transition",
+    "sourcePath": "src/agents/impact-investigator.js",
+    "beforeBlob": "c5b75b3624debdc1696dd04ded8e8fd422d4f7cd",
+    "afterBlob": "bd0e3b9746fb9d082aa329ae730d0b79cf9603fc",
+    "beforeBehavior": "A record could earn transition points when its label matched any compiled old rule, even when that label was absent from the selected delta's source labels.",
+    "afterBehavior": "A record earns transition points only when its label appears in the selected delta's source labels.",
+    "decision": "remove",
+    "reason": "The higher score depended on evidence that the selected delta did not support."
+  },
+  "causalScope": "The after revision also added adjacent validation hardening. This retrospective records the historical before-and-after result and does not claim an isolated causal ablation.",
+  "perSystemRuntimeMs": {
+    "baseline": null,
+    "beforeAdvanced": null,
+    "afterAdvanced": null
+  }
+}

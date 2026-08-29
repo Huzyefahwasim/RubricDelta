@@ -58,7 +58,7 @@ The verifier cannot approve an export.
 ## Retry policy
 
 - Each stage receives two retries.
-- Schema failure uses a repair instruction that names the invalid fields.
+- Schema failure uses a bounded static repair directive that identifies a trusted schema path class without repeating rejected output or attacker-controlled field names.
 - Tool failure retries only idempotent reads.
 - Contradictory evidence routes the record to escalation.
 - Exhausted retries produce a failed stage event and a partial, reproducible run.

@@ -17,6 +17,7 @@
 - The benchmark, replay, tests, and demo require no network or credentials.
 - Production workflow modules must not import or read benchmark ground-truth fields.
 - The primary metric remains micro affected-record recall at a 20 percent review budget.
+- The binding review-budget contract is `rubricdelta-evaluation-v2`: `max(1, floor(recordCount * fraction))`. See `docs/superpowers/plans/2026-08-29-rubricdelta-evaluation-protocol-v2.md`.
 - Baseline and advanced systems use the same public inputs, review budget, provider, and model in paired comparisons.
 - Model output and user input remain untrusted until schema checks pass.
 - Only server-owned human approvals can enter an export.

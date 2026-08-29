@@ -160,7 +160,7 @@ Do not edit these events by hand; regenerate them from the command above.
   const advancedSource = readFileSync(join(options.evaluationDir, "advanced-predictions.json"));
   const reference = {
     schemaVersion: 1,
-    status: "expected-reference-only-task-7",
+    status: "deterministic-reference-post-task-8",
     provider: "deterministic",
     replayOperational: false,
     substituted: false,
@@ -176,7 +176,7 @@ Do not edit these events by hand; regenerate them from the command above.
   writeJson(join(options.expectedReplayDir, "reference-comparison.json"), reference);
   writeFileSync(join(options.expectedReplayDir, "README.md"), `# Expected replay reference
 
-Task 7 records this deterministic result as the exact reference Task 8 replay must reproduce. Replay is not operational in this build and the CLI fails instead of substituting deterministic output.
+This post-Task-8 file records the deterministic default's exact reference result. Replay was not selected for this reference, so \`replayOperational\` is false. The separate explicit \`npm run eval:replay\` workflow is operational and must reproduce the same bound predictions without claiming a live OpenAI run.
 
 - Baseline: ${reference.baseline.primaryMetric.numerator}/${reference.baseline.primaryMetric.denominator} = ${reference.baseline.primaryMetric.value.toFixed(2)}
 - Advanced: ${reference.advanced.primaryMetric.numerator}/${reference.advanced.primaryMetric.denominator} = ${reference.advanced.primaryMetric.value.toFixed(2)}

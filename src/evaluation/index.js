@@ -12,3 +12,4 @@ export {
 } from "./baseline.js";
 export { createAdvancedPredictions } from "./advanced.js";
 export { evaluateCase, evaluatePredictions } from "./metrics.js";
+export { EVALUATION_PROTOCOL } from "./protocol.js";

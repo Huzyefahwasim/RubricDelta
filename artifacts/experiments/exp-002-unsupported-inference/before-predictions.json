@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-removed-experiment-predictions",
+  "experimentId": "EXP-002",
+  "position": "before",
+  "sourceRevision": "21e5cc4b2dc2d1612b50e479e9639c9f0279e79e",
+  "benchmarkBlob": "5dafb1adde80ffbc5598bbfa6a0ba36bd6c1030c",
+  "capture": {
+    "method": "retrospective-isolated-git-archive",
+    "node": "v24.19.0",
+    "provider": "deterministic",
+    "seed": 0,
+    "perSystemRuntimeMs": null
+  },
+  "systems": {
+    "baseline": {
+      "metadata": {
+        "system": "added-guideline-term-overlap-baseline",
+        "provider": "deterministic",
+        "seed": 0
+      },
+      "cases": [
+        {
+          "caseId": "fraud-overrides-refunds",
+          "rankedRecordIds": [
+            "fraud-03",
+            "fraud-05",
+            "fraud-01",
+            "fraud-02",
+            "fraud-04",
+            "fraud-06",
+            "fraud-07",
+            "fraud-08",
+            "fraud-09",
+            "fraud-10"
+          ]
+        },
+        {
+          "caseId": "identity-check-login",
+          "rankedRecordIds": [
+            "access-02",
+            "access-06",
+            "access-01",
+            "access-03",
+            "access-04",
+            "access-05",
+            "access-07",
+            "access-08",
+            "access-09",
+            "access-10"
+          ]
+        },
+        {
+          "caseId": "deceased-account-owner",
+          "rankedRecordIds": [
+            "estate-02",
+            "estate-07",
+            "estate-09",
+            "estate-01",
+            "estate-03",
+            "estate-04",
+            "estate-05",
+            "estate-06",
+            "estate-08",
+            "estate-10"
+          ]
+        },
+        {
+          "caseId": "perishable-delivery-quality",
+          "rankedRecordIds": [
+            "quality-04",
+            "quality-02",
+            "quality-01",
+            "quality-03",
+            "quality-05",
+            "quality-06",
+            "quality-07",
+            "quality-08",
+            "quality-09",
+            "quality-10"
+          ]
+        },
+        {
+          "caseId": "legal-data-deletion",
+          "rankedRecordIds": [
+            "privacy-02",
+            "privacy-06",
+            "privacy-01",
+            "privacy-03",
+            "privacy-04",
+            "privacy-05",
+            "privacy-07",
+            "privacy-08",
+            "privacy-09",
+            "privacy-10"
+          ]
+        },
+        {
+          "caseId": "security-vulnerability",
+          "rankedRecordIds": [
+            "security-02",
+            "security-01",
+            "security-03",
+            "security-04",
+            "security-05",
+            "security-06",
+            "security-07",
+            "security-08",
+            "security-09",
+            "security-10"
+          ]
+        },
+        {
+          "caseId": "assistive-technology-blocker",
+          "rankedRecordIds": [
+            "a11y-04",
+            "a11y-02",
+            "a11y-01",
+            "a11y-03",
+            "a11y-05",
+            "a11y-06",
+            "a11y-07",
+            "a11y-08",
+            "a11y-09",
+            "a11y-10"
+          ]
+        },
+        {
+          "caseId": "bank-chargeback-filed",
+          "rankedRecordIds": [
+            "dispute-07",
+            "dispute-02",
+            "dispute-01",
+            "dispute-03",
+            "dispute-04",
+            "dispute-05",
+            "dispute-06",
+            "dispute-08",
+            "dispute-09",
+            "dispute-10"
+          ]
+        },
+        {
+          "caseId": "multi-customer-outage",
+          "rankedRecordIds": [
+            "outage-02",
+            "outage-03",
+            "outage-05",
+            "outage-01",
+            "outage-04",
+            "outage-06",
+            "outage-07",
+            "outage-08",
+            "outage-09",
+            "outage-10"
+          ]
+        },
+        {
+          "caseId": "regulated-text-translation",
+          "rankedRecordIds": [
+            "locale-02",
+            "locale-03",
+            "locale-09",
+            "locale-01",
+            "locale-04",
+            "locale-05",
+            "locale-06",
+            "locale-07",
+            "locale-08",
+            "locale-10"
+          ]
+        }
+      ]
+    },
+    "advanced": {
+      "metadata": {
+        "system": "rubricdelta-four-stage-deterministic",
+        "provider": "deterministic",
+        "seed": 0
+      },
+      "cases": [
+        {
+          "caseId": "fraud-overrides-refunds",
+          "rankedRecordIds": [
+            "fraud-08",
+            "fraud-03",
+            "fraud-09",
+            "fraud-05",
+            "fraud-06",
+            "fraud-01",
+            "fraud-04",
+            "fraud-07",
+            "fraud-10",
+            "fraud-02"
+          ]
+        },
+        {
+          "caseId": "identity-check-login",
+          "rankedRecordIds": [
+            "access-02",
+            "access-06",
+            "access-01",
+            "access-09",
+            "access-03",
+            "access-04",
+            "access-08",
+            "access-10",
+            "access-05",
+            "access-07"
+          ]
+        },
+        {
+          "caseId": "deceased-account-owner",
+          "rankedRecordIds": [
+            "estate-02",
+            "estate-07",
+            "estate-09",
+            "estate-01",
+            "estate-03",
+            "estate-05",
+            "estate-06",
+            "estate-10",
+            "estate-04",
+            "estate-08"
+          ]
+        },
+        {
+          "caseId": "perishable-delivery-quality",
+          "rankedRecordIds": [
+            "quality-04",
+            "quality-02",
+            "quality-01",
+            "quality-03",
+            "quality-05",
+            "quality-06",
+            "quality-08",
+            "quality-09",
+            "quality-07",
+            "quality-10"
+          ]
+        },
+        {
+          "caseId": "legal-data-deletion",
+          "rankedRecordIds": [
+            "privacy-02",
+            "privacy-06",
+            "privacy-01",
+            "privacy-03",
+            "privacy-04",
+            "privacy-05",
+            "privacy-07",
+            "privacy-08",
+            "privacy-09",
+            "privacy-10"
+          ]
+        },
+        {
+          "caseId": "security-vulnerability",
+          "rankedRecordIds": [
+            "security-02",
+            "security-04",
+            "security-01",
+            "security-03",
+            "security-05",
+            "security-06",
+            "security-07",
+            "security-08",
+            "security-09",
+            "security-10"
+          ]
+        },
+        {
+          "caseId": "assistive-technology-blocker",
+          "rankedRecordIds": [
+            "a11y-02",
+            "a11y-04",
+            "a11y-01",
+            "a11y-03",
+            "a11y-05",
+            "a11y-06",
+            "a11y-07",
+            "a11y-08",
+            "a11y-09",
+            "a11y-10"
+          ]
+        },
+        {
+          "caseId": "bank-chargeback-filed",
+          "rankedRecordIds": [
+            "dispute-02",
+            "dispute-04",
+            "dispute-09",
+            "dispute-07",
+            "dispute-05",
+            "dispute-08",
+            "dispute-01",
+            "dispute-03",
+            "dispute-06",
+            "dispute-10"
+          ]
+        },
+        {
+          "caseId": "multi-customer-outage",
+          "rankedRecordIds": [
+            "outage-02",
+            "outage-05",
+            "outage-01",
+            "outage-04",
+            "outage-06",
+            "outage-08",
+            "outage-09",
+            "outage-03",
+            "outage-07",
+            "outage-10"
+          ]
+        },
+        {
+          "caseId": "regulated-text-translation",
+          "rankedRecordIds": [
+            "locale-04",
+            "locale-02",
+            "locale-08",
+            "locale-09",
+            "locale-01",
+            "locale-03",
+            "locale-06",
+            "locale-07",
+            "locale-10",
+            "locale-05"
+          ]
+        }
+      ]
+    }
+  }
+}

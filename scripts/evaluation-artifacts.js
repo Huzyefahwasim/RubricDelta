@@ -1,10 +1,11 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { toPublicScenario } from "../src/domain/scenario.js";
 import { reviewBudgetForCase } from "../src/evaluation/benchmark.js";
+import { EVALUATION_PROTOCOL } from "../src/evaluation/protocol.js";
 import { canonicalTextSha256 } from "../src/evaluation/evidence-hash.js";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -234,11 +235,16 @@ function metric(result) {
   return { numerator: result.primaryMetric.numerator, denominator: result.primaryMetric.denominator, value: result.primaryMetric.value };
 }
 
-function manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState }) {
+function sha256File(path) {
+  return createHash("sha256").update(readFileSync(path)).digest("hex");
+}
+
+function manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState, artifacts }) {
   const hard = benchmark.cases.find((item) => item.difficulty === "hard" && item.changeType === "precedence_exception");
   return {
     schemaVersion: 1,
     artifactKind: "rubricdelta-evaluation-manifest",
+    evaluationProtocol: structuredClone(EVALUATION_PROTOCOL),
     git: gitState,
     benchmark: {
       id: benchmark.benchmarkId,
@@ -256,7 +262,7 @@ function manifest({ benchmark, benchmarkSource, provider, model, repeats, execut
     provider: { name: provider, model, seed: 0, status: "operational" },
     reviewBudget: {
       fraction: benchmark.reviewBudgetFraction,
-      calculation: "max(1, ceil(recordCount * fraction))",
+      calculation: EVALUATION_PROTOCOL.reviewBudget.calculation,
       slotsByCase: Object.fromEntries(benchmark.cases.map((item) => [item.id, reviewBudgetForCase(item, benchmark.reviewBudgetFraction)])),
     },
     versions: {
@@ -268,11 +274,18 @@ function manifest({ benchmark, benchmarkSource, provider, model, repeats, execut
     repeats: { requested: repeats, normalizedIdentically: true },
     runtimeEnvironment: { node: process.version, platform: process.platform, architecture: process.arch, runtimeDependencies: 0, networkRequired: false },
     resources: {
-      providerCalls: { baseline: 0, advanced: 0, total: 0 }, inputTokens: 0, outputTokens: 0, totalTokens: 0,
-      estimatedCostUsd: 0, perSystemRuntimeMs: { baseline: null, advanced: null },
+      providerCalls: { baseline: 0, advanced: 0, total: 0 },
+      providerAttempts: { baseline: 0, advanced: 0, total: 0 },
+      inputTokens: 0,
+      outputTokens: 0,
+      totalTokens: 0,
+      latencyMs: 0,
+      estimatedCostUsd: 0,
+      perSystemRuntimeMs: { baseline: null, advanced: null },
       runtimeClaim: "overall artifact wall time measured; per-system runtime comparison not claimed",
     },
-    replay: { status: "deferred-task-8", operational: false, substituted: false, expectedReference: "../expected-replay-report/reference-comparison.json" },
+    artifacts: structuredClone(artifacts),
+    replay: { status: "not-selected", operational: false, substituted: false },
     execution,
   };
 }
@@ -379,6 +392,10 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
   const artifactPaths = prepareModeArtifacts(target, mode);
   if (baselinePredictions) safeWriteJson(artifactPaths.baselinePath, baselinePredictions);
   if (advancedPredictions) safeWriteJson(artifactPaths.advancedPath, advancedPredictions);
+  const artifacts = {
+    baselinePredictionsSha256: baselinePredictions ? sha256File(artifactPaths.baselinePath) : null,
+    advancedPredictionsSha256: advancedPredictions ? sha256File(artifactPaths.advancedPath) : null,
+  };
   const inProgressExecution = {
     status: "incomplete",
     phase: "scoring",
@@ -394,6 +411,7 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
     repeats,
     execution: inProgressExecution,
     gitState,
+    artifacts,
   }));
   let baseline;
   let advanced;
@@ -408,7 +426,7 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
       runtimeMs: Number((performance.now() - startedMs).toFixed(3)),
       failure: { stage: "scoring", code: "SCORING_FAILED" },
     };
-    safeWriteJson(artifactPaths.manifestPath, manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState }));
+    safeWriteJson(artifactPaths.manifestPath, manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState, artifacts }));
     throw new Error("Evaluation scoring failed; incomplete manifest written");
   }
   const execution = {
@@ -417,7 +435,7 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
     endedAt: new Date().toISOString(),
     runtimeMs: Number((performance.now() - startedMs).toFixed(3)),
   };
-  const manifestValue = manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState });
+  const manifestValue = manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState, artifacts });
   const comparisonValue = comparison(manifestValue, baseline, advanced, repeats);
   safeWriteJson(artifactPaths.comparisonPath, comparisonValue);
   safeWrite(artifactPaths.reportPath, report(manifestValue, comparisonValue));
@@ -431,3 +449,5 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
 
 export function benchmarkSourceAt(path) { return readFileSync(path, "utf8"); }
 export function displayPath(path) { const item = relative(process.cwd(), path); return item && !item.startsWith("..") ? item.replaceAll("\\", "/") : path; }
+
+export { createProviderEvaluationArtifacts } from "./provider-evaluation-artifacts.js";

@@ -40,6 +40,8 @@ The included domain is synthetic customer-support ticket routing. RubricDelta do
 
 ## Evaluation contract
 
+The binding scoring contract is [`rubricdelta-evaluation-v2`](../../EVALUATION_PROTOCOL_V2.md). It assigns a nonempty case `max(1, floor(recordCount * fraction))` review slots and supersedes the ceiling-rounded v1 implementation.
+
 The frozen benchmark contains 10 revisions, 100 synthetic records, and 20 affected records. Each case contains 10 records and exactly two review slots.
 
 The primary metric is micro-averaged affected-record recall at a 20 percent review budget:

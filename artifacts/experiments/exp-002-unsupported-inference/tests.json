@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-retrospective-test-observations",
+  "experimentId": "EXP-002",
+  "reconstruction": "retrospective-isolated-git-archives",
+  "node": "v24.19.0",
+  "command": "node --test",
+  "runs": [
+    {
+      "position": "before",
+      "sourceRevision": "21e5cc4b2dc2d1612b50e479e9639c9f0279e79e",
+      "tests": 35,
+      "passed": 35,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    {
+      "position": "after",
+      "sourceRevision": "ba60a574ad3ec065039687651c808521ee420634",
+      "tests": 46,
+      "passed": 46,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    }
+  ],
+  "perSystemRuntimeMs": null,
+  "note": "The reconstruction recorded test totals and omitted durations. Runtime values from separate archive executions do not support a system-speed comparison."
+}

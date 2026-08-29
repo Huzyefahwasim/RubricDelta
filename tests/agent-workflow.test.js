@@ -12,6 +12,40 @@ import { rankImpactCandidates } from "../src/agents/impact-investigator.js";
 import { verifyCandidate } from "../src/agents/verifier.js";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const EXPECTED_GOLD_INPUT_KEYS = [
+  "groundtruth",
+  "affectedrecordids",
+  "expectedlabels",
+  "rationales",
+  "reviewoutcome",
+  "reviewoutcomes",
+  "reviewdecision",
+  "reviewdecisions",
+  "workerquality",
+  "workerqualityfields",
+  "workerqualityscore",
+  "workerqualityscores",
+];
+const GOLD_INPUT_DECLARATION = /const GOLD_INPUT_KEYS = new Set\(\[\s*([\s\S]*?)\s*\]\);/g;
+const REPLAY_PROTOCOL_IMPORT = 'import { EVALUATION_PROTOCOL } from "../evaluation/protocol.js";';
+const FORBIDDEN_PRODUCTION_REFERENCE = /(?:(?:from\s*["'][^"'\r\n]*(?:evaluation|benchmark)[^"'\r\n]*["'])|(?:(?:require|import)\s*\(\s*["'][^"'\r\n]*(?:evaluation|benchmark)[^"'\r\n]*["']\s*\))|\b(?:loadBenchmark|DEFAULT_BENCHMARK_PATH|evaluatePredictions|createBaselinePredictions)\b)/i;
+
+function productionSourceForGoldScan(file) {
+  let source = readFileSync(file, "utf8");
+  if (resolve(file) === resolve(repositoryRoot, "src/providers/contracts.js")) {
+    const matches = [...source.matchAll(GOLD_INPUT_DECLARATION)];
+    assert.equal(matches.length, 1, "contracts source must contain exactly one GOLD_INPUT_KEYS declaration");
+    const keys = [...matches[0][1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+    assert.deepEqual(keys, EXPECTED_GOLD_INPUT_KEYS);
+    source = source.slice(0, matches[0].index) + source.slice(matches[0].index + matches[0][0].length);
+  }
+  if (resolve(file) === resolve(repositoryRoot, "src/providers/replay.js")) {
+    assert.equal(source.split(REPLAY_PROTOCOL_IMPORT).length - 1, 1, "replay provider must contain exactly one approved protocol-only evaluation import");
+    source = source.replace(REPLAY_PROTOCOL_IMPORT, "");
+  }
+  return source;
+}
+
 
 function citation(documentId, quote) {
   return { documentId, section: "sentence-1", start: 0, end: quote.length, quote };
@@ -194,9 +228,12 @@ test("production workflow source has no benchmark gold or ID hardcoding", () => 
     const path = join(repositoryRoot, relative);
     try { visit(path); } catch (error) { if (error.code !== "ENOENT") throw error; }
   }
-  const source = files.map((file) => readFileSync(file, "utf8")).join("\n");
-  assert.doesNotMatch(source, /groundTruth|affectedRecordIds|expectedLabels|rationales/);
-  assert.doesNotMatch(source, /(?:(?:from\s*["\']|(?:require|import)\s*\()[^)]*(?:evaluation|benchmark)|\b(?:loadBenchmark|DEFAULT_BENCHMARK_PATH|evaluatePredictions|createBaselinePredictions)\b)/i);
+  const sources = files.map((file) => ({ file, source: productionSourceForGoldScan(file) }));
+  for (const item of sources) {
+    assert.doesNotMatch(item.source, /groundTruth|affectedRecordIds|expectedLabels|rationales/, item.file);
+    assert.doesNotMatch(item.source, FORBIDDEN_PRODUCTION_REFERENCE, item.file);
+  }
+  const source = sources.map((item) => item.source).join("\n");
   const benchmark = loadBenchmark();
   for (const id of benchmark.cases.flatMap((item) => [item.id, ...item.records.map((record) => record.id)])) {
     assert.equal(source.includes(id), false, `production workflow hardcodes benchmark identifier ${id}`);

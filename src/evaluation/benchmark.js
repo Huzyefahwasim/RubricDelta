@@ -18,7 +18,7 @@ function invariant(condition, message) {
 export function reviewBudgetForCase(testCase, fraction) {
   invariant(Number.isFinite(fraction) && fraction > 0 && fraction <= 1, "review budget fraction must be in (0, 1]");
   invariant(Array.isArray(testCase?.records) && testCase.records.length > 0, `case ${testCase?.id ?? "<unknown>"} has no records`);
-  return Math.max(1, Math.ceil(testCase.records.length * fraction));
+  return Math.max(1, Math.floor(testCase.records.length * fraction));
 }
 
 export function validateBenchmark(benchmark) {

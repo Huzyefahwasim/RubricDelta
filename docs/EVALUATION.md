@@ -1,5 +1,7 @@
 # Evaluation Contract
 
+**Protocol:** [`rubricdelta-evaluation-v2`](EVALUATION_PROTOCOL_V2.md), effective 2026-08-29. The manifest stores the complete machine-readable contract.
+
 ## User question
 
 A review lead can inspect only a fraction of the existing dataset. Which records should the lead inspect first after the guideline changes?
@@ -11,7 +13,7 @@ A review lead can inspect only a fraction of the existing dataset. Which records
 For each case:
 
 ```text
-review slots = max(1, floor(total records * 0.20))
+review slots = max(1, floor(recordCount * reviewBudgetFraction))
 selected = top-ranked records limited to review slots
 recall@20% = affected records in selected / all affected records
 ```

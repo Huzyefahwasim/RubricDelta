@@ -39,6 +39,16 @@ test("benchmark contains ten valid, synthetic fixed-budget cases", () => {
   }
 });
 
+test("the release protocol floors variable-size review budgets", () => {
+  const elevenRecordCase = {
+    id: "variable-size-eleven",
+    records: Array.from({ length: 11 }, (_, index) => ({ id: `record-${index + 1}` })),
+  };
+
+  assert.equal(reviewBudgetForCase(elevenRecordCase, 0.2), 2);
+  assert.equal(reviewBudgetForCase({ ...elevenRecordCase, records: elevenRecordCase.records.slice(0, 4) }, 0.2), 1);
+});
+
 test("an oracle ranking receives perfect micro and per-case scores", () => {
   const result = evaluatePredictions(benchmark, perfectPredictions());
   assert.deepEqual(result.warnings, []);

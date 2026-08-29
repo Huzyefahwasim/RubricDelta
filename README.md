@@ -1,10 +1,18 @@
 # RubricDelta
 
-RubricDelta finds existing labels that may have become invalid after an annotation guideline changes. It ranks the records a reviewer should inspect, links each record to the old and new rules, asks a skeptical verifier to challenge the finding, and requires human approval before export.
+RubricDelta finds existing labels that may have become invalid after an annotation guideline changes. It ranks the records a reviewer should inspect, links each record to old and new rules, records a skeptical counterargument, and requires human approval before export.
 
 ## Status
 
-The repository is under active hackathon development. The deterministic benchmark and offline demo are operational. Replay and OpenAI providers are intentionally unavailable until their versioned instructions and adapters land in Task 8; the CLI fails clearly instead of substituting deterministic output.
+The deterministic benchmark, browser demo, exact replay provider, and optional OpenAI adapter are implemented.
+
+- The default path uses the deterministic systems. It needs no credentials or network access.
+- The replay path consumes the committed `deterministic-role-capture` fixture. It tests the provider workflow without a network call.
+- The OpenAI path runs only after you select `--provider openai`, supply `--model`, and set `OPENAI_API_KEY` in the process environment.
+
+Provider failures stop the selected run. RubricDelta does not substitute deterministic rankings for failed replay or OpenAI calls. The repository contains no verified live OpenAI evaluation result.
+
+The default deterministic manifest records replay as `status: not-selected`, `operational: false`, and `substituted: false`.
 
 ## Product flow
 
@@ -34,43 +42,62 @@ npm start
 
 Open `http://localhost:4173` and choose **Load benchmark example**.
 
-Run the current offline verification gate:
+Run the offline release checks:
 
 ```bash
 npm test
 npm run eval
+npm run replay:check
+npm run eval:replay
 npm run evidence
 npm run validate
 ```
 
-`npm run validate` is explicitly the **BUILD — NON-FINAL** gate during Task 7. `npm run validate:final` must fail until the deferred Task 8 provider/prompt work and Task 9 release evidence exist.
+`npm run validate` starts with `MODE: BUILD — NON-FINAL`. It validates the deterministic system and all Task 8 provider, prompt, capture, replay, CLI, and artifact gates. Build mode defers these five Task 9 paths:
 
-## Reproducible evaluation artifacts
+- `docs/MAIN_FAILURE_MODE.md`
+- `docs/HOT_TAKE.md`
+- `docs/MODEL_AND_COSTS.md`
+- `artifacts/qa/README.md`
+- `artifacts/submission/demo.mp4`
+
+`npm run validate:final` applies the final release gates, including participant-owned QA and video evidence.
+
+## Measured result
+
+The deterministic offline evaluation improved affected-record recall at a fixed 20% review budget from 16/20 (0.80) to 18/20 (0.90) on a frozen 100-record synthetic benchmark.
+
+Both systems use benchmark `rubricdelta-support-guideline-drift-v1`, protocol `rubricdelta-evaluation-v2`, the same ten cases, the same record order, seed 0, and two review slots per case. The result measures the complete deterministic system bundle against the lexical baseline. It does not isolate one stage or measure a live OpenAI model.
+
+The combined deterministic command writes under `artifacts/evaluation/`:
+
+- `manifest.json`, including protocol, benchmark, Git, resource, and raw-prediction hash bindings
+- gold-free `baseline-predictions.json` and `advanced-predictions.json`
+- full paired results in `comparison.json` and `report.md`
+- one complete JSONL trajectory per benchmark case
+
+## Provider execution
+
+Verify and run the committed exact replay:
 
 ```bash
-npm run eval:baseline
-npm run eval:advanced
-npm run eval
+npm run replay:check
+npm run eval:replay
 ```
 
-The combined command writes under `artifacts/evaluation/`:
+The replay run writes to `artifacts/runs/provider-replay/`. It reports provider `replay`, model `deterministic-role-capture-v1`, 50 calls and 50 attempts, no network requirement, zero tokens, zero provider latency, zero cost, `operational: true`, and `substituted: false`. Replay reproduces the deterministic 0.80 and 0.90 scores. It is deterministic capture evidence, not a live OpenAI run.
 
-- `manifest.json` with benchmark hash, ordered cases and records, provider/model/seed, fixed budget, versions, runtime environment, truthful run timing, and resource disclosure;
-- gold-free `baseline-predictions.json` and `advanced-predictions.json` written before scoring;
-- full paired results in `comparison.json` and a judge-facing `report.md`;
-- one complete JSONL trajectory per ordered benchmark case.
+For an approved live call, set `OPENAI_API_KEY` in the current process and run:
 
-The frozen deterministic result is baseline 16/20 = 0.80 versus advanced 18/20 = 0.90 affected-record recall at the fixed 20% review budget.
+```bash
+node scripts/evaluate.js --provider openai --model <pinned-model-id> --mode both --repeats 1 --output-dir artifacts/runs/provider-openai
+```
 
-## Provider status
+An API key by itself does not change the deterministic default. RubricDelta records the provider output and fails the affected case if the provider, schema, citation, or semantic checks fail.
 
-Task 7 accepts `--provider deterministic|replay|openai` syntactically. Only `deterministic` is operational in this build. `replay` and `openai` return an explicit Task 8 unavailable error; they never fall back or relabel deterministic output.
+## Evaluation contract
 
-## Declared evaluation
-
-The primary metric is **affected-record recall at a 20% human-review budget**. Both systems use the same frozen cases, ordered records, deterministic provider, null model, seed 0, and exactly two review slots per case.
-
-Read [the evaluation contract](docs/EVALUATION.md) before changing ranking behavior.
+The primary metric is **affected-record recall at a 20% human-review budget**. Read [the evaluation contract](docs/EVALUATION.md) before changing ranking behavior.
 
 ## Documentation
 
@@ -86,4 +113,4 @@ Read [the evaluation contract](docs/EVALUATION.md) before changing ranking behav
 
 ## Safety boundary
 
-RubricDelta creates recommendations. A reviewer must approve each correction before export. The project uses synthetic benchmark data and does not evaluate workers or make employment decisions.
+RubricDelta creates recommendations from synthetic benchmark data. A reviewer must approve each correction before export. The project does not evaluate workers or make employment decisions.

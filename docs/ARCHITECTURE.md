@@ -2,50 +2,53 @@
 
 ## System context
 
-RubricDelta accepts two guideline versions and a labeled dataset. It produces a ranked review queue with citations, verifier findings, uncertainty, and human decisions. The application exports corrections only after approval.
+RubricDelta accepts two guideline versions and a labeled JSON scenario. It produces a ranked review queue with citations, verifier findings, uncertainty, and decision state. The local browser server runs the deterministic workflow. It exports rows only when the server-owned decision ledger has an active `approve` event.
 
 ```text
-Browser
+Browser workbench
   |
-  | HTTP/JSON
+  | loopback HTTP/JSON
   v
-Node server
-  |
-  +-- input validation
-  +-- run controller
-  +-- human decision gate
+Node demo server
+  +-- bounded JSON validation
+  +-- deterministic run controller
+  +-- append-only decision ledger
+  +-- active-approval CSV export
   |
   v
-Agent orchestrator
-  |
+Deterministic agent orchestrator
   +-- rule compiler
   +-- change analyst
   +-- impact investigator
   +-- skeptical verifier
   |
-  +-- deterministic provider
-  +-- optional OpenAI provider
+  v
+Server run artifacts under the configured artifact root
+
+Evaluation CLI
+  +-- deterministic default, synchronous and network-free
+  +-- replay, explicit exact fixture
+  +-- OpenAI, explicit model and process key
   |
   v
-Artifacts
-  +-- recommendations.json
-  +-- decisions.json
-  +-- trajectory.jsonl
-  +-- evaluation report
+Raw predictions, per-case scores, manifests, and trajectories
 ```
+
+Replay and OpenAI are evaluation-CLI providers. The browser server does not read an environment provider flag, call the OpenAI adapter, or relabel a deterministic run as provider evidence.
 
 ## Repository map
 
 ```text
 public/                 browser application
-src/agents/             agent roles and orchestration
-src/domain/             rules, deltas, candidates, decisions
-src/providers/          deterministic and OpenAI adapters
-src/evaluation/         metrics and benchmark execution
-src/server/             HTTP endpoints and static server
-data/benchmark/         synthetic versioned fixtures
-scripts/                stable run and validation commands
-tests/                  deterministic Node tests
+src/agents/             deterministic and async provider orchestration
+src/domain/             rules, deltas, candidates, decisions, and CSV export
+src/providers/          replay and OpenAI provider contracts and adapters
+src/evaluation/         metrics, benchmark execution, and provider predictions
+src/server/             loopback HTTP transport and static server
+data/benchmark/         synthetic benchmark and exact replay fixture
+prompts/                versioned provider role instructions
+scripts/                evaluation, evidence, replay, and validation commands
+tests/                  deterministic Node test suite
 artifacts/              generated runs, reports, and trajectories
 docs/                   implementation and submission evidence
 ```
@@ -104,33 +107,41 @@ docs/                   implementation and submission evidence
 ```json
 {
   "runId": "run-20260829-001",
+  "scenarioId": "case-001",
   "sequence": 12,
-  "time": "2026-08-29T12:00:00.000Z",
+  "timestamp": "2026-08-29T12:00:00.000Z",
   "agent": "skeptical-verifier",
   "phase": "verification",
-  "type": "tool_result",
-  "inputRefs": ["ticket-018", "delta-04"],
-  "payload": {},
-  "durationMs": 14,
-  "usage": { "inputTokens": 0, "outputTokens": 0 },
-  "redacted": false
+  "type": "action-result",
+  "payload": {}
 }
 ```
 
+Deterministic traces use `action-result` for action outputs. Provider traces use `provider-result` and add prompt ID, prompt version, prompt hash, model, call and retry data, usage, latency, redaction state, and terminal state. Each trace keeps its schema identity explicit.
+
 ## Trust boundaries
 
+- The demo server accepts bounded JSON scenarios, not file uploads or CSV input.
 - The browser never receives provider credentials.
-- The server treats uploaded files and model output as untrusted input.
-- The provider adapter must return schema-valid objects.
-- The verifier cannot approve corrections.
-- Only the human decision service can change a recommendation from `pending` to `approved`.
-- The exporter reads approved records from the decision service rather than trusting browser state.
+- The browser server uses the deterministic orchestrator; only the evaluation CLI can select replay or OpenAI.
+- Provider inputs contain public scenario fields and exclude benchmark ground truth, expected labels, rationales, and review outcomes.
+- Provider adapters must return schema-valid objects with resolving record, rule, delta, and citation references.
+- The skeptical verifier cannot approve a correction.
+- The server-owned ledger derives decision state; browser status fields cannot authorize an export.
+- The decision endpoint accepts a self-asserted reviewer string and provides no authentication. A ledger event does not prove reviewer identity or human participation.
+- The artifact store contains server-run writes under its configured root. The evaluation CLI operator chooses its output directory.
 
 ## Failure behavior
 
-- Malformed input produces field-level validation errors.
-- A failed model call retries twice with bounded backoff.
-- Invalid structured output triggers one repair attempt, then escalation.
-- Missing citations force `evidenceComplete: false` and prevent confident approval suggestions.
-- A verifier disagreement lowers confidence or escalates the record.
-- An interrupted run preserves its partial trajectory and marks the manifest incomplete.
+- Malformed or oversized JSON produces bounded field-level errors without stack or credential disclosure.
+- The deterministic workflow retries eligible failed analysis stages within its fixed budget and preserves retry events.
+- The OpenAI adapter bounds request and response bytes and retries eligible transport failures within its transport budget.
+- Invalid provider output uses bounded schema-repair calls; exhausted repair produces a failed case.
+- Replay rejects fixture, source, prompt, request-order, model, mode, and call-count mismatches.
+- Replay or OpenAI failure never invokes a deterministic substitute.
+- Missing citations or unresolved rule relations preserve uncertainty and escalation.
+- Failed provider cases keep empty rankings, explicit failure status, and zero score instead of disappearing from the aggregate.
+
+## Deployment limit
+
+The submitted server binds to loopback and has no accounts, sessions, reviewer authorization, encryption-at-rest policy, retention automation, or external-platform write-back. A production deployment must add those controls before it accepts private or consequential data.

@@ -15,6 +15,14 @@ function ruleTerms(rule) {
   return [...new Set([...rule.conditions, ...rule.exceptions])].sort();
 }
 
+function recoveryTerms(rule) {
+  return [...rule.conditions, ...rule.exceptions];
+}
+
+function cleanLabel(label) {
+  return String(label ?? "").replace(/[,:;.!?]+$/g, "").trim();
+}
+
 function pairFor(oldRule, newRules) {
   const exact = newRules.find((rule) => rule.label === oldRule.label);
   if (exact) return exact;
@@ -71,7 +79,7 @@ function traceEvent(trace, agent, type, payload) {
   trace.record({ agent, phase: agent === "rule-compiler" ? "rule-compilation" : "change-analysis", type, payload });
 }
 
-export function analyzePolicy({ oldGuideline, newGuideline, trace } = {}) {
+export function compilePolicyRules({ oldGuideline, newGuideline, trace } = {}) {
   requireTrace(trace);
   traceEvent(trace, "rule-compiler", "instruction", {
     oldGuidelineVersion: oldGuideline?.version,
@@ -88,7 +96,11 @@ export function analyzePolicy({ oldGuideline, newGuideline, trace } = {}) {
     ruleIds: [...oldRules, ...newRules].map((rule) => rule.id),
     citationCount: [...oldRules, ...newRules].filter((rule) => rule.citation).length,
   });
+  return { oldRules, newRules };
+}
 
+export function analyzeRuleChanges({ oldRules, newRules, trace } = {}) {
+  requireTrace(trace);
   traceEvent(trace, "change-analyst", "instruction", {
     oldRuleIds: oldRules.map((rule) => rule.id),
     newRuleIds: newRules.map((rule) => rule.id),
@@ -117,11 +129,64 @@ export function analyzePolicy({ oldGuideline, newGuideline, trace } = {}) {
     deltaIds: deltas.map((delta) => delta.id),
     precedenceDeltaIds: deltas.filter((delta) => delta.precedenceChanged).map((delta) => delta.id),
   });
-  const result = { oldRules, newRules, deltas, boundaryCases: [...new Set(deltas.flatMap((delta) => delta.boundaryCases))] };
+  const result = { deltas, boundaryCases: [...new Set(deltas.flatMap((delta) => delta.boundaryCases))] };
   traceEvent(trace, "change-analyst", "final-evidence", {
     deltaIds: deltas.map((delta) => delta.id),
     citationCount: deltas.flatMap((delta) => delta.citations).length,
     boundaryCaseCount: result.boundaryCases.length,
   });
   return result;
+}
+
+export function recoverRuleChanges({ oldRules, newRules } = {}) {
+  if (!Array.isArray(oldRules) || !Array.isArray(newRules) || oldRules.length === 0 || newRules.length === 0) {
+    throw new EvidenceError("Policy recovery requires cited old and new routing rules");
+  }
+  const deltas = [];
+  const linkedOldIds = new Set();
+  const unresolvedRuleIds = [];
+  for (const newRule of newRules) {
+    const sameLabel = oldRules.find((rule) => cleanLabel(rule.label) === cleanLabel(newRule.label));
+    const candidates = oldRules
+      .map((rule, inputIndex) => ({
+        rule,
+        inputIndex,
+        score: overlap(recoveryTerms(rule), recoveryTerms(newRule)).length,
+      }))
+      .sort((left, right) => right.score - left.score || left.inputIndex - right.inputIndex);
+    const oldRule = sameLabel ?? (candidates[0]?.score > 0 ? candidates[0].rule : null);
+    if (!oldRule) {
+      unresolvedRuleIds.push(newRule.id);
+      continue;
+    }
+    linkedOldIds.add(oldRule.id);
+    const scopeTerms = [...new Set([...recoveryTerms(oldRule), ...recoveryTerms(newRule)])];
+    deltas.push({
+      id: `recovered-delta-${deltas.length + 1}`,
+      type: cleanLabel(oldRule.label) === cleanLabel(newRule.label) ? "scope-changed" : "label-changed",
+      oldRuleIds: [oldRule.id],
+      newRuleIds: [newRule.id],
+      targetLabel: cleanLabel(newRule.label),
+      sourceLabels: [cleanLabel(oldRule.label)],
+      scopeTerms,
+      boundaryCases: scopeTerms.map((term) => `Cases mentioning ${term}`),
+      precedenceChanged: oldRule.precedence !== newRule.precedence,
+      citations: [oldRule.citation, newRule.citation],
+      ambiguity: "high",
+    });
+  }
+  for (const oldRule of oldRules) if (!linkedOldIds.has(oldRule.id)) unresolvedRuleIds.push(oldRule.id);
+  return {
+    deltas,
+    boundaryCases: [...new Set(deltas.flatMap((delta) => delta.boundaryCases))],
+    recovered: true,
+    unresolved: unresolvedRuleIds.length > 0 || deltas.length === 0,
+    unresolvedRuleIds,
+  };
+}
+
+export function analyzePolicy({ oldGuideline, newGuideline, trace } = {}) {
+  const compiled = compilePolicyRules({ oldGuideline, newGuideline, trace });
+  const changed = analyzeRuleChanges({ ...compiled, trace });
+  return { ...compiled, ...changed };
 }

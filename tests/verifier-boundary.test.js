@@ -13,7 +13,40 @@ import { verifyCandidate } from "../src/agents/verifier.js";
 import { analyzeScenario } from "../src/agents/workflow.js";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const FORBIDDEN_PRODUCTION_REFERENCE = /(?:(?:from\s*["\']|(?:require|import)\s*\()[^)]*(?:evaluation|benchmark)|\b(?:loadBenchmark|DEFAULT_BENCHMARK_PATH|evaluatePredictions|createBaselinePredictions)\b)/i;
+const EXPECTED_GOLD_INPUT_KEYS = [
+  "groundtruth",
+  "affectedrecordids",
+  "expectedlabels",
+  "rationales",
+  "reviewoutcome",
+  "reviewoutcomes",
+  "reviewdecision",
+  "reviewdecisions",
+  "workerquality",
+  "workerqualityfields",
+  "workerqualityscore",
+  "workerqualityscores",
+];
+const GOLD_INPUT_DECLARATION = /const GOLD_INPUT_KEYS = new Set\(\[\s*([\s\S]*?)\s*\]\);/g;
+const REPLAY_PROTOCOL_IMPORT = 'import { EVALUATION_PROTOCOL } from "../evaluation/protocol.js";';
+
+function productionSourceForGoldScan(file) {
+  let source = readFileSync(file, "utf8");
+  if (resolve(file) === resolve(repositoryRoot, "src/providers/contracts.js")) {
+    const matches = [...source.matchAll(GOLD_INPUT_DECLARATION)];
+    assert.equal(matches.length, 1, "contracts source must contain exactly one GOLD_INPUT_KEYS declaration");
+    const keys = [...matches[0][1].matchAll(/"([^"]+)"/g)].map((match) => match[1]);
+    assert.deepEqual(keys, EXPECTED_GOLD_INPUT_KEYS);
+    source = source.slice(0, matches[0].index) + source.slice(matches[0].index + matches[0][0].length);
+  }
+  if (resolve(file) === resolve(repositoryRoot, "src/providers/replay.js")) {
+    assert.equal(source.split(REPLAY_PROTOCOL_IMPORT).length - 1, 1, "replay provider must contain exactly one approved protocol-only evaluation import");
+    source = source.replace(REPLAY_PROTOCOL_IMPORT, "");
+  }
+  return source;
+}
+
+const FORBIDDEN_PRODUCTION_REFERENCE = /(?:(?:from\s*["'][^"'\r\n]*(?:evaluation|benchmark)[^"'\r\n]*["'])|(?:(?:require|import)\s*\(\s*["'][^"'\r\n]*(?:evaluation|benchmark)[^"'\r\n]*["']\s*\))|\b(?:loadBenchmark|DEFAULT_BENCHMARK_PATH|evaluatePredictions|createBaselinePredictions)\b)/i;
 
 function citation(document, sentenceIndex = 0) {
   const quote = document.text.match(/[^.!?]+[.!?]?/g)[sentenceIndex].trim();
@@ -205,6 +238,9 @@ test("numeric price evidence requires money context rather than arbitrary differ
 
 test("gold guard rejects dynamic evaluation imports as well as static references", () => {
   assert.match('await import("../evaluation/index.js")', FORBIDDEN_PRODUCTION_REFERENCE);
+  assert.match('import { loadBenchmark } from "../evaluation/index.js";', FORBIDDEN_PRODUCTION_REFERENCE);
+  assert.match('const benchmark = require("../evaluation/index.js");', FORBIDDEN_PRODUCTION_REFERENCE);
+  assert.doesNotMatch('from "node:util";\nconst label = "evaluation";', FORBIDDEN_PRODUCTION_REFERENCE);
   const roots = ["src/agents", "src/domain", "src/providers", "src/server", "public"];
   const files = [];
   const visit = (path) => {
@@ -215,7 +251,9 @@ test("gold guard rejects dynamic evaluation imports as well as static references
     const path = join(repositoryRoot, relative);
     try { visit(path); } catch (error) { if (error.code !== "ENOENT") throw error; }
   }
-  const source = files.map((file) => readFileSync(file, "utf8")).join("\n");
-  assert.doesNotMatch(source, /groundTruth|affectedRecordIds|expectedLabels|rationales/);
-  assert.doesNotMatch(source, FORBIDDEN_PRODUCTION_REFERENCE);
+  const sources = files.map((file) => ({ file, source: productionSourceForGoldScan(file) }));
+  for (const item of sources) {
+    assert.doesNotMatch(item.source, /groundTruth|affectedRecordIds|expectedLabels|rationales/, item.file);
+    assert.doesNotMatch(item.source, FORBIDDEN_PRODUCTION_REFERENCE, item.file);
+  }
 });

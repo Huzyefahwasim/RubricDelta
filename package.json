@@ -14,6 +14,8 @@
     "eval": "node scripts/evaluate.js --mode both",
     "eval:baseline": "node scripts/evaluate.js --mode baseline",
     "eval:advanced": "node scripts/evaluate.js --mode advanced",
+    "eval:replay": "node scripts/evaluate.js --provider replay --replay-fixture data/benchmark/replay/rubricdelta-deterministic-source.v1.json --mode both --repeats 1 --output-dir artifacts/runs/provider-replay",
+    "replay:check": "node scripts/capture-replay.js --check",
     "evidence": "node scripts/generate-evidence.js",
     "validate": "node scripts/validate-submission.js --mode build",
     "validate:final": "node scripts/validate-submission.js --mode final-strict"

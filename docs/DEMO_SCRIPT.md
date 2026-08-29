@@ -1,49 +1,48 @@
 # Five-Minute Demo Script
 
-Target length: 4 minutes 45 seconds. Leave 15 seconds for transitions.
+Target length: 4 minutes 40 seconds. Stop at 4:40 to preserve a 20-second upload margin.
 
-## 0:00 to 0:25: User and problem
+## 0:00 to 0:20: User and problem
 
-Show 250 existing support-ticket labels. Explain that one guideline exception changed and the review lead can inspect only 20% of the dataset.
+Introduce the annotation operations lead who can inspect 20% of the existing labels after a guideline revision. State the benchmark scope: 100 synthetic support-ticket records across ten cases. Explain that the browser workbench opens one ten-record case for the review workflow while the evaluation covers all 100 records.
 
-## 0:25 to 0:55: Fair comparison
+## 0:20 to 0:45: Simple baseline
 
-Load the included benchmark. Show the two guideline versions, record count, model or provider, fixed seed, and declared 20% review budget.
+Open the committed evaluation report or run `npm run eval:baseline` in the terminal. Show the lexical baseline result, `16/20 = 0.80` affected-record recall, and one miss from the hard precedence case. Do not imply that the browser has a separate baseline-run button.
 
-## 0:55 to 1:25: Baseline
+## 0:45 to 1:10: Fair comparison
 
-Run the direct baseline. Open the hard precedence case and show which affected records it missed.
+Show that baseline and advanced results use the same ten cases, ordered records, deterministic provider, null model, seed 0, and two review slots per case. Point to the fixed 20% budget before showing the advanced score.
 
-## 1:25 to 2:20: Agent run
+## 1:10 to 2:05: Realistic analysis run
 
-Run RubricDelta. Open the Rule Seam and connect the changed clause to its structured interpretation, boundary case, and affected records.
+Choose **Load benchmark example**. The browser sends the first public ten-record case to the local deterministic server and creates a server-owned run. Open the Rule Seam and connect the changed clause to its structured interpretation, citations, boundary case, and ranked records.
 
-## 2:20 to 3:20: Human review
+## 2:05 to 3:10: Owner review and guarded export
 
-Review three records:
+Enter the participant's reviewer attribution, then use exactly two records:
 
-- approve one supported correction;
-- reject one false positive;
-- escalate one ambiguous record.
+- approve a supported correction on the first record and leave that approval active;
+- escalate the second record, undo that decision, then reject the same record.
 
-Show that each action creates a human-checkpoint event and that the exporter excludes pending records.
+Open the trajectory to show the appended checkpoint events. Download the CSV and show its one active approval. Pending, rejected, escalated, and undone decisions stay out of the export.
 
-## 3:20 to 4:05: Results
+## 3:10 to 3:50: Results and visible failure
 
-Compare baseline and advanced results on the same cases. Lead with recall at the fixed review budget. Show one failure rather than hiding it. Mention runtime and cost.
+Compare `16/20 = 0.80` baseline recall with `18/20 = 0.90` advanced recall on the same frozen benchmark. Scroll to the accessibility evaluation row, where the advanced system finds `0/2`, and disclose that the deterministic trajectories end partial and escalated. Show recorded runtime and cost fields without making a speed or live-model claim.
 
-## 4:05 to 4:35: Improvement evidence
+## 3:50 to 4:20: Improvement evidence
 
-Open the Improvement Changelog. Identify the change that contributed the largest measured gain. Show one experiment that the team removed and the evidence behind the decision.
+Open the Improvement Changelog. Describe the four-stage system as the `largest supported measured system bundle` against the lexical baseline. State that the bundle comparison provides no stage-level causal attribution because no isolated stage ablation exists. Show the removed cross-delta inference experiment, its `19/20` to `18/20` score change, and the evidence defect that justified removal.
 
-## 4:35 to 4:55: Reproduction and insight
+## 4:20 to 4:40: Reproduction and hot take
 
-Open the run manifest and trajectory. Show the exact evaluation command. State the supported conclusion: high reviewer agreement can coexist with shared guideline drift, so review teams need policy-version impact analysis.
+Show `npm run eval`, the run manifest, and one JSONL trajectory. Close with the supported conclusion: high reviewer agreement can coexist with shared guideline drift, so review leads need policy-version impact analysis.
 
 ## Recording checklist
 
 - Use readable zoom and 1080p capture.
-- Keep the pointer still while speaking.
-- Remove dead time from model calls or label replay footage.
-- Show the complete realistic workflow.
-- Keep the final file below five minutes.
+- Record the participant's real review actions; do not present the generated checkpoint as human QA.
+- Label replay evidence as deterministic-source replay and do not present it as a live model run.
+- Remove terminal and browser wait time without hiding failures.
+- Measure the encoded file and keep it at or below 300 seconds.
