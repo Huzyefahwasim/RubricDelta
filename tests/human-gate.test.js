@@ -74,3 +74,13 @@ test("ledger snapshots are detached and strict candidate and command validation 
   const event = ledger.events()[0]; event.decision = "escalate"; const candidate = ledger.candidates()[0]; candidate.status = "escalated";
   assert.equal(ledger.events()[0].decision, "approve"); assert.equal(ledger.candidates()[0].status, "approved");
 });
+
+test("artifact store never returns a path through a symlink or junction and rejects superscript device aliases", async (t) => {
+  const parent = await mkdtemp(join(tmpdir(), "rubricdelta-artifacts-"));
+  const root = join(parent, "artifacts"); const outside = join(parent, "outside");
+  await mkdir(root); await mkdir(outside); t.after(() => rm(parent, { recursive: true, force: true }));
+  const store = createArtifactStore(root);
+  for (const path of ["runs/COM¹.txt", "runs/com².log", "runs/LPT³.csv"]) await assert.rejects(store.write(path, "bad"), /Invalid artifact path/);
+  await symlink(outside, join(root, "runs"), process.platform === "win32" ? "junction" : "dir");
+  assert.equal("pathFor" in store, false);
+});
