@@ -2,10 +2,15 @@
   "schemaVersion": 1,
   "artifactKind": "rubricdelta-evaluation-manifest",
   "git": {
-    "revision": "c36313519f91a4cffe58b3f7e1befd73c0ee606b",
-    "baseRevision": "c36313519f91a4cffe58b3f7e1befd73c0ee606b",
+    "revision": "521e284534bbf0208879136b0faf82320400d6c5",
+    "baseRevision": "521e284534bbf0208879136b0faf82320400d6c5",
     "branch": "feature/hackathon-submission",
     "trackedWorkingTreeDirty": false,
+    "wholeWorkingTreeDirty": false,
+    "sourceTrackedWorkingTreeDirty": false,
+    "sourceUntrackedWorkingTreeDirty": false,
+    "sourceWorkingTreeDirty": false,
+    "managedArtifactDirty": false,
     "packagingCommit": null,
     "provenanceNote": "revision identifies the clean source commit; generated evidence is added by the subsequent packaging commit",
     "sourceState": "clean-commit"
@@ -216,8 +221,8 @@
     "expectedReference": "../expected-replay-report/reference-comparison.json"
   },
   "execution": {
-    "startedAt": "2026-08-29T14:20:28.105Z",
-    "endedAt": "2026-08-29T14:20:28.145Z",
-    "runtimeMs": 39.18
+    "startedAt": "2026-08-29T15:15:24.012Z",
+    "endedAt": "2026-08-29T15:15:24.366Z",
+    "runtimeMs": 352.208
   }
 }
