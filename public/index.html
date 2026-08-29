@@ -71,7 +71,7 @@
         <p class="view-note">J / K moves selection. A / R / E records a human checkpoint.</p>
       </header>
       <div class="impact-layout">
-        <div id="impact-queue" class="queue-shell" role="listbox" aria-label="Affected-record review queue" aria-controls="candidate-detail"></div>
+        <ol id="impact-queue" class="queue-shell" aria-label="Affected-record review queue"></ol>
         <article id="candidate-detail" class="candidate-detail empty-sheet" aria-live="off">
           <p>Select a candidate to inspect its evidence.</p>
         </article>
@@ -97,7 +97,7 @@
           <p class="coordinate">TRACE / APPEND-ONLY JSONL</p>
           <h2>Trajectory inspector</h2>
         </div>
-        <a id="trajectory-download" class="utility-link" href="#" download aria-disabled="true">Download full trajectory JSONL</a>
+        <a id="trajectory-download" class="utility-link" download aria-disabled="true" tabindex="-1">Download full trajectory JSONL</a>
       </header>
       <ol id="trajectory-content" class="trajectory-rail" aria-label="Agent and human trajectory events">
         <li class="empty-sheet">Trajectory events will appear after the server run completes.</li>
@@ -121,7 +121,7 @@
       <button id="escalate" class="decision escalate" type="button" disabled>Escalate</button>
       <button id="undo" class="decision undo" type="button" disabled>Undo</button>
     </div>
-    <a id="export-download" class="export-link" href="#" download aria-disabled="true">Download approved corrections CSV</a>
+    <a id="export-download" class="export-link" download aria-disabled="true" tabindex="-1">Download approved corrections CSV</a>
   </aside>
 
   <footer class="footer">

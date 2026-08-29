@@ -6,8 +6,10 @@ import {
   classifyTraceEvent,
   createDecisionRequest,
   createUndoRequest,
+  downloadLinkState,
   evaluationSummary,
   keyboardCommand,
+  queueSelectionIntent,
   relativeConfidence,
   reviewProgress,
   reviewStateAfterMutationFailure,
@@ -39,6 +41,29 @@ test("workbench shell keeps CSP-compatible assets and five keyboard-accessible v
   assert.doesNotMatch(html, /<style\b|style="/i);
 });
 
+test("impact queue is one coherent semantic list of real buttons", () => {
+  const html = readFileSync(resolve("public/index.html"), "utf8");
+  const source = readFileSync(resolve("public/app.js"), "utf8");
+  assert.match(html, /<ol id="impact-queue"\s[^>]*aria-label="Affected-record review queue"/);
+  assert.doesNotMatch(html, /id="impact-queue"[^>]*role="listbox"/);
+  assert.doesNotMatch(source, /setAttribute\("role", "option"\)|aria-activedescendant/);
+  assert.match(source, /queueSelectionIntent/);
+});
+
+test("fixed decision gate has explicit page clearance and keeps mobile attribution editable", () => {
+  const html = readFileSync(resolve("public/index.html"), "utf8");
+  const css = readFileSync(resolve("public/styles.css"), "utf8");
+  assert.equal((html.match(/class="decision-bar"/g) ?? []).length, 1);
+  assert.ok(html.indexOf("</main>") < html.indexOf('class="decision-bar"'));
+  assert.match(css, /body\s*\{[^}]*padding-bottom:\s*var\(--decision-clearance\)/s);
+  assert.match(css, /html\s*\{[^}]*scroll-padding-bottom:\s*var\(--decision-clearance\)/s);
+  assert.match(css, /\.decision-bar\s*\{[^}]*position:\s*fixed;[^}]*right:\s*0;[^}]*bottom:\s*0;[^}]*left:\s*0;/s);
+  const mobile = css.slice(css.indexOf("@media (max-width: 640px)"), css.indexOf("@media (prefers-reduced-motion"));
+  assert.match(mobile, /\.reviewer-field\s*\{[^}]*display:\s*block;/s);
+  assert.doesNotMatch(mobile, /\.reviewer-field\s*\{[^}]*display:\s*none;/s);
+  assert.match(mobile, /h1\s*\{[^}]*white-space:\s*nowrap;/s);
+});
+
 test("browser renderer has no HTML parsing sink, inline style sink, or local decision authority", () => {
   const source = readFileSync(resolve("public/app.js"), "utf8");
   assert.doesNotMatch(source, /innerHTML|outerHTML|insertAdjacentHTML|document\.write/i);
@@ -54,17 +79,28 @@ test("J and K wrap through the complete queue while an empty queue remains unsel
   assert.equal(selectCandidateIndex(4, 1, 0), -1);
 });
 
-test("review shortcuts ignore form focus, modifiers, and repeated keys", () => {
+test("review shortcuts run on phase and queue buttons but ignore text editing, modifiers, and repeats", () => {
   assert.deepEqual(keyboardCommand({ key: "A", target: { tagName: "DIV" } }), { type: "decision", decision: "approve" });
   assert.deepEqual(keyboardCommand({ key: "j", target: { tagName: "DIV" } }), { type: "navigate", offset: 1 });
   assert.deepEqual(keyboardCommand({ key: "K", target: { tagName: "DIV" } }), { type: "navigate", offset: -1 });
+  assert.deepEqual(keyboardCommand({ key: "e", target: { tagName: "BUTTON", id: "tab-impact" } }), { type: "decision", decision: "escalate" });
+  assert.deepEqual(keyboardCommand({ key: "j", target: { tagName: "BUTTON", id: "queue-option-0" } }), { type: "navigate", offset: 1 });
   for (const event of [
     { key: "a", target: { tagName: "INPUT" } },
+    { key: "r", target: { tagName: "TEXTAREA" } },
+    { key: "e", target: { tagName: "SELECT" } },
     { key: "r", target: { tagName: "DIV", isContentEditable: true } },
-    { key: "e", target: { tagName: "BUTTON" } },
     { key: "a", target: { tagName: "DIV" }, ctrlKey: true },
+    { key: "a", target: { tagName: "DIV" }, shiftKey: true },
     { key: "a", target: { tagName: "DIV" }, repeat: true },
   ]) assert.equal(keyboardCommand(event), null);
+});
+
+test("queue navigation returns a stable focus target for wrap and empty states", () => {
+  assert.deepEqual(queueSelectionIntent(0, 1, 3), { selectedIndex: 1, focusTargetId: "queue-option-1" });
+  assert.deepEqual(queueSelectionIntent(2, 1, 3), { selectedIndex: 0, focusTargetId: "queue-option-0" });
+  assert.deepEqual(queueSelectionIntent(0, -1, 3), { selectedIndex: 2, focusTargetId: "queue-option-2" });
+  assert.deepEqual(queueSelectionIntent(0, 1, 0), { selectedIndex: -1, focusTargetId: null });
 });
 
 test("decision and undo requests send commands without browser-owned status", () => {
@@ -109,6 +145,15 @@ test("download links accept only server-shaped run IDs and known artifacts", () 
   assert.equal(safeDownloadHref("run-acde-1234", "trajectory"), "/api/runs/run-acde-1234/trajectory.jsonl");
   assert.throws(() => safeDownloadHref("run-acde/../../secret", "export"), /run ID/i);
   assert.throws(() => safeDownloadHref("run-acde-1234", "manifest"), /download kind/i);
+  assert.deepEqual(downloadLinkState(null, "export"), { href: null, ariaDisabled: "true", tabIndex: -1 });
+  assert.deepEqual(downloadLinkState("run-acde-1234", "trajectory"), {
+    href: "/api/runs/run-acde-1234/trajectory.jsonl",
+    ariaDisabled: "false",
+    tabIndex: 0,
+  });
+  const html = readFileSync(resolve("public/index.html"), "utf8");
+  assert.doesNotMatch(html, /id="(?:export|trajectory)-download"[^>]*href="#"/);
+  assert.equal((html.match(/id="(?:export|trajectory)-download"[^>]*tabindex="-1"/g) ?? []).length, 2);
 });
 
 test("relative confidence keeps numeric rank evidence bounded without changing source labels", () => {

@@ -47,6 +47,14 @@ export function safeDownloadHref(runId, kind) {
   return `/api/runs/${runId}/${DOWNLOADS[kind]}`;
 }
 
+export function downloadLinkState(runId, kind) {
+  if (!Object.hasOwn(DOWNLOADS, kind)) throw new TypeError("Unknown download kind");
+  if (runId === null || runId === undefined || runId === "") {
+    return { href: null, ariaDisabled: "true", tabIndex: -1 };
+  }
+  return { href: safeDownloadHref(runId, kind), ariaDisabled: "false", tabIndex: 0 };
+}
+
 export function selectCandidateIndex(currentIndex, offset, length) {
   if (!Number.isInteger(length) || length <= 0) return -1;
   const current = Number.isInteger(currentIndex) && currentIndex >= 0 && currentIndex < length ? currentIndex : 0;
@@ -54,15 +62,23 @@ export function selectCandidateIndex(currentIndex, offset, length) {
   return ((current + step) % length + length) % length;
 }
 
+export function queueSelectionIntent(currentIndex, offset, length) {
+  const selectedIndex = selectCandidateIndex(currentIndex, offset, length);
+  return {
+    selectedIndex,
+    focusTargetId: selectedIndex < 0 ? null : `queue-option-${selectedIndex}`,
+  };
+}
+
 function isEditableTarget(target) {
   if (!target || typeof target !== "object") return false;
   if (target.isContentEditable) return true;
   const tag = String(target.tagName ?? "").toUpperCase();
-  return ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "OPTION"].includes(tag);
+  return ["INPUT", "TEXTAREA", "SELECT", "OPTION"].includes(tag);
 }
 
 export function keyboardCommand(event) {
-  if (!event || event.repeat || event.altKey || event.ctrlKey || event.metaKey || isEditableTarget(event.target)) return null;
+  if (!event || event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || isEditableTarget(event.target)) return null;
   const key = String(event.key ?? "").toLowerCase();
   if (key === "a") return { type: "decision", decision: "approve" };
   if (key === "r") return { type: "decision", decision: "reject" };

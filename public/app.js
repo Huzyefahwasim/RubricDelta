@@ -2,13 +2,14 @@ import {
   classifyTraceEvent,
   createDecisionRequest,
   createUndoRequest,
+  downloadLinkState,
   evaluationSummary,
   keyboardCommand,
+  queueSelectionIntent,
   relativeConfidence,
   reviewProgress,
   reviewStateAfterMutationFailure,
   safeDownloadHref,
-  selectCandidateIndex,
   synchronizeReview,
 } from "./ui-model.js";
 
@@ -361,7 +362,7 @@ function renderCandidateDetail(candidate, index) {
   elements.detail.append(verifier);
 }
 
-function renderImpact() {
+function renderImpact(focusTargetId = null) {
   const candidates = state.run?.recommendations ?? [];
   elements.queue.replaceChildren();
   if (candidates.length === 0) {
@@ -372,11 +373,11 @@ function renderImpact() {
   if (state.selectedIndex < 0 || state.selectedIndex >= candidates.length) state.selectedIndex = 0;
   const records = recordMap();
   for (const [index, candidate] of candidates.entries()) {
+    const item = make("li", "queue-item");
     const option = make("button", "queue-option");
     option.type = "button";
     option.id = `queue-option-${index}`;
-    option.setAttribute("role", "option");
-    option.setAttribute("aria-selected", String(index === state.selectedIndex));
+    option.setAttribute("aria-pressed", String(index === state.selectedIndex));
     option.setAttribute("aria-controls", "candidate-detail");
     option.append(
       make("span", "queue-rank", String(index + 1).padStart(2, "0")),
@@ -388,15 +389,17 @@ function renderImpact() {
     );
     option.append(copy, statusLabel(candidate.status));
     option.addEventListener("click", () => {
-      state.selectedIndex = index;
-      renderImpact();
+      const intent = queueSelectionIntent(index, 0, candidates.length);
+      state.selectedIndex = intent.selectedIndex;
+      renderImpact(intent.focusTargetId);
       renderDecisionBar();
       setStatus(`Selected ${candidate.recordId}, queue position ${index + 1} of ${candidates.length}.`);
     });
-    elements.queue.append(option);
+    item.append(option);
+    elements.queue.append(item);
   }
-  elements.queue.setAttribute("aria-activedescendant", `queue-option-${state.selectedIndex}`);
   renderCandidateDetail(candidates[state.selectedIndex], state.selectedIndex);
+  if (focusTargetId) document.getElementById(focusTargetId)?.focus();
 }
 
 function renderMetricCard(term, description) {
@@ -521,16 +524,12 @@ function renderDecisionBar() {
   elements.undo.disabled = disableDecision || selected.status === "pending";
   elements.reload.disabled = state.busy;
 
-  if (run) {
-    elements.exportLink.href = safeDownloadHref(run.runId, "export");
-    elements.exportLink.setAttribute("aria-disabled", "false");
-    elements.trajectoryLink.href = safeDownloadHref(run.runId, "trajectory");
-    elements.trajectoryLink.setAttribute("aria-disabled", "false");
-  } else {
-    elements.exportLink.href = "#";
-    elements.exportLink.setAttribute("aria-disabled", "true");
-    elements.trajectoryLink.href = "#";
-    elements.trajectoryLink.setAttribute("aria-disabled", "true");
+  for (const [link, kind] of [[elements.exportLink, "export"], [elements.trajectoryLink, "trajectory"]]) {
+    const linkState = downloadLinkState(run?.runId ?? null, kind);
+    if (linkState.href === null) link.removeAttribute("href");
+    else link.setAttribute("href", linkState.href);
+    link.setAttribute("aria-disabled", linkState.ariaDisabled);
+    link.tabIndex = linkState.tabIndex;
   }
 }
 
@@ -708,10 +707,11 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   const candidates = state.run?.recommendations ?? [];
-  state.selectedIndex = selectCandidateIndex(state.selectedIndex, command.offset, candidates.length);
+  const intent = queueSelectionIntent(state.selectedIndex, command.offset, candidates.length);
+  state.selectedIndex = intent.selectedIndex;
   if (state.selectedIndex < 0) return;
   activatePhase("impact");
-  renderImpact();
+  renderImpact(intent.focusTargetId);
   renderDecisionBar();
   const selected = candidates[state.selectedIndex];
   setStatus(`Selected ${selected.recordId}, queue position ${state.selectedIndex + 1} of ${candidates.length}.`);
