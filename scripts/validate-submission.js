@@ -12,11 +12,17 @@ import {
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluatePredictions, loadBenchmark } from "../src/evaluation/index.js";
+import { canonicalTextSha256 } from "../src/evaluation/evidence-hash.js";
 
 const scriptRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const GOLD_FIELDS = /groundTruth|affectedRecordIds|expectedLabels|rationales/i;
 const SECRET_VALUE = /\bsk-[A-Za-z0-9_-]{8,}\b/g;
 const ROLE_SET = new Set(["rule-compiler", "change-analyst", "impact-investigator", "skeptical-verifier", "orchestrator"]);
+const MANAGED_EVIDENCE_ROOTS = [
+  "artifacts/evaluation/",
+  "artifacts/representative-trajectories/",
+  "artifacts/expected-replay-report/",
+];
 
 function parseArguments(argv) {
   let mode = "build";
@@ -57,6 +63,61 @@ function collectFiles(path) {
   if (!existsSync(path)) return [];
   if (!statSync(path).isDirectory()) return [path];
   return readdirSync(path).flatMap((entry) => collectFiles(join(path, entry)));
+}
+
+function runGit(root, args) {
+  return spawnSync("git", ["-C", root, ...args], {
+    encoding: "utf8",
+    timeout: 10_000,
+    maxBuffer: 1024 * 1024,
+    windowsHide: true,
+  });
+}
+
+function validateGitProvenance(validation, state) {
+  if (state.baseRevision !== state.revision) {
+    validation.fail("MISMATCH", "manifest.git.baseRevision", "must equal the disclosed clean source revision");
+    return;
+  }
+  const probe = runGit(validation.root, ["rev-parse", "--is-inside-work-tree"]);
+  if (probe.status !== 0 || probe.stdout.trim() !== "true") {
+    validation.pass("manifest Git provenance received structural-only validation because this root is a non-Git archive");
+    return;
+  }
+  const revision = state.revision;
+  const object = runGit(validation.root, ["cat-file", "-e", `${revision}^{commit}`]);
+  if (object.status !== 0) {
+    validation.fail("MISMATCH", "manifest.git.revision", "does not resolve to a Git commit in this repository");
+    return;
+  }
+  const ancestor = runGit(validation.root, ["merge-base", "--is-ancestor", revision, "HEAD"]);
+  if (ancestor.status !== 0) {
+    validation.fail("MISMATCH", "manifest.git.revision", "must be an ancestor of the validated HEAD");
+    return;
+  }
+  const descendants = runGit(validation.root, ["rev-list", "--reverse", `${revision}..HEAD`]);
+  if (descendants.status !== 0) {
+    validation.fail("MISMATCH", "manifest.git.revision", "could not enumerate source-to-HEAD commits");
+    return;
+  }
+  for (const commit of descendants.stdout.split(/\s+/).filter(Boolean)) {
+    const parents = runGit(validation.root, ["rev-list", "--parents", "-n", "1", commit]);
+    if (parents.status !== 0 || parents.stdout.trim().split(/\s+/).length !== 2) {
+      validation.fail("MISMATCH", "manifest.git.revision", "source-to-HEAD evidence packaging must remain a linear commit sequence");
+      return;
+    }
+    const changed = runGit(validation.root, ["diff-tree", "--no-commit-id", "--name-only", "-r", "-z", commit]);
+    if (changed.status !== 0) {
+      validation.fail("MISMATCH", "manifest.git.revision", "could not verify the source-to-HEAD evidence-only boundary");
+      return;
+    }
+    const paths = changed.stdout.split("\0").filter(Boolean).map(posix);
+    if (paths.some((path) => !MANAGED_EVIDENCE_ROOTS.some((root) => path.startsWith(root)))) {
+      validation.fail("MISMATCH", "manifest.git.revision", "source-to-HEAD commits contain changes outside the managed evidence roots");
+      return;
+    }
+  }
+  validation.pass("manifest source revision resolves, is ancestral, and reaches HEAD through evidence-only paths");
 }
 
 function parseIsoBoxes(buffer, start = 0, end = buffer.length) {
@@ -255,10 +316,11 @@ function validateEvaluation(validation) {
   validatePrediction(validation, benchmark, advanced, "advanced");
 
   if (manifest) {
-    const expectedHash = sha256(readFileSync(benchmarkPath));
+    const expectedHash = canonicalTextSha256(readFileSync(benchmarkPath));
     if (manifest.benchmark?.id !== "rubricdelta-support-guideline-drift-v1") validation.fail("MISMATCH", "manifest.benchmark.id", "expected frozen benchmark ID");
     if (manifest.benchmark?.schemaVersion !== benchmark.schemaVersion) validation.fail("MISMATCH", "manifest.benchmark.schemaVersion", `expected ${benchmark.schemaVersion}`);
     if (manifest.benchmark?.sha256 !== expectedHash) validation.fail("MISMATCH", "manifest.benchmark.sha256", "does not bind the current benchmark bytes");
+    if (manifest.benchmark?.sha256Canonicalization !== "utf8-lf") validation.fail("MISMATCH", "manifest.benchmark.sha256Canonicalization", "expected explicit utf8-lf canonical text hashing");
     const orderedCases = benchmark.cases.map((item) => item.id);
     if (JSON.stringify(manifest.benchmark?.orderedCaseIds) !== JSON.stringify(orderedCases)) validation.fail("ORDER MISMATCH", "manifest.benchmark.orderedCaseIds", "must equal frozen case order");
     const orderedRecords = Object.fromEntries(benchmark.cases.map((item) => [item.id, item.records.map((record) => record.id)]));
@@ -283,10 +345,13 @@ function validateEvaluation(validation) {
         && gitState.wholeWorkingTreeDirty === true && gitState.managedArtifactDirty === true;
     if (!cleanRevision || !disclosedDirtyBooleans || !cleanSource || !consistentState) {
       validation.fail("MISMATCH", "manifest.git", "source working tree is dirty or provenance fields are incomplete/inconsistent; regenerate from a clean source state");
+    } else {
+      validateGitProvenance(validation, gitState);
     }
     if (!String(manifest.git?.provenanceNote ?? "").includes("subsequent packaging commit")) validation.fail("MISSING FIELD", "manifest.git.provenanceNote", "explain that evidence is added by the packaging commit");
     if (manifest.reviewBudget?.fraction !== 0.2 || Object.values(manifest.reviewBudget?.slotsByCase ?? {}).some((slots) => slots !== 2)) validation.fail("MISMATCH", "manifest.reviewBudget", "expected 20% and exactly two slots per case");
     for (const field of ["startedAt", "endedAt", "runtimeMs"]) if (!Object.hasOwn(manifest.execution ?? {}, field)) validation.fail("MISSING FIELD", `manifest.execution.${field}`, "record truthful run timing");
+    if (manifest.execution?.status !== "complete") validation.fail("MISMATCH", "manifest.execution.status", "committed evidence must be complete");
     if (!Object.hasOwn(manifest.resources ?? {}, "providerCalls")) validation.fail("MISSING FIELD", "manifest.resources.providerCalls", "disclose provider-call counts");
     if (manifest.replay?.status !== "deferred-task-8" || manifest.replay?.substituted !== false) validation.fail("MISMATCH", "manifest.replay", "Task 7 must disclose replay as deferred with no substitution");
   }

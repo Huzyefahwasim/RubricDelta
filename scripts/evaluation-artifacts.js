@@ -1,12 +1,14 @@
-import { createHash } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { basename, dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { toPublicScenario } from "../src/domain/scenario.js";
 import { reviewBudgetForCase } from "../src/evaluation/benchmark.js";
+import { canonicalTextSha256 } from "../src/evaluation/evidence-hash.js";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const canonicalEvidenceRoot = resolve(repositoryRoot, "artifacts", "evaluation");
 const GOLD = /groundTruth|affectedRecordIds|expectedLabels|rationales/i;
 const TRACE_TIME = "2000-01-01T00:00:00.000Z";
 const SAFE_CASE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
@@ -21,8 +23,6 @@ function freeze(value) {
 }
 
 function json(value) { return `${JSON.stringify(value, null, 2)}\n`; }
-function hash(value) { return createHash("sha256").update(value).digest("hex"); }
-function writeJson(path, value) { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, json(value), "utf8"); }
 function round(value) { return Number(value.toFixed(6)); }
 function list(values) { return values.length === 0 ? "none" : values.join(", "); }
 
@@ -46,20 +46,76 @@ function managedArtifactPath(root, name) {
   return target;
 }
 
+function safeWrite(path, source) {
+  const parent = dirname(path);
+  mkdirSync(parent, { recursive: true });
+  const token = `${process.pid}-${randomUUID()}`;
+  const temporary = resolve(parent, `.${basename(path)}.${token}.tmp`);
+  const backup = resolve(parent, `.${basename(path)}.${token}.bak`);
+  if (!contained(parent, temporary) || !contained(parent, backup)) throw new Error("unsafe managed artifact sibling path");
+  let backedUp = false;
+  try {
+    writeFileSync(temporary, source, { encoding: "utf8", flag: "wx" });
+    if (existsSync(path)) {
+      const existing = lstatSync(path);
+      if (existing.isDirectory() && !existing.isSymbolicLink()) throw new Error(`managed artifact target is a directory: ${basename(path)}`);
+      if (existing.isSymbolicLink()) unlinkSync(path);
+      else {
+        renameSync(path, backup);
+        backedUp = true;
+      }
+    }
+    renameSync(temporary, path);
+    if (backedUp) unlinkSync(backup);
+  } catch (error) {
+    if (existsSync(temporary)) unlinkSync(temporary);
+    if (backedUp && !existsSync(path) && existsSync(backup)) renameSync(backup, path);
+    throw error;
+  }
+}
+
+function safeWriteJson(path, value) {
+  safeWrite(path, json(value));
+}
+
+function lstatOrNull(path) {
+  try {
+    return lstatSync(path);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function removeManagedFile(path) {
+  const existing = lstatOrNull(path);
+  if (!existing) return;
+  if (existing.isDirectory() && !existing.isSymbolicLink()) {
+    throw new Error(`managed artifact target is a directory: ${basename(path)}`);
+  }
+  unlinkSync(path);
+}
+
 function prepareModeArtifacts(target, mode) {
   const baselinePath = managedArtifactPath(target, "baseline-predictions.json");
   const advancedPath = managedArtifactPath(target, "advanced-predictions.json");
   const trajectoryRoot = managedArtifactPath(target, "trajectories");
-  const stalePaths = mode === "baseline"
-    ? [advancedPath, trajectoryRoot]
+  const manifestPath = managedArtifactPath(target, "manifest.json");
+  const comparisonPath = managedArtifactPath(target, "comparison.json");
+  const reportPath = managedArtifactPath(target, "report.md");
+  const commonFiles = [manifestPath, comparisonPath, reportPath];
+  const staleFiles = mode === "baseline"
+    ? [...commonFiles, advancedPath]
     : mode === "advanced"
-      ? [baselinePath, trajectoryRoot]
-      : [trajectoryRoot];
-  for (const path of stalePaths) {
+      ? [...commonFiles, baselinePath]
+      : commonFiles;
+  for (const path of new Set(staleFiles)) {
     if (!contained(target, path)) throw new Error("refusing to prune a managed artifact outside the output directory");
-    if (existsSync(path)) rmSync(path, { recursive: true, force: true });
+    removeManagedFile(path);
   }
-  return { baselinePath, advancedPath, trajectoryRoot };
+  if (!contained(target, trajectoryRoot)) throw new Error("refusing to prune managed trajectories outside the output directory");
+  if (lstatOrNull(trajectoryRoot)) rmSync(trajectoryRoot, { recursive: true, force: true });
+  return { baselinePath, advancedPath, trajectoryRoot, manifestPath, comparisonPath, reportPath };
 }
 
 function git(args, fallback) {
@@ -187,7 +243,8 @@ function manifest({ benchmark, benchmarkSource, provider, model, repeats, execut
     benchmark: {
       id: benchmark.benchmarkId,
       schemaVersion: benchmark.schemaVersion,
-      sha256: hash(benchmarkSource ?? json(benchmark)),
+      sha256: canonicalTextSha256(benchmarkSource ?? json(benchmark)),
+      sha256Canonicalization: "utf8-lf",
       license: benchmark.license ?? null,
       orderedCaseIds: benchmark.cases.map((item) => item.id),
       orderedRecordIdsByCase: Object.fromEntries(benchmark.cases.map((item) => [item.id, item.records.map((record) => record.id)])),
@@ -303,7 +360,8 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
   const target = resolve(outputDir);
   const trajectoryRoot = managedArtifactPath(target, "trajectories");
   for (const item of benchmark.cases) trajectoryPath(trajectoryRoot, item.id);
-  const gitState = createGitState(git, [target]);
+  const managedGitRoots = relative(canonicalEvidenceRoot, target) === "" ? [canonicalEvidenceRoot] : [];
+  const gitState = createGitState(git, managedGitRoots);
   mkdirSync(target, { recursive: true });
   const publicBenchmark = createPublicBenchmarkProjection(benchmark); const baselineRuns = []; const advancedRuns = [];
   for (let repeat = 0; repeat < repeats; repeat += 1) {
@@ -319,19 +377,55 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
   const baselinePredictions = baselineRuns.length ? identical(baselineRuns, "baseline") : null;
   const advancedPredictions = advancedRuns.length ? identical(advancedRuns, "advanced") : null;
   const artifactPaths = prepareModeArtifacts(target, mode);
-  if (baselinePredictions) writeJson(artifactPaths.baselinePath, baselinePredictions);
-  if (advancedPredictions) writeJson(artifactPaths.advancedPath, advancedPredictions);
-  const baseline = baselinePredictions ? score(benchmark, baselinePredictions) : null;
-  const advanced = advancedPredictions ? score(benchmark, advancedPredictions) : null;
-  const execution = { startedAt, endedAt: new Date().toISOString(), runtimeMs: Number((performance.now() - startedMs).toFixed(3)) };
+  if (baselinePredictions) safeWriteJson(artifactPaths.baselinePath, baselinePredictions);
+  if (advancedPredictions) safeWriteJson(artifactPaths.advancedPath, advancedPredictions);
+  const inProgressExecution = {
+    status: "incomplete",
+    phase: "scoring",
+    startedAt,
+    endedAt: null,
+    runtimeMs: Number((performance.now() - startedMs).toFixed(3)),
+  };
+  safeWriteJson(artifactPaths.manifestPath, manifest({
+    benchmark,
+    benchmarkSource,
+    provider,
+    model,
+    repeats,
+    execution: inProgressExecution,
+    gitState,
+  }));
+  let baseline;
+  let advanced;
+  try {
+    baseline = baselinePredictions ? score(benchmark, baselinePredictions) : null;
+    advanced = advancedPredictions ? score(benchmark, advancedPredictions) : null;
+  } catch {
+    const execution = {
+      status: "incomplete",
+      startedAt,
+      endedAt: new Date().toISOString(),
+      runtimeMs: Number((performance.now() - startedMs).toFixed(3)),
+      failure: { stage: "scoring", code: "SCORING_FAILED" },
+    };
+    safeWriteJson(artifactPaths.manifestPath, manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState }));
+    throw new Error("Evaluation scoring failed; incomplete manifest written");
+  }
+  const execution = {
+    status: "complete",
+    startedAt,
+    endedAt: new Date().toISOString(),
+    runtimeMs: Number((performance.now() - startedMs).toFixed(3)),
+  };
   const manifestValue = manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState });
   const comparisonValue = comparison(manifestValue, baseline, advanced, repeats);
-  writeJson(resolve(target, "manifest.json"), manifestValue); writeJson(resolve(target, "comparison.json"), comparisonValue);
-  writeFileSync(resolve(target, "report.md"), report(manifestValue, comparisonValue), "utf8");
+  safeWriteJson(artifactPaths.comparisonPath, comparisonValue);
+  safeWrite(artifactPaths.reportPath, report(manifestValue, comparisonValue));
   if (advancedPredictions) {
     mkdirSync(trajectoryRoot, { recursive: true });
-    for (const item of advancedPredictions.cases) writeFileSync(trajectoryPath(trajectoryRoot, item.caseId), `${item.trajectory.map(JSON.stringify).join("\n")}\n`, "utf8");
+    for (const item of advancedPredictions.cases) safeWrite(trajectoryPath(trajectoryRoot, item.caseId), `${item.trajectory.map(JSON.stringify).join("\n")}\n`);
   }
+  safeWriteJson(artifactPaths.manifestPath, manifestValue);
   return { manifest: manifestValue, baselinePredictions, advancedPredictions, comparison: comparisonValue, outputDir: target };
 }
 

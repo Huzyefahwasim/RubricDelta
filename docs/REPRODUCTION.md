@@ -7,7 +7,7 @@
 - Runtime dependencies: none for the offline path
 - Network: not required for the benchmark, tests, evidence generation, or interface
 
-The evaluation manifest records the exact Node version, platform, architecture, benchmark hash, Git state, truthful overall run timing, and zero deterministic provider calls/tokens/cost.
+The evaluation manifest records the exact Node version, platform, architecture, benchmark hash, Git state, truthful overall run timing, and zero deterministic provider calls/tokens/cost. The benchmark hash explicitly canonicalizes UTF-8 text to LF (utf8-lf), and the scoped .gitattributes policy keeps the benchmark and hash-bound evidence byte-stable across Windows and Unix checkouts.
 
 ## Clean setup
 

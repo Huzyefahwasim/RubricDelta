@@ -132,3 +132,50 @@ test("evaluation records a clean first run, accepts managed-only follow-up dirti
   assert.notEqual(validation.status, 0);
   assert.match(`${validation.stdout}\n${validation.stderr}`, /manifest\.git.*source.*dirty/i);
 });
+
+test("an arbitrary output directory cannot exclude source changes from provenance", (t) => {
+  const clone = autocrlfClone(t);
+  appendFileSync(join(clone, "src", "evaluation", "advanced.js"), "\n// tracked source change for provenance regression\n", "utf8");
+  const evaluation = command(clone, process.execPath, [
+    "scripts/evaluate.js",
+    "--mode",
+    "both",
+    "--output-dir",
+    "src",
+  ], { timeout: 30_000 });
+  assert.equal(evaluation.status, 0, `${evaluation.stdout}\n${evaluation.stderr}`);
+  const state = JSON.parse(readFileSync(join(clone, "src", "manifest.json"), "utf8")).git;
+  assert.equal(state.revision, null);
+  assert.equal(state.sourceTrackedWorkingTreeDirty, true);
+  assert.equal(state.sourceWorkingTreeDirty, true);
+  assert.equal(state.managedArtifactDirty, false);
+  assert.equal(state.sourceState, "source-working-tree-dirty");
+});
+
+test("validator rejects a forged 40-hex source revision that is not a Git commit", (t) => {
+  const clone = autocrlfClone(t);
+  const evaluation = evaluate(clone);
+  assert.equal(evaluation.status, 0, `${evaluation.stdout}\n${evaluation.stderr}`);
+  const manifestPath = join(clone, "artifacts", "evaluation", "manifest.json");
+  const value = JSON.parse(readFileSync(manifestPath, "utf8"));
+  value.git.revision = "f".repeat(40);
+  value.git.baseRevision = value.git.revision;
+  writeFileSync(manifestPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  const result = validate(clone);
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /manifest\.git\.revision.*(?:resolve|commit|Git object)/i);
+});
+
+test("validator rejects a source commit added after the disclosed evidence revision", (t) => {
+  const clone = autocrlfClone(t);
+  const evaluation = evaluate(clone);
+  assert.equal(evaluation.status, 0, `${evaluation.stdout}\n${evaluation.stderr}`);
+  git(clone, ["config", "user.name", "RubricDelta Test"]);
+  git(clone, ["config", "user.email", "test@rubricdelta.invalid"]);
+  appendFileSync(join(clone, "src", "evaluation", "advanced.js"), "\n// committed after evidence source revision\n", "utf8");
+  git(clone, ["add", "--", "src/evaluation/advanced.js"]);
+  git(clone, ["commit", "-m", "source change after evidence"]);
+  const result = validate(clone);
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /manifest\.git\.revision.*outside the managed evidence roots/i);
+});

@@ -117,6 +117,7 @@ test("paired CLI writes fair complete artifacts, exact improvement, hard case, a
   assert.equal(manifest.benchmark.id, "rubricdelta-support-guideline-drift-v1");
   assert.equal(manifest.benchmark.schemaVersion, "1.0.0");
   assert.match(manifest.benchmark.sha256, /^[a-f0-9]{64}$/);
+  assert.equal(manifest.benchmark.sha256Canonicalization, "utf8-lf");
   assert.deepEqual(manifest.benchmark.orderedCaseIds, benchmark.cases.map((item) => item.id));
   assert.deepEqual(manifest.benchmark.orderedRecordIdsByCase, Object.fromEntries(benchmark.cases.map((item) => [item.id, item.records.map((record) => record.id)])));
   assert.deepEqual(manifest.provider, { name: "deterministic", model: null, seed: 0, status: "operational" });
@@ -126,6 +127,7 @@ test("paired CLI writes fair complete artifacts, exact improvement, hard case, a
   assert.match(manifest.execution.startedAt, /^2026-/);
   assert.match(manifest.execution.endedAt, /^2026-/);
   assert.ok(manifest.execution.runtimeMs >= 0);
+  assert.equal(manifest.execution.status, "complete");
   assert.equal(manifest.replay.status, "deferred-task-8");
   assert.equal(manifest.replay.substituted, false);
   assert.deepEqual(comparison.improvement, {
@@ -230,6 +232,18 @@ test("build validator is explicitly NON-FINAL/pass and final-strict fails on nam
   assert.match(strict.stdout, /prompts\/rule-compiler\.v1\.md/);
   assert.match(strict.stdout, /docs\/MAIN_FAILURE_MODE\.md/);
   assert.match(strict.stdout, /video/i);
+});
+
+test("build validator rejects an incomplete evaluation manifest", (t) => {
+  const fixture = validationFixture(t);
+  const manifestPath = join(fixture, "artifacts", "evaluation", "manifest.json");
+  const manifest = json(manifestPath);
+  manifest.execution.status = "incomplete";
+  manifest.execution.failure = { stage: "scoring", code: "SCORING_FAILED" };
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  const command = run(scripts["validate-submission"], ["--mode", "build", "--root", fixture]);
+  assert.notEqual(command.status, 0);
+  assert.match(`${command.stdout}\n${command.stderr}`, /manifest\.execution\.status.*complete/i);
 });
 
 test("validator reports missing, malformed JSON/JSONL, hash mismatch, and secret evidence without echoing it", (t) => {
