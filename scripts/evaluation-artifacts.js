@@ -25,18 +25,18 @@ function round(value) { return Number(value.toFixed(6)); }
 function list(values) { return values.length === 0 ? "none" : values.join(", "); }
 
 function git(args, fallback) {
-  try { return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim() || fallback; }
+  try { return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); }
   catch { return fallback; }
 }
 
-function gitState() {
-  const baseRevision = git(["rev-parse", "HEAD"], "unavailable");
-  const status = git(["status", "--porcelain", "--untracked-files=no"], "unknown");
+export function createGitState(runGit = git) {
+  const baseRevision = runGit(["rev-parse", "HEAD"], "unavailable");
+  const status = runGit(["status", "--porcelain", "--untracked-files=no"], "unknown");
   const dirty = status === "unknown" ? null : status.length > 0;
   return {
     revision: dirty === false ? baseRevision : null,
     baseRevision,
-    branch: git(["branch", "--show-current"], "unavailable"),
+    branch: runGit(["branch", "--show-current"], "unavailable"),
     trackedWorkingTreeDirty: dirty,
     packagingCommit: null,
     provenanceNote: "revision identifies the clean source commit; generated evidence is added by the subsequent packaging commit",
@@ -91,7 +91,7 @@ function manifest({ benchmark, benchmarkSource, provider, model, repeats, execut
   return {
     schemaVersion: 1,
     artifactKind: "rubricdelta-evaluation-manifest",
-    git: gitState(),
+    git: createGitState(),
     benchmark: {
       id: benchmark.benchmarkId,
       schemaVersion: benchmark.schemaVersion,
