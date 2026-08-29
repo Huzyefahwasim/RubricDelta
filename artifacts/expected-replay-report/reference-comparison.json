@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "expected-reference-only-task-7",
+  "status": "deterministic-reference-post-task-8",
   "provider": "deterministic",
   "replayOperational": false,
   "substituted": false,

@@ -1,6 +1,6 @@
 # Expected replay reference
 
-Task 7 records this deterministic result as the exact reference Task 8 replay must reproduce. Replay is not operational in this build and the CLI fails instead of substituting deterministic output.
+This post-Task-8 file records the deterministic default's exact reference result. Replay was not selected for this reference, so `replayOperational` is false. The separate explicit `npm run eval:replay` workflow is operational and must reproduce the same bound predictions without claiming a live OpenAI run.
 
 - Baseline: 16/20 = 0.80
 - Advanced: 18/20 = 0.90
