@@ -50,9 +50,9 @@ function normalizedArtifact(file, source) {
     return JSON.stringify(value);
   }
   if (file === "report.md") {
-    return source.replace(/^Started: .*$/m, "Started: <volatile>")
-      .replace(/^Ended: .*$/m, "Ended: <volatile>")
-      .replace(/^Wall-clock artifact run: .*$/m, "Wall-clock artifact run: <volatile>");
+    return source.replace(/^- Started: .*$/m, "- Started: <volatile>")
+      .replace(/^- Ended: .*$/m, "- Ended: <volatile>")
+      .replace(/^- Wall-clock artifact run: .*$/m, "- Wall-clock artifact run: <volatile>");
   }
   if (file === "advanced-predictions.json" || file.endsWith(".jsonl")) {
     return source.replace(/"timestamp":\s*"[^"]+"/g, '"timestamp":"<volatile>"');
@@ -142,6 +142,8 @@ test("paired CLI writes fair complete artifacts, exact improvement, hard case, a
   assert.match(report, /hard precedence case/i);
   assert.match(report, /baseline-predictions\.json/);
   assert.match(report, /advanced-predictions\.json/);
+  assert.doesNotMatch(report, /[ \t]+$/m);
+  assert.match(report, /[^\n]\n$/);
   const files = readdirSync(join(output, "trajectories")).sort();
   assert.deepEqual(files, benchmark.cases.map((item) => `${item.id}.jsonl`).sort());
   for (const item of benchmark.cases) {

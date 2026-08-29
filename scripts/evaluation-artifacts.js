@@ -168,13 +168,13 @@ function comparison(manifestValue, baseline, advanced, repeats) {
 function report(manifestValue, result) {
   const lines = [
     "# RubricDelta paired evaluation", "",
-    `Benchmark: \`${manifestValue.benchmark.id}\`  `,
-    `Provider/model: \`${manifestValue.provider.name}\` / \`${manifestValue.provider.model ?? "none"}\`  `,
-    `Review budget: ${(manifestValue.reviewBudget.fraction * 100).toFixed(0)}% (${Object.values(manifestValue.reviewBudget.slotsByCase)[0]} records per included case)  `,
-    `Repetitions: ${manifestValue.repeats.requested} (normalized identically: true)  `,
-    `Started: ${manifestValue.execution.startedAt}  `,
-    `Ended: ${manifestValue.execution.endedAt}  `,
-    `Wall-clock artifact run: ${manifestValue.execution.runtimeMs} ms`, "", "## Primary result", "",
+    `- Benchmark: \`${manifestValue.benchmark.id}\``,
+    `- Provider/model: \`${manifestValue.provider.name}\` / \`${manifestValue.provider.model ?? "none"}\``,
+    `- Review budget: ${(manifestValue.reviewBudget.fraction * 100).toFixed(0)}% (${Object.values(manifestValue.reviewBudget.slotsByCase)[0]} records per included case)`,
+    `- Repetitions: ${manifestValue.repeats.requested} (normalized identically: true)`,
+    `- Started: ${manifestValue.execution.startedAt}`,
+    `- Ended: ${manifestValue.execution.endedAt}`,
+    `- Wall-clock artifact run: ${manifestValue.execution.runtimeMs} ms`, "", "## Primary result", "",
   ];
   if (result.baseline) lines.push(`- Baseline: ${result.baseline.primaryMetric.numerator}/${result.baseline.primaryMetric.denominator} = ${result.baseline.primaryMetric.value.toFixed(2)}`);
   if (result.advanced) lines.push(`- Advanced: ${result.advanced.primaryMetric.numerator}/${result.advanced.primaryMetric.denominator} = ${result.advanced.primaryMetric.value.toFixed(2)}`);
@@ -198,8 +198,8 @@ function report(manifestValue, result) {
   lines.push("", "The wall-clock artifact runtime is truthful execution metadata, not a speed comparison. Per-system runtime remains not measured; the deterministic systems make no provider calls, use no model tokens, and cost $0.", "", "## Raw artifacts", "", "- [Manifest](manifest.json)");
   if (result.baseline) lines.push("- [Baseline raw predictions](baseline-predictions.json)");
   if (result.advanced) lines.push("- [Advanced raw predictions](advanced-predictions.json)", "- [Per-case trajectories](trajectories/)");
-  lines.push("- [Complete machine-readable comparison](comparison.json)", "");
-  return `${lines.join("\n")}\n`;
+  lines.push("- [Complete machine-readable comparison](comparison.json)");
+  return `${lines.join("\n").trimEnd()}\n`;
 }
 
 export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, outputDir, provider, model, repeats, createBaseline, createAdvanced, score }) {
