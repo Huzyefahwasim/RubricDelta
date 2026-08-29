@@ -7,10 +7,17 @@ export class EvidenceError extends Error {
   }
 }
 
-export function citationFor(document, span) {
-  if (typeof document?.version !== "string" || document.version.trim() === "") {
+function validateGuideline(document) {
+  if (!document || typeof document.version !== "string" || document.version.trim() === "") {
     throw new EvidenceError("A guideline version is required to create evidence citations");
   }
+  if (typeof document.text !== "string" || document.text.trim() === "") {
+    throw new EvidenceError("A guideline with text is required");
+  }
+}
+
+export function citationFor(document, span) {
+  validateGuideline(document);
   return { documentId: document.version, section: `sentence-${span.index + 1}`, start: span.start, end: span.end, quote: document.text.slice(span.start, span.end) };
 }
 
@@ -20,7 +27,7 @@ function targetAndException(raw) {
 }
 
 export function extractRoutingRules(document) {
-  if (!document || typeof document.text !== "string") throw new EvidenceError("A guideline with text is required");
+  validateGuideline(document);
   const rules = [];
   for (const span of splitWithSpans(document.text)) {
     const route = span.text.match(/^Route\s+(.+)\s+to\s+(.+?)[.!?]?$/i);

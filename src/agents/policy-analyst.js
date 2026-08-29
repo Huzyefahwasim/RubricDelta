@@ -22,10 +22,12 @@ function pairFor(oldRule, newRules) {
   return newRules.find((rule) => overlap(oldTerms, ruleTerms(rule)).length > 0);
 }
 
-function closestRule(rule, candidates) {
-  return candidates
+function relatedRule(rule, candidates) {
+  const matches = candidates
     .map((candidate) => ({ candidate, score: overlap(ruleTerms(rule), ruleTerms(candidate)).length }))
-    .sort((left, right) => right.score - left.score || left.candidate.id.localeCompare(right.candidate.id))[0];
+    .filter((match) => match.score > 0)
+    .sort((left, right) => right.score - left.score || left.candidate.id.localeCompare(right.candidate.id));
+  return matches[0]?.candidate;
 }
 
 function details(oldRule, newRule, type) {
@@ -52,30 +54,45 @@ function deltaFor(oldRule, newRule) {
   if (oldRule.label === newRule.label && sameTerms(oldTerms, newTerms) && !precedenceChanged) return null;
   let type = "label-changed";
   if (precedenceChanged) type = "priority-changed";
+  else if (!sameTerms(oldRule.exceptions, newRule.exceptions)) type = "exception-changed";
   else if (oldRule.label === newRule.label && oldTerms.every((term) => newTerms.includes(term))) type = "scope-expanded";
   else if (oldRule.label === newRule.label && newTerms.every((term) => oldTerms.includes(term))) type = "scope-narrowed";
-  else if (!sameTerms(oldRule.exceptions, newRule.exceptions)) type = "exception-changed";
   return details(oldRule, newRule, type);
 }
 
+function requireTrace(trace) {
+  if (!trace || typeof trace.record !== "function" || typeof trace.events !== "function") {
+    throw new EvidenceError("A trace recorder is required for policy analysis");
+  }
+  return trace;
+}
+
 export function analyzePolicy({ oldGuideline, newGuideline, trace } = {}) {
+  requireTrace(trace);
+  trace.record({ agent: "policy-analyst", phase: "analysis", type: "instruction", payload: { oldGuidelineVersion: oldGuideline?.version, newGuidelineVersion: newGuideline?.version } });
   const oldRules = extractRoutingRules(oldGuideline);
   const newRules = extractRoutingRules(newGuideline);
   const deltas = [];
   const pairedNew = new Set();
   for (const oldRule of oldRules) {
     const newRule = pairFor(oldRule, newRules.filter((rule) => !pairedNew.has(rule.id)));
-    if (!newRule) continue;
+    if (!newRule) {
+      const related = relatedRule(oldRule, newRules);
+      if (!related) throw new EvidenceError(`No evidence establishes a relationship for removed rule ${oldRule.id}`);
+      deltas.push(details(oldRule, related, "removed"));
+      continue;
+    }
     pairedNew.add(newRule.id);
     const delta = deltaFor(oldRule, newRule);
     if (delta) deltas.push(delta);
   }
   for (const newRule of newRules.filter((rule) => !pairedNew.has(rule.id))) {
-    const match = closestRule(newRule, oldRules);
-    if (!match) throw new EvidenceError("A behavioral delta requires citations from both guideline versions");
-    deltas.push(details(match.candidate, newRule, "added"));
+    const related = relatedRule(newRule, oldRules);
+    if (!related) throw new EvidenceError(`No evidence establishes a relationship for added rule ${newRule.id}`);
+    deltas.push(details(related, newRule, "added"));
   }
+  trace.record({ agent: "policy-analyst", phase: "analysis", type: "action-result", payload: { oldRuleCount: oldRules.length, newRuleCount: newRules.length, deltaIds: deltas.map((delta) => delta.id) } });
   const result = { oldRules, newRules, deltas, boundaryCases: [...new Set(deltas.flatMap((delta) => delta.boundaryCases))] };
-  trace?.record({ agent: "policy-analyst", phase: "analysis", type: "rule-deltas", payload: { oldRuleCount: oldRules.length, newRuleCount: newRules.length, deltaIds: deltas.map((delta) => delta.id) } });
+  trace.record({ agent: "policy-analyst", phase: "analysis", type: "final-evidence", payload: { deltaIds: deltas.map((delta) => delta.id), citationCount: deltas.flatMap((delta) => delta.citations).length } });
   return result;
 }
