@@ -227,8 +227,11 @@ test("build validator is explicitly NON-FINAL/pass and final-strict still fails 
   assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
   assert.ok(build.stdout.startsWith("MODE: BUILD — NON-FINAL\n"));
   assert.match(build.stdout, /PASS: build validation/i);
-  assert.match(build.stdout, /DEFERRED \(Task 8\)/);
-  assert.match(build.stdout, /DEFERRED \(Task 9\)/);
+  assert.doesNotMatch(build.stdout, /\[DEFERRED \(Task 8\)\]/);
+  assert.deepEqual(
+    build.stdout.split(/\r?\n/).filter((line) => line.startsWith("[DEFERRED")),
+    ["[DEFERRED (Task 9)] docs/MAIN_FAILURE_MODE.md, docs/HOT_TAKE.md, docs/MODEL_AND_COSTS.md, artifacts/qa/README.md, artifacts/submission/demo.mp4"],
+  );
   assert.doesNotMatch(build.stdout, /eligible|submission ready|fully ready/i);
   const strict = run(scripts["validate-submission"], ["--mode=final-strict", `--root=${root}`]);
   assert.notEqual(strict.status, 0);
@@ -250,7 +253,7 @@ test("build validator is explicitly NON-FINAL/pass and final-strict still fails 
   ]) {
     assert.ok(existsSync(join(root, ...path.split("/"))), path);
   }
-  assert.match(strict.stdout, /video/i);
+  assert.match(strict.stdout, /artifacts\/submission\/demo\.mp4/);
 });
 
 test("build validator rejects an incomplete evaluation manifest", (t) => {

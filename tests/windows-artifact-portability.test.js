@@ -48,6 +48,10 @@ function autocrlfClone(t) {
       return item !== "/.git" && !item.startsWith("/.git/") && !item.startsWith("/.superpowers") && !item.startsWith("/tmp") && !item.startsWith("/artifacts/runs");
     },
   });
+  const evaluation = evaluate(seed);
+  assert.equal(evaluation.status, 0, `seed evaluation\n${evaluation.stdout}\n${evaluation.stderr}`);
+  const evidence = command(seed, process.execPath, ["scripts/generate-evidence.js"], { timeout: 30_000 });
+  assert.equal(evidence.status, 0, `seed evidence\n${evidence.stdout}\n${evidence.stderr}`);
   git(seed, ["init", "-b", "main"]);
   git(seed, ["config", "user.name", "RubricDelta Test"]);
   git(seed, ["config", "user.email", "test@rubricdelta.invalid"]);
@@ -60,6 +64,32 @@ function autocrlfClone(t) {
 
 function evaluate(clone) {
   return command(clone, process.execPath, ["scripts/evaluate.js", "--mode", "both"], { timeout: 30_000 });
+}
+
+function evaluateWithScoringFailure(clone) {
+  return command(clone, process.execPath, ["--input-type=module", "--eval", `
+    import { readFileSync } from "node:fs";
+    import { createEvaluationArtifacts } from "./scripts/evaluation-artifacts.js";
+    import { createAdvancedPredictions, createBaselinePredictions, loadBenchmark } from "./src/evaluation/index.js";
+    const benchmark = loadBenchmark();
+    try {
+      createEvaluationArtifacts({
+        benchmark,
+        benchmarkSource: readFileSync("data/benchmark/benchmark.json", "utf8"),
+        mode: "both",
+        outputDir: "artifacts/evaluation",
+        provider: "deterministic",
+        model: null,
+        repeats: 1,
+        createBaseline: createBaselinePredictions,
+        createAdvanced: createAdvancedPredictions,
+        score() { throw new Error("intentional scoring failure"); },
+      });
+      throw new Error("scoring failure was not propagated");
+    } catch (error) {
+      if (!/scoring failed.*incomplete/i.test(error.message)) throw error;
+    }
+  `], { timeout: 30_000 });
 }
 
 function validate(clone) {
@@ -80,7 +110,7 @@ test("hash-bound benchmark and evidence bytes remain LF in a core.autocrlf=true 
   }
 });
 
-test("evaluation records a clean first run, accepts managed-only follow-up dirtiness, and rejects source dirtiness", (t) => {
+test("one evaluation records post-publication managed dirtiness and rejects source dirtiness", (t) => {
   const clone = autocrlfClone(t);
   const revision = git(clone, ["rev-parse", "HEAD"]).trim();
 
@@ -91,24 +121,30 @@ test("evaluation records a clean first run, accepts managed-only follow-up dirti
   assert.equal(state.sourceWorkingTreeDirty, false);
   assert.equal(state.sourceTrackedWorkingTreeDirty, false);
   assert.equal(state.sourceUntrackedWorkingTreeDirty, false);
-  assert.equal(state.managedArtifactDirty, false);
-  assert.equal(state.wholeWorkingTreeDirty, false);
-  assert.equal(state.sourceState, "clean-commit");
+  assert.equal(state.trackedWorkingTreeDirty, true);
+  assert.equal(state.managedArtifactDirty, true);
+  assert.equal(state.wholeWorkingTreeDirty, true);
+  assert.equal(state.sourceState, "clean-source-managed-artifacts-dirty");
   let validation = validate(clone);
   assert.equal(validation.status, 0, `first validation\n${validation.stdout}\n${validation.stderr}`);
 
-  const secondEvaluation = evaluate(clone);
-  assert.equal(secondEvaluation.status, 0, `second evaluation\n${secondEvaluation.stdout}\n${secondEvaluation.stderr}`);
-  state = manifest(clone).git;
+  const scoringFailure = evaluateWithScoringFailure(clone);
+  assert.equal(scoringFailure.status, 0, `scoring failure\n${scoringFailure.stdout}\n${scoringFailure.stderr}`);
+  const incomplete = manifest(clone);
+  state = incomplete.git;
+  assert.deepEqual(incomplete.execution.failure, { stage: "scoring", code: "SCORING_FAILED" });
+  assert.equal(incomplete.execution.status, "incomplete");
   assert.equal(state.revision, revision);
   assert.equal(state.sourceWorkingTreeDirty, false);
   assert.equal(state.sourceTrackedWorkingTreeDirty, false);
   assert.equal(state.sourceUntrackedWorkingTreeDirty, false);
+  assert.equal(state.trackedWorkingTreeDirty, true);
   assert.equal(state.managedArtifactDirty, true);
   assert.equal(state.wholeWorkingTreeDirty, true);
   assert.equal(state.sourceState, "clean-source-managed-artifacts-dirty");
   validation = validate(clone);
-  assert.equal(validation.status, 0, `second validation\n${secondEvaluation.stdout}\n${secondEvaluation.stderr}`);
+  assert.notEqual(validation.status, 0);
+  assert.match(`${validation.stdout}\n${validation.stderr}`, /manifest\.execution\.status.*complete/i);
 
   const untracked = join(clone, "untracked-source-task7.txt");
   writeFileSync(untracked, "untracked source change\n", "utf8");
@@ -119,7 +155,7 @@ test("evaluation records a clean first run, accepts managed-only follow-up dirti
   assert.equal(state.sourceUntrackedWorkingTreeDirty, true);
   validation = validate(clone);
   assert.notEqual(validation.status, 0);
-  assert.match(`${validation.stdout}\n${validation.stderr}`, /manifest\.git.*source.*dirty/i);
+  assert.match(`${validation.stdout}\n${validation.stderr}`, /DIRTY SOURCE: repository.*outside the evidence-only boundary/i);
 
   rmSync(untracked, { force: true });
   appendFileSync(join(clone, "README.md"), "\ntracked source change\n", "utf8");
@@ -130,7 +166,7 @@ test("evaluation records a clean first run, accepts managed-only follow-up dirti
   assert.equal(state.sourceTrackedWorkingTreeDirty, true);
   validation = validate(clone);
   assert.notEqual(validation.status, 0);
-  assert.match(`${validation.stdout}\n${validation.stderr}`, /manifest\.git.*source.*dirty/i);
+  assert.match(`${validation.stdout}\n${validation.stderr}`, /DIRTY SOURCE: repository.*outside the evidence-only boundary/i);
 });
 
 test("an arbitrary output directory cannot exclude source changes from provenance", (t) => {

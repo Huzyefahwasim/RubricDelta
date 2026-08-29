@@ -374,7 +374,7 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
   const trajectoryRoot = managedArtifactPath(target, "trajectories");
   for (const item of benchmark.cases) trajectoryPath(trajectoryRoot, item.id);
   const managedGitRoots = relative(canonicalEvidenceRoot, target) === "" ? [canonicalEvidenceRoot] : [];
-  const gitState = createGitState(git, managedGitRoots);
+  const publishedGitState = () => createGitState(git, managedGitRoots);
   mkdirSync(target, { recursive: true });
   const publicBenchmark = createPublicBenchmarkProjection(benchmark); const baselineRuns = []; const advancedRuns = [];
   for (let repeat = 0; repeat < repeats; repeat += 1) {
@@ -410,7 +410,7 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
     model,
     repeats,
     execution: inProgressExecution,
-    gitState,
+    gitState: publishedGitState(),
     artifacts,
   }));
   let baseline;
@@ -426,7 +426,7 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
       runtimeMs: Number((performance.now() - startedMs).toFixed(3)),
       failure: { stage: "scoring", code: "SCORING_FAILED" },
     };
-    safeWriteJson(artifactPaths.manifestPath, manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState, artifacts }));
+    safeWriteJson(artifactPaths.manifestPath, manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState: publishedGitState(), artifacts }));
     throw new Error("Evaluation scoring failed; incomplete manifest written");
   }
   const execution = {
@@ -435,14 +435,15 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
     endedAt: new Date().toISOString(),
     runtimeMs: Number((performance.now() - startedMs).toFixed(3)),
   };
-  const manifestValue = manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState, artifacts });
-  const comparisonValue = comparison(manifestValue, baseline, advanced, repeats);
+  const reportManifest = manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState: publishedGitState(), artifacts });
+  const comparisonValue = comparison(reportManifest, baseline, advanced, repeats);
   safeWriteJson(artifactPaths.comparisonPath, comparisonValue);
-  safeWrite(artifactPaths.reportPath, report(manifestValue, comparisonValue));
+  safeWrite(artifactPaths.reportPath, report(reportManifest, comparisonValue));
   if (advancedPredictions) {
     mkdirSync(trajectoryRoot, { recursive: true });
     for (const item of advancedPredictions.cases) safeWrite(trajectoryPath(trajectoryRoot, item.caseId), `${item.trajectory.map(JSON.stringify).join("\n")}\n`);
   }
+  const manifestValue = manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState: publishedGitState(), artifacts });
   safeWriteJson(artifactPaths.manifestPath, manifestValue);
   return { manifest: manifestValue, baselinePredictions, advancedPredictions, comparison: comparisonValue, outputDir: target };
 }
