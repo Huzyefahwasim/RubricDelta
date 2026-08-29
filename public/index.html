@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>RubricDelta — Policy Forensics Workbench</title>
+  <meta name="description" content="Evidence-first review of labels affected by a policy revision.">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to evidence workbench</a>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="masthead">
+    <div class="identity">
+      <p class="coordinate">RD / CASEWORK 01</p>
+      <h1>RubricDelta <span>Policy Forensics Workbench</span></h1>
+    </div>
+    <div class="system-state" aria-label="System state">
+      <span class="state-mark" aria-hidden="true"></span>
+      <span id="system-state">Offline deterministic path</span>
+      <span id="run-coordinate">RUN / INITIALIZING</span>
+    </div>
+  </header>
+
+  <nav class="phase-nav" aria-label="Workbench phases" role="tablist">
+    <button id="tab-intake" class="phase-tab" type="button" role="tab" aria-selected="true" aria-controls="view-intake" data-phase="intake"><span>01</span>Intake</button>
+    <button id="tab-deltas" class="phase-tab" type="button" role="tab" aria-selected="false" aria-controls="view-deltas" data-phase="deltas" tabindex="-1"><span>02</span>Rule Deltas</button>
+    <button id="tab-impact" class="phase-tab" type="button" role="tab" aria-selected="false" aria-controls="view-impact" data-phase="impact" tabindex="-1"><span>03</span>Impact Queue</button>
+    <button id="tab-evaluation" class="phase-tab" type="button" role="tab" aria-selected="false" aria-controls="view-evaluation" data-phase="evaluation" tabindex="-1"><span>04</span>Evaluation</button>
+    <button id="tab-trajectory" class="phase-tab" type="button" role="tab" aria-selected="false" aria-controls="view-trajectory" data-phase="trajectory" tabindex="-1"><span>05</span>Trajectory Inspector</button>
+  </nav>
+
+  <main id="main" tabindex="-1">
+    <p id="live-status" class="live-status" aria-live="polite" aria-atomic="true">Loading the fixed benchmark example…</p>
+
+    <section id="view-intake" class="work-view" role="tabpanel" aria-labelledby="tab-intake" data-view="intake">
+      <header class="view-heading">
+        <div>
+          <p class="coordinate">INTAKE / FIXED BENCHMARK</p>
+          <h2>Revision dossier</h2>
+        </div>
+        <button id="reload-demo" class="utility-button" type="button">Load benchmark example</button>
+      </header>
+      <div id="intake-content" class="loading-sheet" aria-busy="true">
+        <p class="loading-kicker">Compiling evidence</p>
+        <p>Retrieving the public scenario and creating a server-owned run.</p>
+      </div>
+    </section>
+
+    <section id="view-deltas" class="work-view" role="tabpanel" aria-labelledby="tab-deltas" data-view="deltas" hidden>
+      <header class="view-heading">
+        <div>
+          <p class="coordinate">RULE SEAM / SEMANTIC CHANGE MAP</p>
+          <h2>What changed, exactly?</h2>
+        </div>
+        <p class="view-note">The amber seam follows cited language into every ranked record.</p>
+      </header>
+      <div id="delta-content" class="empty-sheet">
+        <p>Rule evidence will appear when the server run completes.</p>
+      </div>
+    </section>
+
+    <section id="view-impact" class="work-view" role="tabpanel" aria-labelledby="tab-impact" data-view="impact" hidden>
+      <header class="view-heading">
+        <div>
+          <p class="coordinate">QUEUE / COMPLETE RANKING</p>
+          <h2>Impacted label candidates</h2>
+        </div>
+        <p class="view-note">J / K moves selection. A / R / E records a human checkpoint.</p>
+      </header>
+      <div class="impact-layout">
+        <div id="impact-queue" class="queue-shell" role="listbox" aria-label="Affected-record review queue" aria-controls="candidate-detail"></div>
+        <article id="candidate-detail" class="candidate-detail empty-sheet" aria-live="off">
+          <p>Select a candidate to inspect its evidence.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="view-evaluation" class="work-view" role="tabpanel" aria-labelledby="tab-evaluation" data-view="evaluation" hidden>
+      <header class="view-heading">
+        <div>
+          <p class="coordinate">EVALUATION / PAIRED FIXED BENCHMARK</p>
+          <h2>Measured improvement</h2>
+        </div>
+        <p class="view-note">Same cases, seed, provider, and human-review budget.</p>
+      </header>
+      <div id="evaluation-content" class="loading-sheet" aria-busy="true">
+        <p>Loading the evaluator-owned comparison…</p>
+      </div>
+    </section>
+
+    <section id="view-trajectory" class="work-view" role="tabpanel" aria-labelledby="tab-trajectory" data-view="trajectory" hidden>
+      <header class="view-heading">
+        <div>
+          <p class="coordinate">TRACE / APPEND-ONLY JSONL</p>
+          <h2>Trajectory inspector</h2>
+        </div>
+        <a id="trajectory-download" class="utility-link" href="#" download aria-disabled="true">Download full trajectory JSONL</a>
+      </header>
+      <ol id="trajectory-content" class="trajectory-rail" aria-label="Agent and human trajectory events">
+        <li class="empty-sheet">Trajectory events will appear after the server run completes.</li>
+      </ol>
+    </section>
+  </main>
+
+  <aside class="decision-bar" aria-label="Human decision checkpoint">
+    <div class="review-meter">
+      <p class="coordinate">HUMAN GATE / 20% BUDGET</p>
+      <strong id="review-counter">0 / 0 review slots used</strong>
+      <span id="selected-record">No candidate selected</span>
+    </div>
+    <div class="reviewer-field">
+      <label for="reviewer">Reviewer attribution</label>
+      <input id="reviewer" name="reviewer" type="text" value="Judge reviewer" maxlength="128" autocomplete="name">
+    </div>
+    <div class="decision-actions" aria-label="Decision controls">
+      <button id="approve" class="decision approve" type="button" disabled>Approve</button>
+      <button id="reject" class="decision reject" type="button" disabled>Reject</button>
+      <button id="escalate" class="decision escalate" type="button" disabled>Escalate</button>
+      <button id="undo" class="decision undo" type="button" disabled>Undo</button>
+    </div>
+    <a id="export-download" class="export-link" href="#" download aria-disabled="true">Download approved corrections CSV</a>
+  </aside>
+
+  <footer class="footer">
+    <p>Source labels remain immutable in the browser. Only server-recorded approvals enter export.</p>
+    <p class="keyboard-legend"><kbd>J</kbd> next <kbd>K</kbd> previous <kbd>A</kbd> approve <kbd>R</kbd> reject <kbd>E</kbd> escalate</p>
+  </footer>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
