@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "artifactKind": "rubricdelta-evaluation-manifest",
   "git": {
-    "revision": "521e284534bbf0208879136b0faf82320400d6c5",
-    "baseRevision": "521e284534bbf0208879136b0faf82320400d6c5",
+    "revision": "346f7b704bce93a9ecbb59e0e978b2dbec9838ed",
+    "baseRevision": "346f7b704bce93a9ecbb59e0e978b2dbec9838ed",
     "branch": "feature/hackathon-submission",
     "trackedWorkingTreeDirty": false,
     "wholeWorkingTreeDirty": false,
@@ -18,7 +18,8 @@
   "benchmark": {
     "id": "rubricdelta-support-guideline-drift-v1",
     "schemaVersion": "1.0.0",
-    "sha256": "f21d4563b618bb3fa5c651ffe1ac609b8139d02de018a36c2585b638e9290db7",
+    "sha256": "10c72912ec68a0ea392cb840c68500474bd5f6f75cb71b9db7245a915e5039a6",
+    "sha256Canonicalization": "utf8-lf",
     "license": "CC0-1.0",
     "orderedCaseIds": [
       "fraud-overrides-refunds",
@@ -221,8 +222,9 @@
     "expectedReference": "../expected-replay-report/reference-comparison.json"
   },
   "execution": {
-    "startedAt": "2026-08-29T15:15:24.012Z",
-    "endedAt": "2026-08-29T15:15:24.366Z",
-    "runtimeMs": 352.208
+    "status": "complete",
+    "startedAt": "2026-08-29T15:36:44.545Z",
+    "endedAt": "2026-08-29T15:36:44.959Z",
+    "runtimeMs": 412.492
   }
 }
