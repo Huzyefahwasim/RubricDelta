@@ -1,0 +1,20 @@
+{
+  "name": "rubric-delta",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Evidence-first agent system for annotation guideline drift",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/server/index.js",
+    "dev": "node --watch src/server/index.js",
+    "test": "node --test",
+    "eval": "node scripts/evaluate.js --mode=both",
+    "eval:baseline": "node scripts/evaluate.js --mode=baseline",
+    "eval:advanced": "node scripts/evaluate.js --mode=advanced",
+    "validate": "node scripts/validate-submission.js"
+  },
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,361 @@
+{
+  "schemaVersion": "1.0.0",
+  "benchmarkId": "rubricdelta-support-guideline-drift-v1",
+  "title": "Synthetic customer-support guideline drift benchmark",
+  "license": "CC0-1.0",
+  "reviewBudgetFraction": 0.2,
+  "primaryMetric": "microAffectedRecallAtReviewBudget",
+  "description": "Ten synthetic policy revisions with explicit stale-label ground truth.",
+  "cases": [
+    {
+      "id": "fraud-overrides-refunds",
+      "title": "Unauthorized purchase exception overrides refund routing",
+      "difficulty": "hard",
+      "changeType": "precedence_exception",
+      "oldGuideline": {
+        "version": "billing-1.0",
+        "text": "Route requests to return money for completed purchases to Billing Refunds. Route card-security questions that do not request a transaction refund to Fraud Review. Billing Refunds takes precedence whenever a refund is requested."
+      },
+      "newGuideline": {
+        "version": "billing-1.1",
+        "text": "Route requests to return money for completed purchases to Billing Refunds. Route unauthorized, stolen-card, or card-compromise purchases to Fraud Review even when the customer requests a refund. This fraud exception takes precedence over Billing Refunds."
+      },
+      "changeSummary": "Fraud Review now overrides Billing Refunds for unauthorized or stolen-card purchases.",
+      "records": [
+        {"id":"fraud-01","text":"Please refund the headphones I returned yesterday.","existingLabel":"Billing Refunds"},
+        {"id":"fraud-02","text":"How can I freeze my card before anything is purchased?","existingLabel":"Fraud Review"},
+        {"id":"fraud-03","text":"My card was stolen and the thief bought a camera. Refund that purchase.","existingLabel":"Billing Refunds"},
+        {"id":"fraud-04","text":"I changed my mind about the annual plan and want my money back.","existingLabel":"Billing Refunds"},
+        {"id":"fraud-05","text":"The replacement card for my stolen card has not arrived.","existingLabel":"Card Delivery"},
+        {"id":"fraud-06","text":"Someone tried to log in, but there are no unknown charges.","existingLabel":"Account Security"},
+        {"id":"fraud-07","text":"Refund the damaged suitcase from order 731.","existingLabel":"Billing Refunds"},
+        {"id":"fraud-08","text":"I never authorized this game purchase. Reverse it and secure my card.","existingLabel":"Billing Refunds"},
+        {"id":"fraud-09","text":"Why was the refund for my legitimate purchase declined?","existingLabel":"Billing Refunds"},
+        {"id":"fraud-10","text":"I recognize the purchase now; please close the fraud inquiry.","existingLabel":"Fraud Review"}
+      ],
+      "groundTruth": {
+        "affectedRecordIds": ["fraud-03", "fraud-08"],
+        "expectedLabels": {"fraud-03":"Fraud Review","fraud-08":"Fraud Review"},
+        "rationales": {
+          "fraud-03":"The purchase followed a stolen card and the new exception overrides the requested refund.",
+          "fraud-08":"The customer explicitly says the purchase was unauthorized, so Fraud Review now takes precedence."
+        }
+      }
+    },
+    {
+      "id": "identity-check-login",
+      "title": "Identity-verification login blocks move to account security",
+      "difficulty": "medium",
+      "changeType": "new_exception",
+      "oldGuideline": {
+        "version": "access-2.0",
+        "text": "Route all sign-in failures, password errors, and login loops to Technical Access. Route reports of account takeover to Account Security."
+      },
+      "newGuideline": {
+        "version": "access-2.1",
+        "text": "Route ordinary sign-in failures, password errors, and login loops to Technical Access. Route login blocks caused by identity verification, selfie checks, or document checks to Account Security, along with account takeover reports."
+      },
+      "changeSummary": "Identity-verification login blocks are now Account Security rather than Technical Access.",
+      "records": [
+        {"id":"access-01","text":"The login page spins forever after I enter my password.","existingLabel":"Technical Access"},
+        {"id":"access-02","text":"The selfie identity check keeps rejecting me, so I cannot sign in.","existingLabel":"Technical Access"},
+        {"id":"access-03","text":"I forgot my password and the reset email is late.","existingLabel":"Technical Access"},
+        {"id":"access-04","text":"A stranger changed the email on my account.","existingLabel":"Account Security"},
+        {"id":"access-05","text":"The mobile app closes immediately after launch.","existingLabel":"Mobile Bug"},
+        {"id":"access-06","text":"My passport document check failed and now login is blocked.","existingLabel":"Technical Access"},
+        {"id":"access-07","text":"Can I update my profile photo?","existingLabel":"Profile Settings"},
+        {"id":"access-08","text":"Two-factor authentication worked, but the dashboard is blank.","existingLabel":"Technical Access"},
+        {"id":"access-09","text":"I received a sign-in alert that was mine.","existingLabel":"Account Security"},
+        {"id":"access-10","text":"The password field does not accept pasted text.","existingLabel":"Technical Access"}
+      ],
+      "groundTruth": {
+        "affectedRecordIds": ["access-02", "access-06"],
+        "expectedLabels": {"access-02":"Account Security","access-06":"Account Security"},
+        "rationales": {
+          "access-02":"The failed selfie check is an identity-verification login block.",
+          "access-06":"The failed passport check is a document-verification login block."
+        }
+      }
+    },
+    {
+      "id": "deceased-account-owner",
+      "title": "Deceased-owner requests receive a dedicated route",
+      "difficulty": "medium",
+      "changeType": "new_category",
+      "oldGuideline": {
+        "version": "retention-3.2",
+        "text": "Route every subscription cancellation and account closure request to Retention. Route inheritance questions without an account action to General Legal."
+      },
+      "newGuideline": {
+        "version": "retention-3.3",
+        "text": "Route ordinary subscription cancellation and account closure requests to Retention. Route requests involving a deceased account owner, executor, death certificate, or estate to Estate Support."
+      },
+      "changeSummary": "Closures involving a deceased owner or estate now go to Estate Support.",
+      "records": [
+        {"id":"estate-01","text":"Cancel my monthly membership before it renews.","existingLabel":"Retention"},
+        {"id":"estate-02","text":"I am executor for my late father's estate and need his account closed.","existingLabel":"Retention"},
+        {"id":"estate-03","text":"Pause my subscription for two months.","existingLabel":"Retention"},
+        {"id":"estate-04","text":"Where can I download last year's invoices?","existingLabel":"Billing Documents"},
+        {"id":"estate-05","text":"I have a general question about beneficiary law.","existingLabel":"General Legal"},
+        {"id":"estate-06","text":"Close the duplicate account I created this morning.","existingLabel":"Retention"},
+        {"id":"estate-07","text":"My mother died; where do I send her death certificate to cancel service?","existingLabel":"Retention"},
+        {"id":"estate-08","text":"Please transfer my account to a different email.","existingLabel":"Profile Settings"},
+        {"id":"estate-09","text":"The owner is travelling and asked me to cancel for them.","existingLabel":"Retention"},
+        {"id":"estate-10","text":"Reactivate the account I closed last week.","existingLabel":"Retention"}
+      ],
+      "groundTruth": {
+        "affectedRecordIds": ["estate-02", "estate-07"],
+        "expectedLabels": {"estate-02":"Estate Support","estate-07":"Estate Support"},
+        "rationales": {
+          "estate-02":"The executor is closing an account belonging to a deceased owner.",
+          "estate-07":"The death certificate and deceased-owner cancellation require Estate Support."
+        }
+      }
+    },
+    {
+      "id": "perishable-delivery-quality",
+      "title": "Spoiled perishables split from ordinary damaged returns",
+      "difficulty": "easy",
+      "changeType": "category_split",
+      "oldGuideline": {
+        "version": "returns-1.4",
+        "text": "Route every item reported damaged, broken, leaking, or spoiled on arrival to Damaged Returns. Route late but usable deliveries to Delivery Delay."
+      },
+      "newGuideline": {
+        "version": "returns-1.5",
+        "text": "Route broken or damaged durable goods to Damaged Returns. Route food, medicine, flowers, and other perishable goods that arrive spoiled, warm, wilted, or unsafe to Perishable Quality."
+      },
+      "changeSummary": "Spoiled or unsafe perishable deliveries now go to Perishable Quality.",
+      "records": [
+        {"id":"quality-01","text":"The ceramic mug arrived with its handle broken.","existingLabel":"Damaged Returns"},
+        {"id":"quality-02","text":"The frozen meal arrived warm and smells spoiled.","existingLabel":"Damaged Returns"},
+        {"id":"quality-03","text":"My laptop box was dented but the laptop works.","existingLabel":"Damaged Returns"},
+        {"id":"quality-04","text":"The flowers arrived wilted and brown.","existingLabel":"Damaged Returns"},
+        {"id":"quality-05","text":"The courier arrived a day late, but everything is usable.","existingLabel":"Delivery Delay"},
+        {"id":"quality-06","text":"The glass bottle cracked during shipping.","existingLabel":"Damaged Returns"},
+        {"id":"quality-07","text":"I received the wrong color shirt.","existingLabel":"Wrong Item"},
+        {"id":"quality-08","text":"The sealed cereal box is slightly crushed.","existingLabel":"Damaged Returns"},
+        {"id":"quality-09","text":"The tracking page has not updated.","existingLabel":"Delivery Delay"},
+        {"id":"quality-10","text":"A screw is missing from the chair kit.","existingLabel":"Missing Parts"}
+      ],
+      "groundTruth": {
+        "affectedRecordIds": ["quality-02", "quality-04"],
+        "expectedLabels": {"quality-02":"Perishable Quality","quality-04":"Perishable Quality"},
+        "rationales": {
+          "quality-02":"A warm, spoiled frozen meal is a perishable-quality issue.",
+          "quality-04":"Wilted flowers are explicitly covered by the new perishable category."
+        }
+      }
+    },
+    {
+      "id": "legal-data-deletion",
+      "title": "Statutory deletion requests split from normal account closure",
+      "difficulty": "medium",
+      "changeType": "compliance_exception",
+      "oldGuideline": {
+        "version": "privacy-4.0",
+        "text": "Route requests to delete a profile or account to Account Settings. Route questions about stored personal data to Privacy Questions."
+      },
+      "newGuideline": {
+        "version": "privacy-4.1",
+        "text": "Route ordinary profile or account deletion to Account Settings. Route requests invoking GDPR, CCPA, right to erasure, statutory deletion, or deletion of all retained personal data to Privacy Rights."
+      },
+      "changeSummary": "Deletion requests invoking a legal privacy right now go to Privacy Rights.",
+      "records": [
+        {"id":"privacy-01","text":"Delete the empty profile I made by mistake.","existingLabel":"Account Settings"},
+        {"id":"privacy-02","text":"I invoke my GDPR right to erasure; delete all personal data you retain.","existingLabel":"Account Settings"},
+        {"id":"privacy-03","text":"How do I change the name shown on my profile?","existingLabel":"Account Settings"},
+        {"id":"privacy-04","text":"What personal information do you store about me?","existingLabel":"Privacy Questions"},
+        {"id":"privacy-05","text":"Close my account because I no longer use it.","existingLabel":"Account Settings"},
+        {"id":"privacy-06","text":"Under CCPA, remove every copy of my personal information.","existingLabel":"Account Settings"},
+        {"id":"privacy-07","text":"Remove one old shipping address from my profile.","existingLabel":"Account Settings"},
+        {"id":"privacy-08","text":"Do you sell anonymized statistics?","existingLabel":"Privacy Questions"},
+        {"id":"privacy-09","text":"I cannot find the delete-account button.","existingLabel":"Account Settings"},
+        {"id":"privacy-10","text":"Unsubscribe me from promotional email.","existingLabel":"Marketing Preferences"}
+      ],
+      "groundTruth": {
+        "affectedRecordIds": ["privacy-02", "privacy-06"],
+        "expectedLabels": {"privacy-02":"Privacy Rights","privacy-06":"Privacy Rights"},
+        "rationales": {
+          "privacy-02":"The request explicitly invokes GDPR and deletion of retained personal data.",
+          "privacy-06":"The request explicitly invokes CCPA and comprehensive personal-data removal."
+        }
+      }
+    },
+    {
+      "id": "security-vulnerability",
+      "title": "Security vulnerabilities override ordinary bug routing",
+      "difficulty": "medium",
+      "changeType": "risk_escalation",
+      "oldGuideline": {
+        "version": "technical-5.6",
+        "text": "Route crashes, incorrect behavior, exposed error messages, and API defects to Technical Bugs. Route confirmed account theft to Account Security."
+      },
+      "newGuideline": {
+        "version": "technical-5.7",
+        "text": "Route ordinary crashes and functional defects to Technical Bugs. Route suspected vulnerabilities, exposed credentials, authorization bypasses, or access to another customer's data to Security Incident, even if described as a bug."
+      },
+      "changeSummary": "Suspected vulnerabilities and cross-customer data exposure now require Security Incident routing.",
+      "records": [
+        {"id":"security-01","text":"The app crashes when I open notification settings.","existingLabel":"Technical Bugs"},
+        {"id":"security-02","text":"Changing the invoice ID in the URL lets me see another customer's invoice.","existingLabel":"Technical Bugs"},
+        {"id":"security-03","text":"The API returns a 500 error for an empty name.","existingLabel":"Technical Bugs"},
+        {"id":"security-04","text":"A debug page displays a live production API secret.","existingLabel":"Technical Bugs"},
+        {"id":"security-05","text":"The export button creates an empty file.","existingLabel":"Technical Bugs"},
+        {"id":"security-06","text":"My own session expired too quickly.","existingLabel":"Technical Bugs"},
+        {"id":"security-07","text":"Someone took over my account yesterday.","existingLabel":"Account Security"},
+        {"id":"security-08","text":"The help page contains a broken link.","existingLabel":"Technical Bugs"},
+        {"id":"security-09","text":"The page shows my own email twice.","existingLabel":"Technical Bugs"},
+        {"id":"security-10","text":"I cannot upload a profile image larger than 2 MB.","existingLabel":"Technical Bugs"}
+      ],
+      "groundTruth": {
+        "affectedRecordIds": ["security-02", "security-04"],
+        "expectedLabels": {"security-02":"Security Incident","security-04":"Security Incident"},
+        "rationales": {
+          "security-02":"Changing an identifier exposes another customer's data and indicates an authorization bypass.",
+          "security-04":"A live production secret is an exposed credential requiring security escalation."
+        }
+      }
+    },
+    {
+      "id": "assistive-technology-blocker",
+      "title": "Assistive-technology blockers receive accessibility routing",
+      "difficulty": "medium",
+      "changeType": "new_category",
+      "oldGuideline": {
+        "version": "interface-2.7",
+        "text": "Route all web and mobile interface defects to Product Bugs. Route general suggestions about appearance to Product Feedback."
+      },
+      "newGuideline": {
+        "version": "interface-2.8",
+        "text": "Route ordinary interface defects to Product Bugs. Route blockers involving screen readers, keyboard-only navigation, focus order, captions, contrast, or other assistive technology to Accessibility."
+      },
+      "changeSummary": "Interface defects that block assistive-technology use now go to Accessibility.",
+      "records": [
+        {"id":"a11y-01","text":"The settings modal is misaligned on my phone.","existingLabel":"Product Bugs"},
+        {"id":"a11y-02","text":"My screen reader announces every checkout button as unlabeled.","existingLabel":"Product Bugs"},
+        {"id":"a11y-03","text":"Please add a darker theme.","existingLabel":"Product Feedback"},
+        {"id":"a11y-04","text":"I cannot reach the submit button using only the keyboard.","existingLabel":"Product Bugs"},
+        {"id":"a11y-05","text":"The logo looks blurry on a large monitor.","existingLabel":"Product Bugs"},
+        {"id":"a11y-06","text":"The page reloads after I choose a filter.","existingLabel":"Product Bugs"},
+        {"id":"a11y-07","text":"Could you offer more profile colors?","existingLabel":"Product Feedback"},
+        {"id":"a11y-08","text":"The mouse cursor flickers over the menu.","existingLabel":"Product Bugs"},
+        {"id":"a11y-09","text":"The mobile header takes too much space.","existingLabel":"Product Feedback"},
+        {"id":"a11y-10","text":"The date picker chooses yesterday after midnight.","existingLabel":"Product Bugs"}
+      ],
+      "groundTruth": {
+        "affectedRecordIds": ["a11y-02", "a11y-04"],
+        "expectedLabels": {"a11y-02":"Accessibility","a11y-04":"Accessibility"},
+        "rationales": {
+          "a11y-02":"Unlabeled controls block screen-reader use.",
+          "a11y-04":"The missing keyboard path is an accessibility blocker."
+        }
+      }
+    },
+    {
+      "id": "bank-chargeback-filed",
+      "title": "Already-filed chargebacks split from billing investigation",
+      "difficulty": "medium",
+      "changeType": "workflow_state",
+      "oldGuideline": {
+        "version": "payments-6.1",
+        "text": "Route duplicate charges, unknown charges, and requests to dispute a payment to Billing Investigation. Route general bank-transfer questions to Payment Methods."
+      },
+      "newGuideline": {
+        "version": "payments-6.2",
+        "text": "Route duplicate or unknown charges to Billing Investigation unless the customer has already filed a chargeback or bank dispute. Once a bank dispute, card dispute, or chargeback is filed, route the case to Dispute Management."
+      },
+      "changeSummary": "Cases with a chargeback or bank dispute already filed now go to Dispute Management.",
+      "records": [
+        {"id":"dispute-01","text":"Why did you charge me twice for one order?","existingLabel":"Billing Investigation"},
+        {"id":"dispute-02","text":"My bank opened a chargeback yesterday; what evidence do you need?","existingLabel":"Billing Investigation"},
+        {"id":"dispute-03","text":"I do not recognize a five-dollar charge.","existingLabel":"Billing Investigation"},
+        {"id":"dispute-04","text":"Can I pay by direct bank transfer?","existingLabel":"Payment Methods"},
+        {"id":"dispute-05","text":"I might contact my bank if this is not fixed.","existingLabel":"Billing Investigation"},
+        {"id":"dispute-06","text":"The merchant name on my statement is confusing.","existingLabel":"Billing Investigation"},
+        {"id":"dispute-07","text":"I already filed a card dispute for transaction TX-91.","existingLabel":"Billing Investigation"},
+        {"id":"dispute-08","text":"Please explain how chargebacks work before I decide.","existingLabel":"Billing Investigation"},
+        {"id":"dispute-09","text":"The bank transfer is still pending.","existingLabel":"Payment Methods"},
+        {"id":"dispute-10","text":"The amount is correct, but the date looks wrong.","existingLabel":"Billing Investigation"}
+      ],
+      "groundTruth": {
+        "affectedRecordIds": ["dispute-02", "dispute-07"],
+        "expectedLabels": {"dispute-02":"Dispute Management","dispute-07":"Dispute Management"},
+        "rationales": {
+          "dispute-02":"The bank has already opened a chargeback.",
+          "dispute-07":"The customer explicitly says a card dispute has already been filed."
+        }
+      }
+    },
+    {
+      "id": "multi-customer-outage",
+      "title": "Multi-customer impact escalates individual technical reports",
+      "difficulty": "hard",
+      "changeType": "scope_escalation",
+      "oldGuideline": {
+        "version": "operations-1.9",
+        "text": "Route reports that a service or feature is unavailable to Technical Support. Only monitoring-system alerts are routed to Service Incident."
+      },
+      "newGuideline": {
+        "version": "operations-2.0",
+        "text": "Route isolated service failures to Technical Support. Route reports that identify multiple affected customers, an entire team, all branches, or a region-wide outage to Service Incident, even when reported by an individual user."
+      },
+      "changeSummary": "User reports with explicit multi-customer or regional impact now go to Service Incident.",
+      "records": [
+        {"id":"outage-01","text":"Only my desktop client cannot connect.","existingLabel":"Technical Support"},
+        {"id":"outage-02","text":"Every agent in our 40-person support team lost access at once.","existingLabel":"Technical Support"},
+        {"id":"outage-03","text":"The status monitor fired an outage alert.","existingLabel":"Service Incident"},
+        {"id":"outage-04","text":"My colleague forgot her password.","existingLabel":"Technical Support"},
+        {"id":"outage-05","text":"All six of our regional branches are seeing gateway errors.","existingLabel":"Technical Support"},
+        {"id":"outage-06","text":"One report takes a long time to load for me.","existingLabel":"Technical Support"},
+        {"id":"outage-07","text":"Is scheduled maintenance planned for Sunday?","existingLabel":"Service Information"},
+        {"id":"outage-08","text":"My internet provider is currently offline.","existingLabel":"Technical Support"},
+        {"id":"outage-09","text":"Two tabs in my browser froze.","existingLabel":"Technical Support"},
+        {"id":"outage-10","text":"The status page says everything is healthy.","existingLabel":"Service Information"}
+      ],
+      "groundTruth": {
+        "affectedRecordIds": ["outage-02", "outage-05"],
+        "expectedLabels": {"outage-02":"Service Incident","outage-05":"Service Incident"},
+        "rationales": {
+          "outage-02":"The report states that an entire 40-person team is affected.",
+          "outage-05":"The report identifies simultaneous impact across all regional branches."
+        }
+      }
+    },
+    {
+      "id": "regulated-text-translation",
+      "title": "Regulated-text mistranslations receive compliance escalation",
+      "difficulty": "hard",
+      "changeType": "content_risk_exception",
+      "oldGuideline": {
+        "version": "localization-3.0",
+        "text": "Route missing, awkward, or incorrect translations to Localization Quality. Route legal questions about the original English text to Compliance."
+      },
+      "newGuideline": {
+        "version": "localization-3.1",
+        "text": "Route ordinary interface and help-text translation problems to Localization Quality. Route mistranslations of consent language, safety warnings, prices, contractual terms, or required legal disclaimers to Compliance Localization."
+      },
+      "changeSummary": "Mistranslations in regulated or contractual text now go to Compliance Localization.",
+      "records": [
+        {"id":"locale-01","text":"The French menu uses an awkward word for Settings.","existingLabel":"Localization Quality"},
+        {"id":"locale-02","text":"The Spanish consent checkbox says I refuse when the English says I agree.","existingLabel":"Localization Quality"},
+        {"id":"locale-03","text":"A help article has one untranslated heading.","existingLabel":"Localization Quality"},
+        {"id":"locale-04","text":"The German checkout translates $10.00 as $100.00.","existingLabel":"Localization Quality"},
+        {"id":"locale-05","text":"Can you add support for Finnish?","existingLabel":"Localization Request"},
+        {"id":"locale-06","text":"The original English contract seems unfair.","existingLabel":"Compliance"},
+        {"id":"locale-07","text":"The Japanese button text is clipped visually.","existingLabel":"Localization Quality"},
+        {"id":"locale-08","text":"The translated greeting sounds too formal.","existingLabel":"Localization Quality"},
+        {"id":"locale-09","text":"The language selector forgets my choice.","existingLabel":"Product Bugs"},
+        {"id":"locale-10","text":"One FAQ answer is still in English.","existingLabel":"Localization Quality"}
+      ],
+      "groundTruth": {
+        "affectedRecordIds": ["locale-02", "locale-04"],
+        "expectedLabels": {"locale-02":"Compliance Localization","locale-04":"Compliance Localization"},
+        "rationales": {
+          "locale-02":"The mistranslation reverses consent language and therefore requires compliance review.",
+          "locale-04":"The mistranslated price is regulated transaction information."
+        }
+      }
+    }
+  ]
+}
