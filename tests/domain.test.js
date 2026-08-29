@@ -11,49 +11,42 @@ test("public scenarios exclude every ground-truth field", () => {
   assert.equal("groundTruth" in scenario, false);
   assert.doesNotMatch(serialized, /affectedRecordIds|expectedLabels|rationales/);
 });
-
 test("public scenario projection is immutable and detached", () => {
-  const source = loadBenchmark().cases[0];
-  const scenario = toPublicScenario(source);
+  const source = loadBenchmark().cases[0]; const scenario = toPublicScenario(source);
   assert.throws(() => { scenario.title = "changed"; }, TypeError);
   assert.throws(() => { scenario.records[0].text = "changed"; }, TypeError);
-  assert.notEqual(scenario.records, source.records);
-  assert.notEqual(scenario.oldGuideline, source.oldGuideline);
+  assert.notEqual(scenario.records, source.records); assert.notEqual(scenario.oldGuideline, source.oldGuideline);
 });
-
 test("scenario validation rejects malformed records and guidelines", () => {
   const valid = toPublicScenario(loadBenchmark().cases[0]);
-  for (const mutate of [
-    (value) => { delete value.oldGuideline.text; },
-    (value) => { value.records[1].id = value.records[0].id; },
-    (value) => { value.records[0].text = ""; },
-    (value) => { delete value.records[0].existingLabel; },
-    (value) => { value.extra = true; },
-  ]) {
-    const candidate = structuredClone(valid);
-    mutate(candidate);
-    assert.throws(() => validateScenario(candidate), /Invalid scenario/);
-  }
+  for (const mutate of [(v) => { delete v.oldGuideline.text; }, (v) => { v.records[1].id = v.records[0].id; }, (v) => { v.records[0].text = ""; }, (v) => { delete v.records[0].existingLabel; }, (v) => { v.extra = true; }]) { const candidate = structuredClone(valid); mutate(candidate); assert.throws(() => validateScenario(candidate), /Invalid scenario/); }
   assert.equal(validateScenario(valid), true);
 });
-
 test("trace recorder redacts secrets and increments sequence", () => {
   const trace = createTraceRecorder({ runId: "run-1", scenarioId: "case-1", now: () => "2026-08-29T00:00:00.000Z" });
   const first = trace.record({ agent: "policy-analyst", phase: "compile", type: "instruction", payload: { authorization: "Bearer secret" } });
   const second = trace.record({ agent: "policy-analyst", phase: "compile", type: "final", payload: {} });
-  assert.equal(first.sequence, 1);
-  assert.equal(second.sequence, 2);
-  assert.equal(JSON.stringify(first).includes("Bearer secret"), false);
+  assert.equal(first.sequence, 1); assert.equal(second.sequence, 2); assert.equal(JSON.stringify(first).includes("Bearer secret"), false);
 });
-
 test("trace events are copied, JSONL is line-delimited, and nested secrets redact", () => {
   const trace = createTraceRecorder({ runId: "run-1", scenarioId: "case-1", now: () => "now" });
-  const event = trace.record({ agent: "a", phase: "p", type: "result", payload: { apiKey: "x", nested: { token: "y", safe: 1 } } });
-  const events = trace.events();
-  assert.notEqual(events, trace.events());
-  assert.notEqual(events[0], event);
-  assert.equal(events[0].payload.apiKey, "[REDACTED]");
-  assert.equal(events[0].payload.nested.token, "[REDACTED]");
-  assert.equal(trace.toJSONL().split("\n").length, 1);
-  assert.equal(redactSecrets({ password: "pw", secret: "s" }).password, "[REDACTED]");
+  const event = trace.record({ agent: "a", phase: "p", type: "result", payload: { apiKey: "x", nested: { token: "y", safe: 1 } } }); const events = trace.events();
+  assert.notEqual(events, trace.events()); assert.notEqual(events[0], event); assert.equal(events[0].payload.apiKey, "[REDACTED]"); assert.equal(events[0].payload.nested.token, "[REDACTED]"); assert.equal(trace.toJSONL().split("\n").length, 1); assert.equal(redactSecrets({ password: "pw", secret: "s" }).password, "[REDACTED]");
+});
+test("trace recorder owns sequencing and run metadata", () => {
+  const trace = createTraceRecorder({ runId: "run-1", scenarioId: "case-1", now: () => "now" });
+  const event = trace.record({ agent: "a", phase: "p", type: "result", payload: {}, runId: "forged", scenarioId: "other", sequence: 99, timestamp: "old" });
+  assert.deepEqual(event, { runId: "run-1", scenarioId: "case-1", sequence: 1, timestamp: "now", agent: "a", phase: "p", type: "result", payload: {} });
+});
+test("trace recorder rejects malformed event shapes before persistence", () => {
+  const trace = createTraceRecorder({ runId: "run-1", scenarioId: "case-1" });
+  for (const input of [{}, { agent: "a", phase: "p", type: "t" }, { agent: "a", phase: "p", type: "t", payload: [] }, { agent: "a", phase: "p", type: "t", payload: {}, extra: true }]) assert.throws(() => trace.record(input), /Invalid trace event/);
+  assert.equal(trace.events().length, 0);
+});
+test("redaction matches secret indicators in compound key names", () => {
+  assert.deepEqual(redactSecrets({ accessToken: "a", clientSecret: "b", authorizationHeader: "c", safe: "ok" }), { accessToken: "[REDACTED]", clientSecret: "[REDACTED]", authorizationHeader: "[REDACTED]", safe: "ok" });
+});
+test("scenario validation rejects whitespace-only identifiers and text", () => {
+  const valid = toPublicScenario(loadBenchmark().cases[0]);
+  for (const mutate of [(v) => { v.id = "   "; }, (v) => { v.oldGuideline.text = "\t"; }, (v) => { v.records[0].text = "  "; }, (v) => { v.records[0].existingLabel = "\n"; }]) { const candidate = structuredClone(valid); mutate(candidate); assert.throws(() => validateScenario(candidate), /Invalid scenario/); }
 });
