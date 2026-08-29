@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import * as uiModel from "../public/ui-model.js";
 import {
   classifyTraceEvent,
   createDecisionRequest,
@@ -140,6 +141,30 @@ test("keyboard decisions restore composite focus after the authoritative refresh
   assert.equal(command.focusTargetId, "impact-queue");
   assert.match(source, /applyDecision\(command\.decision,\s*command\.focusTargetId\)/);
   assert.match(source, /finally\s*\{[^}]*renderAll\(\);[^}]*focusById\(focusTargetId\)/s);
+});
+
+test("pointer review commands restore a safe control focus target after refresh", () => {
+  assert.equal(typeof uiModel.reviewControlCommand, "function");
+  assert.equal(typeof uiModel.reviewFocusTarget, "function");
+  for (const [id, expected] of [
+    ["approve", { type: "decision", decision: "approve", focusTargetId: "approve" }],
+    ["reject", { type: "decision", decision: "reject", focusTargetId: "reject" }],
+    ["escalate", { type: "decision", decision: "escalate", focusTargetId: "escalate" }],
+    ["undo", { type: "undo", focusTargetId: "undo" }],
+  ]) {
+    assert.deepEqual(uiModel.reviewControlCommand({ tagName: "BUTTON", id }), expected);
+  }
+  assert.equal(uiModel.reviewControlCommand({ tagName: "INPUT", id: "reject" }), null);
+  assert.equal(uiModel.reviewFocusTarget("reject", false), "reject");
+  assert.equal(uiModel.reviewFocusTarget("undo", true), "impact-queue");
+  assert.equal(uiModel.reviewFocusTarget("unknown", false), null);
+  assert.equal(keyboardCommand({ key: "A", target: { tagName: "BUTTON", id: "reject" } }), null);
+
+  const source = readFileSync(resolve("public/app.js"), "utf8");
+  assert.match(source, /reviewControlCommand\(event\.currentTarget\)/);
+  assert.match(source, /undoDecision\(command\.focusTargetId\)/);
+  assert.match(source, /applyDecision\(command\.decision,\s*command\.focusTargetId\)/);
+  assert.match(source, /async function undoDecision\(focusTargetId = null\)[\s\S]*?finally\s*\{[^}]*focusById\(focusTargetId\)/);
 });
 
 test("decision and undo requests send commands without browser-owned status", () => {

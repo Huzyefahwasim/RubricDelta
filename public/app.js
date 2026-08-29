@@ -7,6 +7,8 @@ import {
   keyboardCommand,
   queueSelectionIntent,
   relativeConfidence,
+  reviewControlCommand,
+  reviewFocusTarget,
   reviewProgress,
   reviewStateAfterMutationFailure,
   safeDownloadHref,
@@ -56,7 +58,10 @@ function make(tag, className, text) {
 }
 
 function focusById(id) {
-  if (id) document.getElementById(id)?.focus();
+  if (!id) return;
+  const requested = document.getElementById(id);
+  const targetId = reviewFocusTarget(id, Boolean(requested?.disabled));
+  if (targetId) document.getElementById(targetId)?.focus();
 }
 
 function setStatus(message, tone = "info") {
@@ -641,7 +646,7 @@ async function applyDecision(decision, focusTargetId = null) {
   }
 }
 
-async function undoDecision() {
+async function undoDecision(focusTargetId = null) {
   const selected = state.run?.recommendations?.[state.selectedIndex];
   if (!selected || selected.status === "pending" || state.busy) return;
   const recordId = selected.recordId;
@@ -683,6 +688,7 @@ async function undoDecision() {
   } finally {
     state.busy = false;
     renderAll();
+    focusById(focusTargetId);
   }
 }
 
@@ -702,10 +708,19 @@ for (const tab of elements.tabs) {
 }
 
 elements.reload.addEventListener("click", loadWorkbench);
-elements.approve.addEventListener("click", () => applyDecision("approve"));
-elements.reject.addEventListener("click", () => applyDecision("reject"));
-elements.escalate.addEventListener("click", () => applyDecision("escalate"));
-elements.undo.addEventListener("click", undoDecision);
+function handleReviewControl(event) {
+  const command = reviewControlCommand(event.currentTarget);
+  if (!command) return;
+  if (command.type === "undo") {
+    undoDecision(command.focusTargetId);
+    return;
+  }
+  applyDecision(command.decision, command.focusTargetId);
+}
+
+for (const button of [elements.approve, elements.reject, elements.escalate, elements.undo]) {
+  button.addEventListener("click", handleReviewControl);
+}
 
 document.addEventListener("keydown", (event) => {
   const command = keyboardCommand(event);

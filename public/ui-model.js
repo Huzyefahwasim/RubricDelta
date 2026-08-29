@@ -4,6 +4,13 @@ const DOWNLOADS = Object.freeze({
   export: "export.csv",
   trajectory: "trajectory.jsonl",
 });
+const REVIEW_CONTROLS = Object.freeze({
+  approve: Object.freeze({ type: "decision", decision: "approve" }),
+  reject: Object.freeze({ type: "decision", decision: "reject" }),
+  escalate: Object.freeze({ type: "decision", decision: "escalate" }),
+  undo: Object.freeze({ type: "undo" }),
+});
+const REVIEW_FOCUS_IDS = new Set([...Object.keys(REVIEW_CONTROLS), "impact-queue"]);
 
 function requireText(value, label) {
   if (typeof value !== "string" || value.trim().length === 0) throw new TypeError(`${label} is required`);
@@ -53,6 +60,18 @@ export function downloadLinkState(runId, kind) {
     return { href: null, ariaDisabled: "true", tabIndex: -1 };
   }
   return { href: safeDownloadHref(runId, kind), ariaDisabled: "false", tabIndex: 0 };
+}
+
+export function reviewControlCommand(target) {
+  if (!target || String(target.tagName ?? "").toUpperCase() !== "BUTTON") return null;
+  const id = String(target.id ?? "");
+  const command = REVIEW_CONTROLS[id];
+  return command ? { ...command, focusTargetId: id } : null;
+}
+
+export function reviewFocusTarget(requestedId, disabled = false) {
+  if (!REVIEW_FOCUS_IDS.has(requestedId)) return null;
+  return disabled && requestedId !== "impact-queue" ? "impact-queue" : requestedId;
 }
 
 export function selectCandidateIndex(currentIndex, offset, length) {
