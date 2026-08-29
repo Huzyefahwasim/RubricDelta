@@ -1,0 +1,737 @@
+{
+  "metadata": {
+    "system": "added-guideline-term-overlap-baseline",
+    "runtimeMs": null,
+    "estimatedCostUsd": 0,
+    "resourceNotes": "Deterministic local lexical baseline; runtime is intentionally not claimed.",
+    "algorithmVersion": "added-guideline-term-overlap-v1",
+    "provider": "deterministic",
+    "model": null,
+    "seed": 0
+  },
+  "cases": [
+    {
+      "caseId": "fraud-overrides-refunds",
+      "rankedRecordIds": [
+        "fraud-03",
+        "fraud-05",
+        "fraud-01",
+        "fraud-02",
+        "fraud-04",
+        "fraud-06",
+        "fraud-07",
+        "fraud-08",
+        "fraud-09",
+        "fraud-10"
+      ],
+      "rankingEvidence": [
+        {
+          "recordId": "fraud-03",
+          "score": 1,
+          "matchedTerms": [
+            "stolen"
+          ]
+        },
+        {
+          "recordId": "fraud-05",
+          "score": 1,
+          "matchedTerms": [
+            "stolen"
+          ]
+        },
+        {
+          "recordId": "fraud-01",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "fraud-02",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "fraud-04",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "fraud-06",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "fraud-07",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "fraud-08",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "fraud-09",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "fraud-10",
+          "score": 0,
+          "matchedTerms": []
+        }
+      ]
+    },
+    {
+      "caseId": "identity-check-login",
+      "rankedRecordIds": [
+        "access-02",
+        "access-06",
+        "access-01",
+        "access-03",
+        "access-04",
+        "access-05",
+        "access-07",
+        "access-08",
+        "access-09",
+        "access-10"
+      ],
+      "rankingEvidence": [
+        {
+          "recordId": "access-02",
+          "score": 2,
+          "matchedTerms": [
+            "identity",
+            "selfie"
+          ]
+        },
+        {
+          "recordId": "access-06",
+          "score": 1,
+          "matchedTerms": [
+            "document"
+          ]
+        },
+        {
+          "recordId": "access-01",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "access-03",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "access-04",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "access-05",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "access-07",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "access-08",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "access-09",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "access-10",
+          "score": 0,
+          "matchedTerms": []
+        }
+      ]
+    },
+    {
+      "caseId": "deceased-account-owner",
+      "rankedRecordIds": [
+        "estate-02",
+        "estate-07",
+        "estate-09",
+        "estate-01",
+        "estate-03",
+        "estate-04",
+        "estate-05",
+        "estate-06",
+        "estate-08",
+        "estate-10"
+      ],
+      "rankingEvidence": [
+        {
+          "recordId": "estate-02",
+          "score": 2,
+          "matchedTerms": [
+            "estate",
+            "executor"
+          ]
+        },
+        {
+          "recordId": "estate-07",
+          "score": 2,
+          "matchedTerms": [
+            "certificate",
+            "death"
+          ]
+        },
+        {
+          "recordId": "estate-09",
+          "score": 1,
+          "matchedTerms": [
+            "owner"
+          ]
+        },
+        {
+          "recordId": "estate-01",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "estate-03",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "estate-04",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "estate-05",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "estate-06",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "estate-08",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "estate-10",
+          "score": 0,
+          "matchedTerms": []
+        }
+      ]
+    },
+    {
+      "caseId": "perishable-delivery-quality",
+      "rankedRecordIds": [
+        "quality-04",
+        "quality-02",
+        "quality-01",
+        "quality-03",
+        "quality-05",
+        "quality-06",
+        "quality-07",
+        "quality-08",
+        "quality-09",
+        "quality-10"
+      ],
+      "rankingEvidence": [
+        {
+          "recordId": "quality-04",
+          "score": 2,
+          "matchedTerms": [
+            "flowers",
+            "wilted"
+          ]
+        },
+        {
+          "recordId": "quality-02",
+          "score": 1,
+          "matchedTerms": [
+            "warm"
+          ]
+        },
+        {
+          "recordId": "quality-01",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "quality-03",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "quality-05",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "quality-06",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "quality-07",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "quality-08",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "quality-09",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "quality-10",
+          "score": 0,
+          "matchedTerms": []
+        }
+      ]
+    },
+    {
+      "caseId": "legal-data-deletion",
+      "rankedRecordIds": [
+        "privacy-02",
+        "privacy-06",
+        "privacy-01",
+        "privacy-03",
+        "privacy-04",
+        "privacy-05",
+        "privacy-07",
+        "privacy-08",
+        "privacy-09",
+        "privacy-10"
+      ],
+      "rankingEvidence": [
+        {
+          "recordId": "privacy-02",
+          "score": 3,
+          "matchedTerms": [
+            "erasure",
+            "gdpr",
+            "right"
+          ]
+        },
+        {
+          "recordId": "privacy-06",
+          "score": 1,
+          "matchedTerms": [
+            "ccpa"
+          ]
+        },
+        {
+          "recordId": "privacy-01",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "privacy-03",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "privacy-04",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "privacy-05",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "privacy-07",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "privacy-08",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "privacy-09",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "privacy-10",
+          "score": 0,
+          "matchedTerms": []
+        }
+      ]
+    },
+    {
+      "caseId": "security-vulnerability",
+      "rankedRecordIds": [
+        "security-02",
+        "security-01",
+        "security-03",
+        "security-04",
+        "security-05",
+        "security-06",
+        "security-07",
+        "security-08",
+        "security-09",
+        "security-10"
+      ],
+      "rankingEvidence": [
+        {
+          "recordId": "security-02",
+          "score": 1,
+          "matchedTerms": [
+            "another"
+          ]
+        },
+        {
+          "recordId": "security-01",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "security-03",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "security-04",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "security-05",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "security-06",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "security-07",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "security-08",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "security-09",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "security-10",
+          "score": 0,
+          "matchedTerms": []
+        }
+      ]
+    },
+    {
+      "caseId": "assistive-technology-blocker",
+      "rankedRecordIds": [
+        "a11y-04",
+        "a11y-02",
+        "a11y-01",
+        "a11y-03",
+        "a11y-05",
+        "a11y-06",
+        "a11y-07",
+        "a11y-08",
+        "a11y-09",
+        "a11y-10"
+      ],
+      "rankingEvidence": [
+        {
+          "recordId": "a11y-04",
+          "score": 2,
+          "matchedTerms": [
+            "keyboard",
+            "only"
+          ]
+        },
+        {
+          "recordId": "a11y-02",
+          "score": 1,
+          "matchedTerms": [
+            "screen"
+          ]
+        },
+        {
+          "recordId": "a11y-01",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "a11y-03",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "a11y-05",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "a11y-06",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "a11y-07",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "a11y-08",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "a11y-09",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "a11y-10",
+          "score": 0,
+          "matchedTerms": []
+        }
+      ]
+    },
+    {
+      "caseId": "bank-chargeback-filed",
+      "rankedRecordIds": [
+        "dispute-07",
+        "dispute-02",
+        "dispute-01",
+        "dispute-03",
+        "dispute-04",
+        "dispute-05",
+        "dispute-06",
+        "dispute-08",
+        "dispute-09",
+        "dispute-10"
+      ],
+      "rankingEvidence": [
+        {
+          "recordId": "dispute-07",
+          "score": 3,
+          "matchedTerms": [
+            "already",
+            "card",
+            "filed"
+          ]
+        },
+        {
+          "recordId": "dispute-02",
+          "score": 1,
+          "matchedTerms": [
+            "chargeback"
+          ]
+        },
+        {
+          "recordId": "dispute-01",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "dispute-03",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "dispute-04",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "dispute-05",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "dispute-06",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "dispute-08",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "dispute-09",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "dispute-10",
+          "score": 0,
+          "matchedTerms": []
+        }
+      ]
+    },
+    {
+      "caseId": "multi-customer-outage",
+      "rankedRecordIds": [
+        "outage-02",
+        "outage-03",
+        "outage-05",
+        "outage-01",
+        "outage-04",
+        "outage-06",
+        "outage-07",
+        "outage-08",
+        "outage-09",
+        "outage-10"
+      ],
+      "rankingEvidence": [
+        {
+          "recordId": "outage-02",
+          "score": 1,
+          "matchedTerms": [
+            "team"
+          ]
+        },
+        {
+          "recordId": "outage-03",
+          "score": 1,
+          "matchedTerms": [
+            "outage"
+          ]
+        },
+        {
+          "recordId": "outage-05",
+          "score": 1,
+          "matchedTerms": [
+            "branches"
+          ]
+        },
+        {
+          "recordId": "outage-01",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "outage-04",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "outage-06",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "outage-07",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "outage-08",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "outage-09",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "outage-10",
+          "score": 0,
+          "matchedTerms": []
+        }
+      ]
+    },
+    {
+      "caseId": "regulated-text-translation",
+      "rankedRecordIds": [
+        "locale-02",
+        "locale-03",
+        "locale-09",
+        "locale-01",
+        "locale-04",
+        "locale-05",
+        "locale-06",
+        "locale-07",
+        "locale-08",
+        "locale-10"
+      ],
+      "rankingEvidence": [
+        {
+          "recordId": "locale-02",
+          "score": 1,
+          "matchedTerms": [
+            "consent"
+          ]
+        },
+        {
+          "recordId": "locale-03",
+          "score": 1,
+          "matchedTerms": [
+            "help"
+          ]
+        },
+        {
+          "recordId": "locale-09",
+          "score": 1,
+          "matchedTerms": [
+            "language"
+          ]
+        },
+        {
+          "recordId": "locale-01",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "locale-04",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "locale-05",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "locale-06",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "locale-07",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "locale-08",
+          "score": 0,
+          "matchedTerms": []
+        },
+        {
+          "recordId": "locale-10",
+          "score": 0,
+          "matchedTerms": []
+        }
+      ]
+    }
+  ]
+}

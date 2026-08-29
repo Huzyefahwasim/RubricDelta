@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-evaluation-manifest",
+  "git": {
+    "revision": "c36313519f91a4cffe58b3f7e1befd73c0ee606b",
+    "baseRevision": "c36313519f91a4cffe58b3f7e1befd73c0ee606b",
+    "branch": "feature/hackathon-submission",
+    "trackedWorkingTreeDirty": false,
+    "packagingCommit": null,
+    "provenanceNote": "revision identifies the clean source commit; generated evidence is added by the subsequent packaging commit",
+    "sourceState": "clean-commit"
+  },
+  "benchmark": {
+    "id": "rubricdelta-support-guideline-drift-v1",
+    "schemaVersion": "1.0.0",
+    "sha256": "f21d4563b618bb3fa5c651ffe1ac609b8139d02de018a36c2585b638e9290db7",
+    "license": "CC0-1.0",
+    "orderedCaseIds": [
+      "fraud-overrides-refunds",
+      "identity-check-login",
+      "deceased-account-owner",
+      "perishable-delivery-quality",
+      "legal-data-deletion",
+      "security-vulnerability",
+      "assistive-technology-blocker",
+      "bank-chargeback-filed",
+      "multi-customer-outage",
+      "regulated-text-translation"
+    ],
+    "orderedRecordIdsByCase": {
+      "fraud-overrides-refunds": [
+        "fraud-01",
+        "fraud-02",
+        "fraud-03",
+        "fraud-04",
+        "fraud-05",
+        "fraud-06",
+        "fraud-07",
+        "fraud-08",
+        "fraud-09",
+        "fraud-10"
+      ],
+      "identity-check-login": [
+        "access-01",
+        "access-02",
+        "access-03",
+        "access-04",
+        "access-05",
+        "access-06",
+        "access-07",
+        "access-08",
+        "access-09",
+        "access-10"
+      ],
+      "deceased-account-owner": [
+        "estate-01",
+        "estate-02",
+        "estate-03",
+        "estate-04",
+        "estate-05",
+        "estate-06",
+        "estate-07",
+        "estate-08",
+        "estate-09",
+        "estate-10"
+      ],
+      "perishable-delivery-quality": [
+        "quality-01",
+        "quality-02",
+        "quality-03",
+        "quality-04",
+        "quality-05",
+        "quality-06",
+        "quality-07",
+        "quality-08",
+        "quality-09",
+        "quality-10"
+      ],
+      "legal-data-deletion": [
+        "privacy-01",
+        "privacy-02",
+        "privacy-03",
+        "privacy-04",
+        "privacy-05",
+        "privacy-06",
+        "privacy-07",
+        "privacy-08",
+        "privacy-09",
+        "privacy-10"
+      ],
+      "security-vulnerability": [
+        "security-01",
+        "security-02",
+        "security-03",
+        "security-04",
+        "security-05",
+        "security-06",
+        "security-07",
+        "security-08",
+        "security-09",
+        "security-10"
+      ],
+      "assistive-technology-blocker": [
+        "a11y-01",
+        "a11y-02",
+        "a11y-03",
+        "a11y-04",
+        "a11y-05",
+        "a11y-06",
+        "a11y-07",
+        "a11y-08",
+        "a11y-09",
+        "a11y-10"
+      ],
+      "bank-chargeback-filed": [
+        "dispute-01",
+        "dispute-02",
+        "dispute-03",
+        "dispute-04",
+        "dispute-05",
+        "dispute-06",
+        "dispute-07",
+        "dispute-08",
+        "dispute-09",
+        "dispute-10"
+      ],
+      "multi-customer-outage": [
+        "outage-01",
+        "outage-02",
+        "outage-03",
+        "outage-04",
+        "outage-05",
+        "outage-06",
+        "outage-07",
+        "outage-08",
+        "outage-09",
+        "outage-10"
+      ],
+      "regulated-text-translation": [
+        "locale-01",
+        "locale-02",
+        "locale-03",
+        "locale-04",
+        "locale-05",
+        "locale-06",
+        "locale-07",
+        "locale-08",
+        "locale-09",
+        "locale-10"
+      ]
+    },
+    "caseCount": 10,
+    "recordCount": 100,
+    "affectedRecordCount": 20,
+    "hardPrecedenceCaseId": "fraud-overrides-refunds"
+  },
+  "provider": {
+    "name": "deterministic",
+    "model": null,
+    "seed": 0,
+    "status": "operational"
+  },
+  "reviewBudget": {
+    "fraction": 0.2,
+    "calculation": "max(1, ceil(recordCount * fraction))",
+    "slotsByCase": {
+      "fraud-overrides-refunds": 2,
+      "identity-check-login": 2,
+      "deceased-account-owner": 2,
+      "perishable-delivery-quality": 2,
+      "legal-data-deletion": 2,
+      "security-vulnerability": 2,
+      "assistive-technology-blocker": 2,
+      "bank-chargeback-filed": 2,
+      "multi-customer-outage": 2,
+      "regulated-text-translation": 2
+    }
+  },
+  "versions": {
+    "baselineAlgorithm": "added-guideline-term-overlap-v1",
+    "advancedAlgorithm": "rubricdelta-four-stage-deterministic-v1",
+    "directBaselinePrompt": null,
+    "roleInstructions": "embedded-deterministic-v1"
+  },
+  "repeats": {
+    "requested": 1,
+    "normalizedIdentically": true
+  },
+  "runtimeEnvironment": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "architecture": "x64",
+    "runtimeDependencies": 0,
+    "networkRequired": false
+  },
+  "resources": {
+    "providerCalls": {
+      "baseline": 0,
+      "advanced": 0,
+      "total": 0
+    },
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0,
+    "estimatedCostUsd": 0,
+    "perSystemRuntimeMs": {
+      "baseline": null,
+      "advanced": null
+    },
+    "runtimeClaim": "overall artifact wall time measured; per-system runtime comparison not claimed"
+  },
+  "replay": {
+    "status": "deferred-task-8",
+    "operational": false,
+    "substituted": false,
+    "expectedReference": "../expected-replay-report/reference-comparison.json"
+  },
+  "execution": {
+    "startedAt": "2026-08-29T14:20:28.105Z",
+    "endedAt": "2026-08-29T14:20:28.145Z",
+    "runtimeMs": 39.18
+  }
+}
