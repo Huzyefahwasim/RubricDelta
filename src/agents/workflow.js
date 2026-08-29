@@ -19,13 +19,13 @@ function cleanLabel(label) {
   return String(label ?? "").replace(/[,:;.!?]+$/g, "").trim();
 }
 
+function ruleTerms(rule) {
+  return [...rule.conditions, ...rule.exceptions];
+}
+
 function overlap(left, right) {
   const rightSet = new Set(right);
   return left.filter((item) => rightSet.has(item)).length;
-}
-
-function ruleTerms(rule) {
-  return [...rule.conditions, ...rule.exceptions];
 }
 
 function recoverPolicyAnalysis(scenario) {
@@ -37,27 +37,27 @@ function recoverPolicyAnalysis(scenario) {
   const unresolvedRuleIds = [];
   for (const newRule of newRules) {
     const sameLabel = oldRules.find((rule) => cleanLabel(rule.label) === cleanLabel(newRule.label));
-    const overlaps = oldRules
+    const candidates = oldRules
       .map((rule, inputIndex) => ({ rule, inputIndex, score: overlap(ruleTerms(rule), ruleTerms(newRule)) }))
       .sort((left, right) => right.score - left.score || left.inputIndex - right.inputIndex);
-    const match = sameLabel ?? (overlaps[0]?.score > 0 ? overlaps[0].rule : null);
-    if (!match) {
+    const oldRule = sameLabel ?? (candidates[0]?.score > 0 ? candidates[0].rule : null);
+    if (!oldRule) {
       unresolvedRuleIds.push(newRule.id);
       continue;
     }
-    linkedOldIds.add(match.id);
-    const scopeTerms = [...new Set([...ruleTerms(match), ...ruleTerms(newRule)])];
+    linkedOldIds.add(oldRule.id);
+    const scopeTerms = [...new Set([...ruleTerms(oldRule), ...ruleTerms(newRule)])];
     deltas.push({
       id: `recovered-delta-${deltas.length + 1}`,
-      type: cleanLabel(match.label) === cleanLabel(newRule.label) ? "scope-changed" : "label-changed",
-      oldRuleIds: [match.id],
+      type: cleanLabel(oldRule.label) === cleanLabel(newRule.label) ? "scope-changed" : "label-changed",
+      oldRuleIds: [oldRule.id],
       newRuleIds: [newRule.id],
       targetLabel: cleanLabel(newRule.label),
-      sourceLabels: [cleanLabel(match.label)],
+      sourceLabels: [cleanLabel(oldRule.label)],
       scopeTerms,
       boundaryCases: scopeTerms.map((term) => `Cases mentioning ${term}`),
-      precedenceChanged: match.precedence !== newRule.precedence,
-      citations: [match.citation, newRule.citation],
+      precedenceChanged: oldRule.precedence !== newRule.precedence,
+      citations: [oldRule.citation, newRule.citation],
       ambiguity: "high",
     });
   }
@@ -92,10 +92,12 @@ function boundedInteger(value, fallback, label) {
 }
 
 function errorCode(error) {
-  const code = typeof error?.code === "string" && /^[A-Za-z][A-Za-z0-9_-]{0,39}$/.test(error.code)
-    ? error.code
-    : error?.name;
-  return typeof code === "string" && /^[A-Za-z][A-Za-z0-9_-]{0,39}$/.test(code) ? code : "STAGE_ERROR";
+  if (error instanceof ContractError) return error.code;
+  if (error?.constructor === TypeError && error.name === "TypeError" && error.code === undefined) return "TYPE_ERROR";
+  if (error?.constructor === RangeError && error.name === "RangeError" && error.code === undefined) return "RANGE_ERROR";
+  if (error?.constructor === SyntaxError && error.name === "SyntaxError" && error.code === undefined) return "SYNTAX_ERROR";
+  if (error?.constructor === Error && error.name === "Error" && error.code === undefined) return "Error";
+  return "STAGE_ERROR";
 }
 
 function uncertainVerifier(counterargument = "The stage could not establish complete evidence within its retry budget.") {
@@ -115,11 +117,11 @@ function abstentionRanking(scenario) {
   }));
 }
 
-function traceFailure(trace, { agent = "orchestrator", phase, type, stage, attempt, error }) {
-  trace.record({ agent, phase, type, payload: { stage, attempt, errorCode: errorCode(error) } });
+function traceFailure(trace, { phase, type, stage, attempt, error }) {
+  trace.record({ agent: "orchestrator", phase, type, payload: { stage, attempt, errorCode: errorCode(error) } });
 }
 
-function resultWithFinalTrace({ scenario, analysis, rankedCandidates, trace, attempts, escalated, recovered }) {
+function finalResult({ scenario, analysis, rankedCandidates, trace, attempts, escalated, recovered }) {
   trace.record({
     agent: "orchestrator",
     phase: "workflow",
@@ -153,7 +155,7 @@ export function analyzeScenario(scenario, options = {}) {
       traceFailure(trace, { phase: "analysis", type: "validation-failure", stage: "policy-analysis", attempt: 0, error });
       analysis = unresolvedAnalysis(scenario);
       const rankedCandidates = abstentionRanking(scenario).map((candidate) => ({ ...candidate, verifier: uncertainVerifier() }));
-      return resultWithFinalTrace({ scenario, analysis, rankedCandidates, trace, attempts, escalated: true, recovered: true });
+      return finalResult({ scenario, analysis, rankedCandidates, trace, attempts, escalated: true, recovered: true });
     }
   } else {
     const policyAnalyzer = options.policyAnalyzer ?? analyzePolicy;
@@ -161,8 +163,7 @@ export function analyzeScenario(scenario, options = {}) {
     for (let attempt = 1; attempt <= maxRetries + 1; attempt += 1) {
       attempts = attempt;
       try {
-        const output = policyAnalyzer({ oldGuideline: scenario.oldGuideline, newGuideline: scenario.newGuideline, trace });
-        analysis = validatePolicyAnalysis(output, scenario);
+        analysis = validatePolicyAnalysis(policyAnalyzer({ oldGuideline: scenario.oldGuideline, newGuideline: scenario.newGuideline, trace }), scenario);
         lastError = null;
         break;
       } catch (error) {
@@ -235,5 +236,5 @@ export function analyzeScenario(scenario, options = {}) {
     return { ...candidate, verifier };
   });
   const escalated = recovered || rankingFailed || rankedCandidates.some((candidate) => candidate.verifier.verdict === "uncertain");
-  return resultWithFinalTrace({ scenario, analysis, rankedCandidates, trace, attempts, escalated, recovered });
+  return finalResult({ scenario, analysis, rankedCandidates, trace, attempts, escalated, recovered });
 }

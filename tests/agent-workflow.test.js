@@ -196,7 +196,7 @@ test("production workflow source has no benchmark gold or ID hardcoding", () => 
   }
   const source = files.map((file) => readFileSync(file, "utf8")).join("\n");
   assert.doesNotMatch(source, /groundTruth|affectedRecordIds|expectedLabels|rationales/);
-  assert.doesNotMatch(source, /(?:from\s*["'][^"']*(?:evaluation|benchmark)|require\s*\([^)]*(?:evaluation|benchmark)|\b(?:loadBenchmark|DEFAULT_BENCHMARK_PATH|evaluatePredictions|createBaselinePredictions)\b)/i);
+  assert.doesNotMatch(source, /(?:(?:from\s*["\']|(?:require|import)\s*\()[^)]*(?:evaluation|benchmark)|\b(?:loadBenchmark|DEFAULT_BENCHMARK_PATH|evaluatePredictions|createBaselinePredictions)\b)/i);
   const benchmark = loadBenchmark();
   for (const id of benchmark.cases.flatMap((item) => [item.id, ...item.records.map((record) => record.id)])) {
     assert.equal(source.includes(id), false, `production workflow hardcodes benchmark identifier ${id}`);
