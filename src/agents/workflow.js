@@ -91,8 +91,17 @@ function boundedInteger(value, fallback, label) {
   return actual;
 }
 
+const TRACE_CONTRACT_ERROR_CODES = new Set([
+  "INVALID_AGENT_OUTPUT",
+  "INVALID_POLICY_ANALYSIS",
+  "INVALID_CANDIDATE_RANKING",
+  "INVALID_VERIFIER_OUTPUT",
+  "INVALID_ADVANCED_RESULT",
+  "POLICY_RECOVERY_UNAVAILABLE",
+]);
+
 function errorCode(error) {
-  if (error instanceof ContractError) return error.code;
+  if (error instanceof ContractError) return TRACE_CONTRACT_ERROR_CODES.has(error.code) ? error.code : "STAGE_ERROR";
   if (error?.constructor === TypeError && error.name === "TypeError" && error.code === undefined) return "TYPE_ERROR";
   if (error?.constructor === RangeError && error.name === "RangeError" && error.code === undefined) return "RANGE_ERROR";
   if (error?.constructor === SyntaxError && error.name === "SyntaxError" && error.code === undefined) return "SYNTAX_ERROR";

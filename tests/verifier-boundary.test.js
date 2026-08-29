@@ -7,6 +7,7 @@ import { createAdvancedPredictions, loadBenchmark } from "../src/evaluation/inde
 import { toPublicScenario } from "../src/domain/scenario.js";
 import { matchSemanticScope } from "../src/domain/semantics.js";
 import { createTraceRecorder } from "../src/agents/trace.js";
+import { ContractError } from "../src/agents/contracts.js";
 import { rankImpactCandidates } from "../src/agents/impact-investigator.js";
 import { verifyCandidate } from "../src/agents/verifier.js";
 import { analyzeScenario } from "../src/agents/workflow.js";
@@ -171,6 +172,16 @@ test("workflow maps attacker-controlled error code and name to a controller-owne
   assert.throws(() => analyzeScenario(scenario, { trace, maxRetries: 0, policyAnalyzer() { throw hostile; } }));
   assert.doesNotMatch(trace.toJSONL(), /sk-private-value|sk-private-name/);
   assert.ok(trace.events().some((event) => event.type === "failed-stage" && event.payload.errorCode === "STAGE_ERROR"));
+});
+
+test("workflow allowlists ContractError codes for validation-failure and failed-stage traces", () => {
+  const scenario = scenarioFixture();
+  const trace = createTraceRecorder({ runId: "hostile-contract-code", scenarioId: scenario.id, now: () => "now" });
+  const hostile = new ContractError("safe message", "sk-private-value");
+  assert.throws(() => analyzeScenario(scenario, { trace, maxRetries: 0, policyAnalyzer() { throw hostile; } }));
+  assert.doesNotMatch(trace.toJSONL(), /sk-private-value/);
+  const failures = trace.events().filter((event) => ["validation-failure", "failed-stage"].includes(event.type));
+  assert.deepEqual(failures.map((event) => event.payload.errorCode), ["STAGE_ERROR", "STAGE_ERROR"]);
 });
 
 test("investigator and verifier failures are retried, traced, and converted to abstention", () => {
