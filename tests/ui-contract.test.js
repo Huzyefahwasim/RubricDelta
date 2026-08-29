@@ -41,12 +41,16 @@ test("workbench shell keeps CSP-compatible assets and five keyboard-accessible v
   assert.doesNotMatch(html, /<style\b|style="/i);
 });
 
-test("impact queue is one coherent semantic list of real buttons", () => {
+test("impact queue is a single-focus listbox with non-interactive options", () => {
   const html = readFileSync(resolve("public/index.html"), "utf8");
   const source = readFileSync(resolve("public/app.js"), "utf8");
-  assert.match(html, /<ol id="impact-queue"\s[^>]*aria-label="Affected-record review queue"/);
-  assert.doesNotMatch(html, /id="impact-queue"[^>]*role="listbox"/);
-  assert.doesNotMatch(source, /setAttribute\("role", "option"\)|aria-activedescendant/);
+  assert.match(html, /<div id="impact-queue"[^>]*role="listbox"[^>]*tabindex="0"[^>]*aria-controls="candidate-detail"/);
+  assert.match(source, /make\("div", "queue-option"\)/);
+  assert.match(source, /setAttribute\("role", "option"\)/);
+  assert.match(source, /option\.tabIndex = -1/);
+  assert.match(source, /setAttribute\("aria-selected"/);
+  assert.match(source, /setAttribute\("aria-activedescendant"/);
+  assert.doesNotMatch(source, /make\("button", "queue-option"\)/);
   assert.match(source, /queueSelectionIntent/);
 });
 
@@ -62,6 +66,8 @@ test("fixed decision gate has explicit page clearance and keeps mobile attributi
   assert.match(mobile, /\.reviewer-field\s*\{[^}]*display:\s*block;/s);
   assert.doesNotMatch(mobile, /\.reviewer-field\s*\{[^}]*display:\s*none;/s);
   assert.match(mobile, /h1\s*\{[^}]*white-space:\s*nowrap;/s);
+  assert.match(css, /@media \(max-width: 900px\)\s*\{\s*:root\s*\{\s*--decision-clearance:\s*204px;/s);
+  assert.match(css, /@media \(max-width: 640px\)\s*\{\s*:root\s*\{\s*--decision-clearance:\s*224px;/s);
 });
 
 test("browser renderer has no HTML parsing sink, inline style sink, or local decision authority", () => {
@@ -79,16 +85,25 @@ test("J and K wrap through the complete queue while an empty queue remains unsel
   assert.equal(selectCandidateIndex(4, 1, 0), -1);
 });
 
-test("review shortcuts run on phase and queue buttons but ignore text editing, modifiers, and repeats", () => {
+test("review shortcuts run on the composite queue but never on form controls", () => {
   assert.deepEqual(keyboardCommand({ key: "A", target: { tagName: "DIV" } }), { type: "decision", decision: "approve" });
   assert.deepEqual(keyboardCommand({ key: "j", target: { tagName: "DIV" } }), { type: "navigate", offset: 1 });
   assert.deepEqual(keyboardCommand({ key: "K", target: { tagName: "DIV" } }), { type: "navigate", offset: -1 });
-  assert.deepEqual(keyboardCommand({ key: "e", target: { tagName: "BUTTON", id: "tab-impact" } }), { type: "decision", decision: "escalate" });
-  assert.deepEqual(keyboardCommand({ key: "j", target: { tagName: "BUTTON", id: "queue-option-0" } }), { type: "navigate", offset: 1 });
+  assert.deepEqual(keyboardCommand({ key: "e", target: { tagName: "DIV", id: "impact-queue" } }), {
+    type: "decision",
+    decision: "escalate",
+    focusTargetId: "impact-queue",
+  });
+  assert.deepEqual(keyboardCommand({ key: "ArrowDown", target: { tagName: "DIV", id: "impact-queue" } }), { type: "navigate", offset: 1 });
+  assert.deepEqual(keyboardCommand({ key: "ArrowUp", target: { tagName: "DIV", id: "impact-queue" } }), { type: "navigate", offset: -1 });
+  assert.equal(keyboardCommand({ key: "ArrowDown", target: { tagName: "DIV" } }), null);
   for (const event of [
     { key: "a", target: { tagName: "INPUT" } },
     { key: "r", target: { tagName: "TEXTAREA" } },
     { key: "e", target: { tagName: "SELECT" } },
+    { key: "A", target: { tagName: "BUTTON", id: "reject" } },
+    { key: "R", target: { tagName: "BUTTON", id: "approve" } },
+    { key: "j", target: { tagName: "BUTTON", id: "tab-impact" } },
     { key: "r", target: { tagName: "DIV", isContentEditable: true } },
     { key: "a", target: { tagName: "DIV" }, ctrlKey: true },
     { key: "a", target: { tagName: "DIV" }, shiftKey: true },
@@ -96,11 +111,35 @@ test("review shortcuts run on phase and queue buttons but ignore text editing, m
   ]) assert.equal(keyboardCommand(event), null);
 });
 
-test("queue navigation returns a stable focus target for wrap and empty states", () => {
-  assert.deepEqual(queueSelectionIntent(0, 1, 3), { selectedIndex: 1, focusTargetId: "queue-option-1" });
-  assert.deepEqual(queueSelectionIntent(2, 1, 3), { selectedIndex: 0, focusTargetId: "queue-option-0" });
-  assert.deepEqual(queueSelectionIntent(0, -1, 3), { selectedIndex: 2, focusTargetId: "queue-option-2" });
-  assert.deepEqual(queueSelectionIntent(0, 1, 0), { selectedIndex: -1, focusTargetId: null });
+test("queue navigation keeps DOM focus on the listbox while active option wraps", () => {
+  assert.deepEqual(queueSelectionIntent(0, 1, 3), {
+    selectedIndex: 1,
+    focusTargetId: "impact-queue",
+    activeDescendantId: "queue-option-1",
+  });
+  assert.deepEqual(queueSelectionIntent(2, 1, 3), {
+    selectedIndex: 0,
+    focusTargetId: "impact-queue",
+    activeDescendantId: "queue-option-0",
+  });
+  assert.deepEqual(queueSelectionIntent(0, -1, 3), {
+    selectedIndex: 2,
+    focusTargetId: "impact-queue",
+    activeDescendantId: "queue-option-2",
+  });
+  assert.deepEqual(queueSelectionIntent(0, 1, 0), {
+    selectedIndex: -1,
+    focusTargetId: null,
+    activeDescendantId: null,
+  });
+});
+
+test("keyboard decisions restore composite focus after the authoritative refresh", () => {
+  const source = readFileSync(resolve("public/app.js"), "utf8");
+  const command = keyboardCommand({ key: "a", target: { tagName: "DIV", id: "impact-queue" } });
+  assert.equal(command.focusTargetId, "impact-queue");
+  assert.match(source, /applyDecision\(command\.decision,\s*command\.focusTargetId\)/);
+  assert.match(source, /finally\s*\{[^}]*renderAll\(\);[^}]*focusById\(focusTargetId\)/s);
 });
 
 test("decision and undo requests send commands without browser-owned status", () => {

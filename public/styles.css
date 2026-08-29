@@ -765,10 +765,6 @@ ins.policy-quote {
   list-style: none;
 }
 
-.queue-item {
-  min-width: 0;
-}
-
 .queue-shell::before {
   position: absolute;
   top: 0;
@@ -792,6 +788,7 @@ ins.policy-quote {
   background: var(--frame-raised);
   border: 1px solid var(--line);
   font: inherit;
+  cursor: pointer;
   text-align: left;
   transition: border-color var(--fast), transform var(--fast), background var(--fast);
 }
@@ -811,7 +808,7 @@ ins.policy-quote {
   transform: translateX(3px);
 }
 
-.queue-option[aria-pressed="true"] {
+.queue-option[aria-selected="true"] {
   color: var(--ink);
   background: var(--paper);
   border-color: var(--amber);
@@ -826,7 +823,7 @@ ins.policy-quote {
   text-align: center;
 }
 
-.queue-option[aria-pressed="true"] .queue-rank {
+.queue-option[aria-selected="true"] .queue-rank {
   color: var(--red);
 }
 
@@ -853,7 +850,7 @@ ins.policy-quote {
   text-overflow: ellipsis;
 }
 
-.queue-option[aria-pressed="true"] .queue-copy span {
+.queue-option[aria-selected="true"] .queue-copy span {
   color: #4e534d;
 }
 
@@ -1428,7 +1425,7 @@ kbd {
 
 @media (max-width: 900px) {
   :root {
-    --decision-clearance: 196px;
+    --decision-clearance: 204px;
   }
 
   .masthead {
@@ -1490,7 +1487,7 @@ kbd {
 
 @media (max-width: 640px) {
   :root {
-    --decision-clearance: 210px;
+    --decision-clearance: 224px;
   }
 
   .masthead {

@@ -55,6 +55,10 @@ function make(tag, className, text) {
   return element;
 }
 
+function focusById(id) {
+  if (id) document.getElementById(id)?.focus();
+}
+
 function setStatus(message, tone = "info") {
   elements.status.textContent = message;
   elements.status.dataset.tone = tone;
@@ -365,20 +369,23 @@ function renderCandidateDetail(candidate, index) {
 function renderImpact(focusTargetId = null) {
   const candidates = state.run?.recommendations ?? [];
   elements.queue.replaceChildren();
+  elements.queue.removeAttribute("aria-activedescendant");
   if (candidates.length === 0) {
-    elements.queue.append(make("p", "empty-sheet", state.run ? "The complete ranking is empty." : "The queue will appear when the server run completes."));
+    const empty = make("div", "empty-sheet", state.run ? "The complete ranking is empty." : "The queue will appear when the server run completes.");
+    empty.setAttribute("role", "option");
+    empty.setAttribute("aria-disabled", "true");
+    elements.queue.append(empty);
     renderCandidateDetail(null, -1);
     return;
   }
   if (state.selectedIndex < 0 || state.selectedIndex >= candidates.length) state.selectedIndex = 0;
   const records = recordMap();
   for (const [index, candidate] of candidates.entries()) {
-    const item = make("li", "queue-item");
-    const option = make("button", "queue-option");
-    option.type = "button";
+    const option = make("div", "queue-option");
     option.id = `queue-option-${index}`;
-    option.setAttribute("aria-pressed", String(index === state.selectedIndex));
-    option.setAttribute("aria-controls", "candidate-detail");
+    option.setAttribute("role", "option");
+    option.tabIndex = -1;
+    option.setAttribute("aria-selected", String(index === state.selectedIndex));
     option.append(
       make("span", "queue-rank", String(index + 1).padStart(2, "0")),
     );
@@ -395,11 +402,12 @@ function renderImpact(focusTargetId = null) {
       renderDecisionBar();
       setStatus(`Selected ${candidate.recordId}, queue position ${index + 1} of ${candidates.length}.`);
     });
-    item.append(option);
-    elements.queue.append(item);
+    elements.queue.append(option);
   }
+  const activeIntent = queueSelectionIntent(state.selectedIndex, 0, candidates.length);
+  elements.queue.setAttribute("aria-activedescendant", activeIntent.activeDescendantId);
   renderCandidateDetail(candidates[state.selectedIndex], state.selectedIndex);
-  if (focusTargetId) document.getElementById(focusTargetId)?.focus();
+  focusById(focusTargetId);
 }
 
 function renderMetricCard(term, description) {
@@ -587,7 +595,7 @@ async function refreshAuthoritativeRun(runId) {
   state.trajectory = await fetchTrajectory(runId);
 }
 
-async function applyDecision(decision) {
+async function applyDecision(decision, focusTargetId = null) {
   const selected = state.run?.recommendations?.[state.selectedIndex];
   if (!selected || state.busy) return;
   const recordId = selected.recordId;
@@ -629,6 +637,7 @@ async function applyDecision(decision) {
   } finally {
     state.busy = false;
     renderAll();
+    focusById(focusTargetId);
   }
 }
 
@@ -703,7 +712,7 @@ document.addEventListener("keydown", (event) => {
   if (!command || state.busy) return;
   event.preventDefault();
   if (command.type === "decision") {
-    applyDecision(command.decision);
+    applyDecision(command.decision, command.focusTargetId);
     return;
   }
   const candidates = state.run?.recommendations ?? [];

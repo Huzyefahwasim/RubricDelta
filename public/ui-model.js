@@ -66,7 +66,8 @@ export function queueSelectionIntent(currentIndex, offset, length) {
   const selectedIndex = selectCandidateIndex(currentIndex, offset, length);
   return {
     selectedIndex,
-    focusTargetId: selectedIndex < 0 ? null : `queue-option-${selectedIndex}`,
+    focusTargetId: selectedIndex < 0 ? null : "impact-queue",
+    activeDescendantId: selectedIndex < 0 ? null : `queue-option-${selectedIndex}`,
   };
 }
 
@@ -74,15 +75,18 @@ function isEditableTarget(target) {
   if (!target || typeof target !== "object") return false;
   if (target.isContentEditable) return true;
   const tag = String(target.tagName ?? "").toUpperCase();
-  return ["INPUT", "TEXTAREA", "SELECT", "OPTION"].includes(tag);
+  return ["INPUT", "TEXTAREA", "SELECT", "BUTTON", "OPTION"].includes(tag);
 }
 
 export function keyboardCommand(event) {
   if (!event || event.repeat || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || isEditableTarget(event.target)) return null;
   const key = String(event.key ?? "").toLowerCase();
-  if (key === "a") return { type: "decision", decision: "approve" };
-  if (key === "r") return { type: "decision", decision: "reject" };
-  if (key === "e") return { type: "decision", decision: "escalate" };
+  const focusTargetId = event.target?.id === "impact-queue" ? "impact-queue" : null;
+  if (key === "a") return { type: "decision", decision: "approve", ...(focusTargetId ? { focusTargetId } : {}) };
+  if (key === "r") return { type: "decision", decision: "reject", ...(focusTargetId ? { focusTargetId } : {}) };
+  if (key === "e") return { type: "decision", decision: "escalate", ...(focusTargetId ? { focusTargetId } : {}) };
+  if (focusTargetId && key === "arrowdown") return { type: "navigate", offset: 1 };
+  if (focusTargetId && key === "arrowup") return { type: "navigate", offset: -1 };
   if (key === "j") return { type: "navigate", offset: 1 };
   if (key === "k") return { type: "navigate", offset: -1 };
   return null;
