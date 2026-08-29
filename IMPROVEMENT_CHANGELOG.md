@@ -53,3 +53,16 @@ High reviewer agreement can coexist with shared guideline drift. Teams should ev
 - Failure analysis: The first full run correctly rejected an evaluator import inside `src/server`; the wire moved to one narrow `src/composition.js` seam while route/controller modules remained gold-blind.
 - Decision: keep
 - Evidence paths: `tests/server.test.js`, `src/server/`, `src/evaluation/server-data.js`, `.superpowers/sdd/2026-08-29-rubricdelta-hackathon-submission/task-5-report.md`
+## EXP-005 Fix Round 1: Transactional HTTP publication hardening
+
+- Date: 2026-08-29
+- Hypothesis: Immutable revision snapshots published through one atomic current pointer can make HTTP mutations fail closed while bounded validation, explicit cache policy, method gates, and canonical static identity close the remaining transport risks without changing ranking behavior.
+- Change: Replayed ledgers into shadow runs with original human timestamps; wrote seven-file revision snapshots before `current.json`; swapped authoritative memory only after publication; bounded attacker-controlled shapes and scenario complexity; added no-store/static cache policies, static 405 handling, and Windows short-name/canonical-identity rejection; drained but never retained oversized request tails so 413 responses complete without exceeding the one MiB buffer cap.
+- Evaluation command: `node --test tests/server.test.js` and `node --test`
+- Benchmark version: `support-routing-drift-v1`
+- Before: adversarial RED had 18 tests, 7 passed, 11 failed; persistence failures could mutate live export state, error fields reflected attacker keys, static POST returned 404, dynamic cache policy was implicit, scenario complexity was unbounded, and short-name aliases passed the raw predicate.
+- After: 18 focused server tests and 74 full-suite tests pass; paired recall remains frozen at baseline `0.80` versus advanced `0.90`.
+- Cost or runtime change: each successful decision writes a complete seven-file revision before one small pointer; failed revisions may remain as unreachable evidence. Oversized bodies are discarded after the cap rather than buffered.
+- Failure analysis: a full-suite-only `ECONNRESET` reproduced on iteration 6 because Windows could truncate the 413 response while unread request bytes remained. Continuing to consume excess chunks without storing them eliminated the reset in 20 consecutive full-suite runs.
+- Decision: keep
+- Evidence paths: `tests/server.test.js`, `src/server/router.js`, `src/server/app.js`, `.superpowers/sdd/2026-08-29-rubricdelta-hackathon-submission/task-5-report.md`

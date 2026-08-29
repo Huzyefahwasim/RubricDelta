@@ -8,12 +8,12 @@ import { createDecisionLedger } from "../domain/decisions.js";
 import { responseHeaders } from "./headers.js";
 
 function sendJson(response, status, value, extraHeaders = {}) {
-  response.writeHead(status, { ...responseHeaders("application/json; charset=utf-8"), ...extraHeaders });
+  response.writeHead(status, { ...responseHeaders("application/json; charset=utf-8"), "Cache-Control": "no-store", ...extraHeaders });
   response.end(JSON.stringify(value));
 }
 
-function sendText(response, status, contentType, value) {
-  response.writeHead(status, responseHeaders(contentType));
+function sendText(response, status, contentType, value, cacheControl = "no-store") {
+  response.writeHead(status, { ...responseHeaders(contentType), "Cache-Control": cacheControl });
   response.end(value);
 }
 
@@ -36,29 +36,48 @@ function plain(value) {
 
 function exactObject(value, fields, path) {
   if (!plain(value)) invalid(path, "Expected an object");
-  for (const key of Object.keys(value)) if (!fields.includes(key)) invalid(path === "$" ? key : `${path}.${key}`, "Unknown field");
+  if (Object.keys(value).some((key) => !fields.includes(key))) invalid(path, "Object contains unknown fields");
 }
 
-function nonblank(value, field) {
+const INPUT_LIMITS = Object.freeze({
+  records: 100,
+  id: 128,
+  title: 200,
+  descriptor: 64,
+  guidelineText: 50_000,
+  recordText: 10_000,
+  label: 128,
+  reviewer: 128,
+  reason: 1_000,
+});
+
+function nonblank(value, field, maxLength) {
   if (typeof value !== "string" || value.trim().length === 0) invalid(field, "Expected a nonblank string");
+  if (value.length > maxLength) invalid(field, `Must be at most ${maxLength} characters`);
 }
 
 function validateScenarioInput(scenario) {
   const scenarioFields = ["id", "title", "difficulty", "changeType", "oldGuideline", "newGuideline", "records"];
   exactObject(scenario, scenarioFields, "scenario");
-  for (const field of ["id", "title", "difficulty", "changeType"]) nonblank(scenario[field], `scenario.${field}`);
+  nonblank(scenario.id, "scenario.id", INPUT_LIMITS.id);
+  nonblank(scenario.title, "scenario.title", INPUT_LIMITS.title);
+  nonblank(scenario.difficulty, "scenario.difficulty", INPUT_LIMITS.descriptor);
+  nonblank(scenario.changeType, "scenario.changeType", INPUT_LIMITS.descriptor);
   for (const name of ["oldGuideline", "newGuideline"]) {
     exactObject(scenario[name], ["version", "text"], `scenario.${name}`);
-    nonblank(scenario[name].version, `scenario.${name}.version`);
-    nonblank(scenario[name].text, `scenario.${name}.text`);
+    nonblank(scenario[name].version, `scenario.${name}.version`, INPUT_LIMITS.id);
+    nonblank(scenario[name].text, `scenario.${name}.text`, INPUT_LIMITS.guidelineText);
   }
   if (!Array.isArray(scenario.records) || scenario.records.length === 0) invalid("scenario.records", "Expected at least one record");
+  if (scenario.records.length > INPUT_LIMITS.records) invalid("scenario.records", `Must contain at most ${INPUT_LIMITS.records} records`);
   const ids = new Set();
   for (let index = 0; index < scenario.records.length; index += 1) {
     const record = scenario.records[index];
     const path = `scenario.records[${index}]`;
     exactObject(record, ["id", "text", "existingLabel"], path);
-    for (const field of ["id", "text", "existingLabel"]) nonblank(record[field], `${path}.${field}`);
+    nonblank(record.id, `${path}.id`, INPUT_LIMITS.id);
+    nonblank(record.text, `${path}.text`, INPUT_LIMITS.recordText);
+    nonblank(record.existingLabel, `${path}.existingLabel`, INPUT_LIMITS.label);
     if (ids.has(record.id)) invalid(`${path}.id`, "Duplicate record ID");
     ids.add(record.id);
   }
@@ -80,14 +99,11 @@ function payloadTooLarge() {
 function validateHumanBody(body, run, undo = false) {
   const allowed = undo ? ["recordId", "reviewer", "reason"] : ["recordId", "decision", "reviewer", "reason"];
   exactObject(body, allowed, "$");
-  nonblank(body.recordId, "recordId");
+  nonblank(body.recordId, "recordId", INPUT_LIMITS.id);
   if (!run.ledger.candidates().some((candidate) => candidate.recordId === body.recordId)) invalid("recordId", "Unknown record ID");
   if (!undo && !["approve", "reject", "escalate"].includes(body.decision)) invalid("decision", "Expected approve, reject, or escalate");
-  nonblank(body.reviewer, "reviewer");
-  if (Object.hasOwn(body, "reason")) {
-    nonblank(body.reason, "reason");
-    if (body.reason.length > 1000) invalid("reason", "Must be at most 1000 characters");
-  }
+  nonblank(body.reviewer, "reviewer", INPUT_LIMITS.reviewer);
+  if (Object.hasOwn(body, "reason")) nonblank(body.reason, "reason", INPUT_LIMITS.reason);
   return body;
 }
 
@@ -95,17 +111,16 @@ async function readJson(request) {
   const contentType = request.headers["content-type"]?.split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") throw new RequestError(415, "UNSUPPORTED_MEDIA_TYPE", "content-type", "Content-Type must be application/json");
   const declaredLength = request.headers["content-length"];
-  if (declaredLength !== undefined && Number(declaredLength) > MAX_BODY_BYTES) throw payloadTooLarge();
+  const declaredOversized = declaredLength !== undefined && Number(declaredLength) > MAX_BODY_BYTES;
   const chunks = [];
   let received = 0;
+  let oversized = declaredOversized;
   for await (const chunk of request) {
     received += chunk.length;
-    if (received > MAX_BODY_BYTES) {
-      request.pause();
-      throw payloadTooLarge();
-    }
-    chunks.push(chunk);
+    if (received > MAX_BODY_BYTES) oversized = true;
+    if (!oversized) chunks.push(chunk);
   }
+  if (oversized) throw payloadTooLarge();
   try {
     return JSON.parse(Buffer.concat(chunks, received).toString("utf8"));
   } catch {
@@ -164,28 +179,57 @@ function checkpoint(run, event) {
   });
 }
 
-async function persistMutation(store, run) {
-  const prefix = `runs/${run.runId}`;
-  const state = snapshot(run);
-  await store.write(`${prefix}/state.json`, `${JSON.stringify(state, null, 2)}\n`);
-  await store.write(`${prefix}/recommendations.json`, `${JSON.stringify(state.recommendations, null, 2)}\n`);
-  await store.write(`${prefix}/decisions.json`, `${JSON.stringify(state.decisions, null, 2)}\n`);
-  await store.write(`${prefix}/trajectory.jsonl`, jsonLines(run.trace));
-  await store.write(`${prefix}/export.csv`, exportApprovedCSV({ runId: run.runId, ledger: run.ledger }));
+function replayCommand(event) {
+  const command = { recordId: event.recordId, reviewer: event.reviewer };
+  if (event.reason !== null) command.reason = event.reason;
+  if (event.type === "decision") command.decision = event.decision;
+  return command;
 }
 
-function serializeMutation(run, operation) {
-  const result = run.mutation.then(operation);
-  run.mutation = result.catch(() => undefined);
-  return result;
+function cloneLedger(run) {
+  const originalEvents = run.ledger.events();
+  let timestampIndex = 0;
+  const candidates = run.ledger.candidates().map((candidate) => ({ ...candidate, status: "pending" }));
+  const ledger = createDecisionLedger(candidates, {
+    now() {
+      const timestamp = originalEvents[timestampIndex]?.timestamp;
+      timestampIndex += 1;
+      return timestamp ?? new Date().toISOString();
+    },
+  });
+  for (const event of originalEvents) {
+    if (event.type === "decision") ledger.decide(replayCommand(event));
+    else ledger.undo(replayCommand(event));
+  }
+  if (JSON.stringify(ledger.events()) !== JSON.stringify(originalEvents)) throw new Error("Decision ledger replay failed integrity validation");
+  return ledger;
 }
 
-async function persistCreatedRun(store, run) {
-  const prefix = `runs/${run.runId}`;
+function createShadowRun(run) {
+  return {
+    runId: run.runId,
+    createdAt: run.createdAt,
+    scenario: structuredClone(run.scenario),
+    analysis: structuredClone(run.analysis),
+    trace: structuredClone(run.trace),
+    escalated: run.escalated,
+    ledger: cloneLedger(run),
+    revision: run.revision + 1,
+  };
+}
+
+function revisionName(revision) {
+  return `rev-${String(revision).padStart(6, "0")}`;
+}
+
+async function publishSnapshot(store, run) {
+  const revision = revisionName(run.revision);
+  const prefix = `runs/${run.runId}/revisions/${revision}`;
   const state = snapshot(run);
   await store.write(`${prefix}/manifest.json`, `${JSON.stringify({
     schemaVersion: 1,
     runId: run.runId,
+    revision,
     scenarioId: run.scenario.id,
     createdAt: run.createdAt,
     provider: "deterministic",
@@ -194,11 +238,17 @@ async function persistCreatedRun(store, run) {
   await store.write(`${prefix}/input.json`, `${JSON.stringify(run.scenario, null, 2)}\n`);
   await store.write(`${prefix}/state.json`, `${JSON.stringify(state, null, 2)}\n`);
   await store.write(`${prefix}/recommendations.json`, `${JSON.stringify(state.recommendations, null, 2)}\n`);
-  await store.write(`${prefix}/decisions.json`, "[]\n");
+  await store.write(`${prefix}/decisions.json`, `${JSON.stringify(state.decisions, null, 2)}\n`);
   await store.write(`${prefix}/trajectory.jsonl`, jsonLines(run.trace));
   await store.write(`${prefix}/export.csv`, exportApprovedCSV({ runId: run.runId, ledger: run.ledger }));
+  await store.write(`runs/${run.runId}/current.json`, `${JSON.stringify({ schemaVersion: 1, runId: run.runId, revision }, null, 2)}\n`);
 }
 
+function serializeMutation(slot, operation) {
+  const result = slot.mutation.then(() => operation(slot.current));
+  slot.mutation = result.then(() => undefined, () => undefined);
+  return result;
+}
 const STATIC_TYPES = new Map([
   [".html", "text/html; charset=utf-8"],
   [".css", "text/css; charset=utf-8"],
@@ -215,6 +265,7 @@ function contained(root, target) {
 }
 
 const WINDOWS_RESERVED = /^(?:CON|PRN|AUX|NUL|COM[1-9¹²³]|LPT[1-9¹²³])(?:\..*)?$/i;
+const WINDOWS_SHORT_NAME = /^[^~]{1,6}~[1-9][0-9]*(?:\..*)?$/i;
 
 export function requestPathIsSafe(requestUrl) {
   const rawPath = String(requestUrl ?? "").split(/[?#]/, 1)[0];
@@ -224,20 +275,21 @@ export function requestPathIsSafe(requestUrl) {
     const parts = decoded.split("/").filter(Boolean);
     return !decoded.includes("\\") && !decoded.includes("\0")
       && !parts.some((part) => part === "." || part === ".." || part.startsWith(".")
-        || part.includes(":") || /[. ]$/.test(part) || WINDOWS_RESERVED.test(part));
+        || part.includes(":") || /[. ]$/.test(part) || WINDOWS_RESERVED.test(part) || WINDOWS_SHORT_NAME.test(part));
   } catch {
     return false;
   }
 }
 
-export async function serveStaticFile({ publicRoot, requestUrl, response }) {
+export async function serveStaticFile({ publicRoot, requestUrl, method = "GET", response }) {
   if (!requestPathIsSafe(requestUrl)) return false;
   const rawPath = String(requestUrl).split(/[?#]/, 1)[0];
   const decoded = decodeURIComponent(rawPath);
   const parts = decoded.split("/").filter(Boolean);
   if (decoded !== "/" && decoded.endsWith("/")) return false;
   const configuredRoot = resolve(publicRoot);
-  const target = resolve(configuredRoot, decoded === "/" ? "index.html" : parts.join(sep));
+  const requestedRelative = decoded === "/" ? "index.html" : parts.join(sep);
+  const target = resolve(configuredRoot, requestedRelative);
   if (!contained(configuredRoot, target)) return false;
   try {
     const rootStat = await lstat(configuredRoot);
@@ -247,16 +299,24 @@ export async function serveStaticFile({ publicRoot, requestUrl, response }) {
     const canonicalRoot = await realpath(configuredRoot);
     const canonicalTarget = await realpath(target);
     if (!contained(canonicalRoot, canonicalTarget)) return false;
+    const canonicalRelative = relative(canonicalRoot, canonicalTarget);
+    const requestedIdentity = process.platform === "win32" ? requestedRelative.toLowerCase() : requestedRelative;
+    const canonicalIdentity = process.platform === "win32" ? canonicalRelative.toLowerCase() : canonicalRelative;
+    if (requestedIdentity !== canonicalIdentity) return false;
+    if (method !== "GET") {
+      sendJson(response, 405, { error: { code: "METHOD_NOT_ALLOWED", message: "Method not allowed" } }, { Allow: "GET" });
+      return true;
+    }
     const content = await readFile(canonicalTarget);
-    sendText(response, 200, STATIC_TYPES.get(extname(canonicalTarget).toLowerCase()) ?? "application/octet-stream", content);
+    sendText(response, 200, STATIC_TYPES.get(extname(canonicalTarget).toLowerCase()) ?? "application/octet-stream", content, "public, max-age=0, must-revalidate");
     return true;
   } catch {
     return false;
   }
 }
 
-export function createRouter({ artifactRoot, dataService }) {
-  const store = createArtifactStore(artifactRoot);
+export function createRouter({ artifactRoot, artifactStore, dataService }) {
+  const store = artifactStore ?? createArtifactStore(artifactRoot);
   const runs = new Map();
 
   return async function route(request, response, pathname) {
@@ -304,77 +364,82 @@ export function createRouter({ artifactRoot, dataService }) {
         trace: structuredClone(result.trace),
         escalated: result.escalated,
         ledger: createDecisionLedger(result.rankedCandidates),
-        mutation: Promise.resolve(),
+        revision: 1,
       };
-      await persistCreatedRun(store, run);
-      runs.set(runId, run);
+      await publishSnapshot(store, run);
+      runs.set(runId, { current: run, mutation: Promise.resolve() });
       sendJson(response, 201, { runId, run: snapshot(run) });
       return true;
     }
     const exportMatch = pathname.match(/^\/api\/runs\/(run-[a-f0-9-]+)\/export\.csv$/);
     if (request.method === "GET" && exportMatch) {
-      const run = runs.get(exportMatch[1]);
-      if (!run) {
+      const slot = runs.get(exportMatch[1]);
+      if (!slot) {
         sendJson(response, 404, { error: { code: "NOT_FOUND", message: "Run not found" } });
         return true;
       }
+      const run = slot.current;
       sendText(response, 200, "text/csv; charset=utf-8", exportApprovedCSV({ runId: run.runId, ledger: run.ledger }));
       return true;
     }
     const trajectoryMatch = pathname.match(/^\/api\/runs\/(run-[a-f0-9-]+)\/trajectory\.jsonl$/);
     if (request.method === "GET" && trajectoryMatch) {
-      const run = runs.get(trajectoryMatch[1]);
-      if (!run) {
+      const slot = runs.get(trajectoryMatch[1]);
+      if (!slot) {
         sendJson(response, 404, { error: { code: "NOT_FOUND", message: "Run not found" } });
         return true;
       }
-      sendText(response, 200, "application/x-ndjson; charset=utf-8", jsonLines(run.trace));
+      sendText(response, 200, "application/x-ndjson; charset=utf-8", jsonLines(slot.current.trace));
       return true;
     }
     const decisionMatch = pathname.match(/^\/api\/runs\/(run-[a-f0-9-]+)\/decisions$/);
     if (request.method === "POST" && decisionMatch) {
-      const run = runs.get(decisionMatch[1]);
-      if (!run) {
+      const slot = runs.get(decisionMatch[1]);
+      if (!slot) {
         sendJson(response, 404, { error: { code: "NOT_FOUND", message: "Run not found" } });
         return true;
       }
-      const command = humanCommand(validateHumanBody(await readJson(request), run));
-      const result = await serializeMutation(run, async () => {
-        const event = run.ledger.decide(command);
-        checkpoint(run, event);
-        await persistMutation(store, run);
-        return { event, run: snapshot(run) };
+      const command = humanCommand(validateHumanBody(await readJson(request), slot.current));
+      const mutation = await serializeMutation(slot, async (current) => {
+        const shadow = createShadowRun(current);
+        const event = shadow.ledger.decide(command);
+        checkpoint(shadow, event);
+        await publishSnapshot(store, shadow);
+        slot.current = shadow;
+        return { event, run: snapshot(shadow) };
       });
-      sendJson(response, 200, result);
+      sendJson(response, 200, mutation);
       return true;
     }
     const undoMatch = pathname.match(/^\/api\/runs\/(run-[a-f0-9-]+)\/undo$/);
     if (request.method === "POST" && undoMatch) {
-      const run = runs.get(undoMatch[1]);
-      if (!run) {
+      const slot = runs.get(undoMatch[1]);
+      if (!slot) {
         sendJson(response, 404, { error: { code: "NOT_FOUND", message: "Run not found" } });
         return true;
       }
-      const command = humanCommand(validateHumanBody(await readJson(request), run, true));
-      const result = await serializeMutation(run, async () => {
-        const current = run.ledger.candidates().find((candidate) => candidate.recordId === command.recordId);
-        if (current.status === "pending") invalid("recordId", "Record has no decision to undo");
-        const event = run.ledger.undo(command);
-        checkpoint(run, event);
-        await persistMutation(store, run);
-        return { event, run: snapshot(run) };
+      const command = humanCommand(validateHumanBody(await readJson(request), slot.current, true));
+      const mutation = await serializeMutation(slot, async (current) => {
+        const shadow = createShadowRun(current);
+        const candidate = shadow.ledger.candidates().find((item) => item.recordId === command.recordId);
+        if (candidate.status === "pending") invalid("recordId", "Record has no decision to undo");
+        const event = shadow.ledger.undo(command);
+        checkpoint(shadow, event);
+        await publishSnapshot(store, shadow);
+        slot.current = shadow;
+        return { event, run: snapshot(shadow) };
       });
-      sendJson(response, 200, result);
+      sendJson(response, 200, mutation);
       return true;
     }
     const match = pathname.match(/^\/api\/runs\/(run-[a-f0-9-]+)$/);
     if (request.method === "GET" && match) {
-      const run = runs.get(match[1]);
-      if (!run) {
+      const slot = runs.get(match[1]);
+      if (!slot) {
         sendJson(response, 404, { error: { code: "NOT_FOUND", message: "Run not found" } });
         return true;
       }
-      sendJson(response, 200, snapshot(run));
+      sendJson(response, 200, snapshot(slot.current));
       return true;
     }
     return false;

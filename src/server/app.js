@@ -3,13 +3,13 @@ import { responseHeaders, SECURITY_HEADERS } from "./headers.js";
 import { createRouter, requestPathIsSafe, RequestError, serveStaticFile } from "./router.js";
 
 function sendJson(response, status, value, extraHeaders = {}) {
-  response.writeHead(status, { ...responseHeaders("application/json; charset=utf-8"), ...extraHeaders });
+  response.writeHead(status, { ...responseHeaders("application/json; charset=utf-8"), "Cache-Control": "no-store", ...extraHeaders });
   response.end(JSON.stringify(value));
 }
 
-export function createRubricDeltaApplication({ host, port, publicRoot, artifactRoot, dataService }) {
+export function createRubricDeltaApplication({ host, port, publicRoot, artifactRoot, artifactStore, dataService }) {
   let address = null;
-  const route = createRouter({ artifactRoot, dataService });
+  const route = createRouter({ artifactRoot, artifactStore, dataService });
   const httpServer = createServer(async (request, response) => {
     try {
       if (!requestPathIsSafe(request.url)) {
@@ -18,7 +18,7 @@ export function createRubricDeltaApplication({ host, port, publicRoot, artifactR
       }
       const url = new URL(request.url, "http://localhost");
       if (await route(request, response, url.pathname)) return;
-      if (request.method === "GET" && await serveStaticFile({ publicRoot, requestUrl: request.url, response })) return;
+      if (await serveStaticFile({ publicRoot, requestUrl: request.url, method: request.method, response })) return;
       sendJson(response, 404, { error: { code: "NOT_FOUND", message: "Resource not found" } });
     } catch (error) {
       if (error instanceof RequestError) {
@@ -39,6 +39,7 @@ export function createRubricDeltaApplication({ host, port, publicRoot, artifactR
       ...SECURITY_HEADERS,
       "Content-Type": "application/json; charset=utf-8",
       "Content-Length": Buffer.byteLength(body),
+      "Cache-Control": "no-store",
       Connection: "close",
     };
     const lines = ["HTTP/1.1 400 Bad Request", ...Object.entries(headers).map(([name, value]) => `${name}: ${value}`), "", body];

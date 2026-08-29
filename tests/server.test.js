@@ -7,6 +7,9 @@ import { request as httpRequest } from "node:http";
 import { connect } from "node:net";
 import { createRubricDeltaServer } from "../src/server/index.js";
 import { requestPathIsSafe } from "../src/server/router.js";
+import { createRubricDeltaApplication } from "../src/server/app.js";
+import { createServerDataService } from "../src/composition.js";
+import { createArtifactStore } from "../src/artifacts/store.js";
 
 function rawRequest(url, { method = "POST", headers = {}, chunks = [] } = {}) {
   return new Promise((resolve, reject) => {
@@ -21,8 +24,17 @@ function rawRequest(url, { method = "POST", headers = {}, chunks = [] } = {}) {
       const body = [];
       response.on("data", (chunk) => body.push(chunk));
       response.on("end", () => resolve({ status: response.statusCode, headers: response.headers, body: Buffer.concat(body).toString("utf8") }));
+      response.on("error", (error) => {
+        const framing = headers["content-length"] === undefined ? "chunked" : "fixed-length";
+        error.message = `${method} ${target.pathname} response (${framing}): ${error.message}`;
+        reject(error);
+      });
     });
-    request.on("error", reject);
+    request.on("error", (error) => {
+      const framing = headers["content-length"] === undefined ? "chunked" : "fixed-length";
+      error.message = `${method} ${target.pathname} (${framing}): ${error.message}`;
+      reject(error);
+    });
     for (const chunk of chunks) request.write(chunk);
     request.end();
   });
@@ -50,6 +62,26 @@ async function startServer(t, options = {}) {
     await rm(artifactRoot, { recursive: true, force: true });
   });
   return { server, artifactRoot };
+}
+
+async function startInjectedApplication(t, { artifactRoot, artifactStore }) {
+  const server = createRubricDeltaApplication({
+    port: 0,
+    host: "127.0.0.1",
+    publicRoot: join(artifactRoot, "public-missing"),
+    artifactRoot,
+    artifactStore,
+    dataService: createServerDataService(),
+  });
+  await server.start();
+  t.after(() => server.stop());
+  return server;
+}
+
+async function currentRevisionRoot(artifactRoot, runId) {
+  const pointer = JSON.parse(await readFile(join(artifactRoot, "runs", runId, "current.json"), "utf8"));
+  assert.match(pointer.revision, /^rev-\d{6}$/);
+  return { pointer, path: join(artifactRoot, "runs", runId, "revisions", pointer.revision) };
 }
 
 test("server exposes health and a gold-free demo payload", async (t) => {
@@ -86,7 +118,10 @@ test("a public scenario creates a server-owned review run and complete artifacts
   const fetched = await fetch(`${server.address()}/api/runs/${payload.runId}`);
   assert.equal(fetched.status, 200);
   assert.deepEqual(await fetched.json(), payload.run);
-  assert.deepEqual((await readdir(join(artifactRoot, "runs", payload.runId))).sort(), [
+  assert.deepEqual((await readdir(join(artifactRoot, "runs", payload.runId))).sort(), ["current.json", "revisions"]);
+  const current = await currentRevisionRoot(artifactRoot, payload.runId);
+  assert.equal(current.pointer.runId, payload.runId);
+  assert.deepEqual((await readdir(current.path)).sort(), [
     "decisions.json",
     "export.csv",
     "input.json",
@@ -117,7 +152,9 @@ test("only active human approvals enter export and undo is an append-only checkp
     body: JSON.stringify({ recordId: approvedCandidate.recordId, decision: "approve", reviewer: "judge", reason: "evidence verified" }),
   });
   assert.equal(approved.status, 200);
-  assert.equal((await approved.json()).run.recommendations[0].status, "approved");
+  const approvedPayload = await approved.json();
+  assert.equal(approvedPayload.run.recommendations[0].status, "approved");
+  const originalApprovalTime = approvedPayload.event.timestamp;
 
   const escalated = await fetch(`${server.address()}/api/runs/${created.runId}/decisions`, {
     method: "POST",
@@ -125,7 +162,9 @@ test("only active human approvals enter export and undo is an append-only checkp
     body: JSON.stringify({ recordId: escalatedCandidate.recordId, decision: "escalate", reviewer: "judge" }),
   });
   assert.equal(escalated.status, 200);
-  assert.equal((await escalated.json()).run.recommendations[1].status, "escalated");
+  const escalatedPayload = await escalated.json();
+  assert.equal(escalatedPayload.run.recommendations[1].status, "escalated");
+  assert.equal(escalatedPayload.run.decisions[0].timestamp, originalApprovalTime);
 
   const approvedCsv = await (await fetch(`${server.address()}/api/runs/${created.runId}/export.csv`)).text();
   assert.match(approvedCsv, new RegExp(`,${approvedCandidate.recordId},`));
@@ -185,7 +224,7 @@ test("invalid JSON requests return bounded field errors without internal disclos
       name: "unknown field",
       init: { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ scenario: demo.scenario, status: "approved" }) },
       status: 400,
-      field: "status",
+      field: "$",
     },
     {
       name: "duplicate record ID",
@@ -206,6 +245,55 @@ test("invalid JSON requests return bounded field errors without internal disclos
     assert.doesNotMatch(text, /D:\\|node:internal|stack|OPENAI_API_KEY|sk-[A-Za-z0-9]/, item.name);
   }
 });
+test("unknown attacker keys are never reflected and error bodies stay bounded", async (t) => {
+  const { server } = await startServer(t);
+  const demo = await (await fetch(`${server.address()}/api/demo`)).json();
+  const attackerKey = `sk-do-not-echo-${"x".repeat(250_000)}-D:\\private`;
+  const response = await fetch(`${server.address()}/api/runs`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ scenario: demo.scenario, [attackerKey]: true }),
+  });
+  assert.equal(response.status, 400);
+  const text = await response.text();
+  assert.ok(text.length < 1024);
+  assert.doesNotMatch(text, /sk-do-not-echo|D:\\private/);
+  const error = JSON.parse(text).error;
+  assert.equal(error.fields[0].field, "$");
+  assert.equal(error.fields[0].message, "Object contains unknown fields");
+});
+
+test("scenario complexity limits reject record amplification and oversized fields before analysis", async (t) => {
+  const { server } = await startServer(t);
+  const demo = await (await fetch(`${server.address()}/api/demo`)).json();
+  const cases = [];
+  const tooMany = structuredClone(demo.scenario);
+  tooMany.records = Array.from({ length: 101 }, (_item, index) => ({ ...demo.scenario.records[0], id: `bounded-${index}` }));
+  cases.push({ scenario: tooMany, field: "scenario.records" });
+  const longTitle = structuredClone(demo.scenario);
+  longTitle.title = "t".repeat(201);
+  cases.push({ scenario: longTitle, field: "scenario.title" });
+  const longGuideline = structuredClone(demo.scenario);
+  longGuideline.oldGuideline.text = "g".repeat(50_001);
+  cases.push({ scenario: longGuideline, field: "scenario.oldGuideline.text" });
+  const longId = structuredClone(demo.scenario);
+  longId.records[0].id = "i".repeat(129);
+  cases.push({ scenario: longId, field: "scenario.records[0].id" });
+  const longRecord = structuredClone(demo.scenario);
+  longRecord.records[0].text = "r".repeat(10_001);
+  cases.push({ scenario: longRecord, field: "scenario.records[0].text" });
+
+  for (const item of cases) {
+    const response = await fetch(`${server.address()}/api/runs`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ scenario: item.scenario }),
+    });
+    assert.equal(response.status, 400, item.field);
+    assert.equal((await response.json()).error.fields[0].field, item.field);
+  }
+});
+
 test("content-length and chunked bodies are rejected at the one MiB boundary", async (t) => {
   const { server } = await startServer(t);
   const oversized = Buffer.alloc((1024 * 1024) + 1, 0x20);
@@ -273,7 +361,7 @@ test("decision commands reject browser authority and unknown IDs without mutatin
   })).json();
   const recordId = created.run.recommendations[0].recordId;
   for (const item of [
-    { body: { recordId, decision: "approve", reviewer: "judge", status: "approved" }, field: "status" },
+    { body: { recordId, decision: "approve", reviewer: "judge", status: "approved" }, field: "$" },
     { body: { recordId: "unknown-record", decision: "approve", reviewer: "judge" }, field: "recordId" },
     { body: { recordId, decision: "approved", reviewer: "judge" }, field: "decision" },
     { body: { recordId, decision: "approve", reviewer: " " }, field: "reviewer" },
@@ -317,7 +405,8 @@ test("per-run mutations serialize ledger events and persisted artifacts", async 
   const run = await (await fetch(`${server.address()}/api/runs/${created.runId}`)).json();
   assert.deepEqual(run.decisions.map((event) => event.sequence), [1, 2]);
   assert.equal(run.recommendations.filter((item) => item.status === "approved").length, 2);
-  const persisted = JSON.parse(await readFile(join(artifactRoot, "runs", created.runId, "decisions.json"), "utf8"));
+  const current = await currentRevisionRoot(artifactRoot, created.runId);
+  const persisted = JSON.parse(await readFile(join(current.path, "decisions.json"), "utf8"));
   assert.deepEqual(persisted, run.decisions);
 });
 test("static serving allows normal public files and denies every traversal form", async (t) => {
@@ -333,10 +422,16 @@ test("static serving allows normal public files and denies every traversal form"
   assert.equal(index.status, 200);
   assert.match(index.headers.get("content-type"), /^text\/html/);
   assert.equal(index.headers.get("x-frame-options"), "DENY");
+  assert.equal(index.headers.get("cache-control"), "public, max-age=0, must-revalidate");
   assert.match(await index.text(), /RubricDelta/);
   const script = await fetch(`${server.address()}/app.js`);
   assert.equal(script.status, 200);
   assert.match(script.headers.get("content-type"), /javascript/);
+  assert.equal(script.headers.get("cache-control"), "public, max-age=0, must-revalidate");
+  const wrongMethod = await fetch(`${server.address()}/app.js`, { method: "POST" });
+  assert.equal(wrongMethod.status, 405);
+  assert.equal(wrongMethod.headers.get("allow"), "GET");
+  assert.equal(wrongMethod.headers.get("cache-control"), "no-store");
 
   for (const path of ["/%2e%2e/package.json", "/..%5cpackage.json", "/%2e%2e%2fpackage.json", "/%00", "/.hidden", "/assets/", "/app.js%3A%24DATA", "/CON", "/app.js."]) {
     const response = await rawRequest(`${server.address()}${path}`, { method: "GET" });
@@ -345,6 +440,35 @@ test("static serving allows normal public files and denies every traversal form"
     assert.doesNotMatch(response.body, /D:\\|Micro1 hackathon|public/i, path);
   }
 });
+test("API, run, download, and error responses are explicitly non-cacheable", async (t) => {
+  const { server } = await startServer(t);
+  const health = await fetch(`${server.address()}/api/health`);
+  const demoResponse = await fetch(`${server.address()}/api/demo`);
+  const demo = await demoResponse.json();
+  const createdResponse = await fetch(`${server.address()}/api/runs`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ scenario: demo.scenario }),
+  });
+  const created = await createdResponse.json();
+  const decisionResponse = await fetch(`${server.address()}/api/runs/${created.runId}/decisions`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ recordId: created.run.recommendations[0].recordId, decision: "approve", reviewer: "judge" }),
+  });
+  const responses = [
+    health,
+    demoResponse,
+    createdResponse,
+    decisionResponse,
+    await fetch(`${server.address()}/api/runs/${created.runId}`),
+    await fetch(`${server.address()}/api/runs/${created.runId}/export.csv`),
+    await fetch(`${server.address()}/api/runs/${created.runId}/trajectory.jsonl`),
+    await fetch(`${server.address()}/api/missing`),
+  ];
+  for (const response of responses) assert.equal(response.headers.get("cache-control"), "no-store", `${response.status} ${response.url}`);
+});
+
 test("ambiguous transfer framing is rejected with secured connection-close errors", async (t) => {
   const { server } = await startServer(t);
   const target = new URL(server.address());
@@ -395,48 +519,99 @@ test("browser-supplied secrets are redacted from responses and persisted run art
   const decisionText = await decisionResponse.text();
   assert.equal(decisionResponse.status, 200);
   assert.doesNotMatch(decisionText, /sk-(?:serversecret|othersecret)/);
+  const current = await currentRevisionRoot(artifactRoot, created.runId);
   for (const name of ["input.json", "state.json", "decisions.json", "trajectory.jsonl", "export.csv"]) {
-    const content = await readFile(join(artifactRoot, "runs", created.runId, name), "utf8");
+    const content = await readFile(join(current.path, name), "utf8");
     assert.doesNotMatch(content, /sk-(?:serversecret|othersecret)/, name);
   }
 });
 test("request path validation rejects Windows filesystem aliases before lookup", () => {
-  for (const path of ["/app.js%3A%24DATA", "/CON", "/con.txt", "/LPT1.css", "/app.js.", "/asset%20"]) {
+  for (const path of ["/app.js%3A%24DATA", "/CON", "/con.txt", "/LPT1.css", "/app.js.", "/asset%20", "/HIDDEN~1", "/FILE~12.TXT"]) {
     assert.equal(requestPathIsSafe(path), false, path);
   }
   assert.equal(requestPathIsSafe("/assets/app.js"), true);
 });
-test("an artifact write failure preserves authoritative decisions and does not poison the run queue", async (t) => {
-  const { server, artifactRoot } = await startServer(t);
+test("failed decision snapshot publication leaves memory, export, pointer, and state unchanged", async (t) => {
+  const artifactRoot = await mkdtemp(join(tmpdir(), "rubricdelta-publication-"));
+  t.after(() => rm(artifactRoot, { recursive: true, force: true }));
+  const backing = createArtifactStore(artifactRoot);
+  let failRevisionTwo = false;
+  const artifactStore = {
+    root: backing.root,
+    read: backing.read,
+    async write(path, content) {
+      if (failRevisionTwo && /\/revisions\/rev-000002\/state\.json$/.test(path)) throw new Error("forced unpublished revision failure");
+      return backing.write(path, content);
+    },
+  };
+  const server = await startInjectedApplication(t, { artifactRoot, artifactStore });
   const demo = await (await fetch(`${server.address()}/api/demo`)).json();
   const created = await (await fetch(`${server.address()}/api/runs`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ scenario: demo.scenario }),
   })).json();
-  const [first, second] = created.run.recommendations;
-  const statePath = join(artifactRoot, "runs", created.runId, "state.json");
-  await rm(statePath);
-  await mkdir(statePath);
+  const recordId = created.run.recommendations[0].recordId;
+  const pointerPath = join(artifactRoot, "runs", created.runId, "current.json");
+  const pointerBefore = await readFile(pointerPath, "utf8");
+  const currentBefore = await currentRevisionRoot(artifactRoot, created.runId);
+  const stateBefore = await readFile(join(currentBefore.path, "state.json"), "utf8");
+  const exportBefore = await (await fetch(`${server.address()}/api/runs/${created.runId}/export.csv`)).text();
+
+  failRevisionTwo = true;
   const failed = await fetch(`${server.address()}/api/runs/${created.runId}/decisions`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ recordId: first.recordId, decision: "approve", reviewer: "judge" }),
+    body: JSON.stringify({ recordId, decision: "approve", reviewer: "judge" }),
   });
   assert.equal(failed.status, 500);
-  const failedText = await failed.text();
-  assert.doesNotMatch(failedText, /D:\\|Micro1 hackathon|state\.json/i);
   const authoritative = await (await fetch(`${server.address()}/api/runs/${created.runId}`)).json();
-  assert.equal(authoritative.recommendations[0].status, "approved");
-  assert.equal(authoritative.decisions.length, 1);
+  assert.equal(authoritative.recommendations[0].status, "pending");
+  assert.deepEqual(authoritative.decisions, []);
+  assert.equal(await (await fetch(`${server.address()}/api/runs/${created.runId}/export.csv`)).text(), exportBefore);
+  assert.equal(await readFile(pointerPath, "utf8"), pointerBefore);
+  assert.equal(await readFile(join(currentBefore.path, "state.json"), "utf8"), stateBefore);
 
-  await rm(statePath, { recursive: true });
+  failRevisionTwo = false;
   const recovered = await fetch(`${server.address()}/api/runs/${created.runId}/decisions`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ recordId: second.recordId, decision: "approve", reviewer: "judge" }),
+    body: JSON.stringify({ recordId, decision: "approve", reviewer: "judge" }),
   });
   assert.equal(recovered.status, 200);
-  const persisted = JSON.parse(await readFile(join(artifactRoot, "runs", created.runId, "decisions.json"), "utf8"));
-  assert.deepEqual(persisted.map((event) => event.sequence), [1, 2]);
+  const currentAfter = await currentRevisionRoot(artifactRoot, created.runId);
+  assert.equal(currentAfter.pointer.revision, "rev-000002");
+  const persisted = JSON.parse(await readFile(join(currentAfter.path, "decisions.json"), "utf8"));
+  assert.deepEqual(persisted.map((event) => event.sequence), [1]);
+});
+
+test("failed initial snapshot publication never registers or points to the run", async (t) => {
+  const artifactRoot = await mkdtemp(join(tmpdir(), "rubricdelta-create-publication-"));
+  t.after(() => rm(artifactRoot, { recursive: true, force: true }));
+  const backing = createArtifactStore(artifactRoot);
+  let attemptedRunId = null;
+  const artifactStore = {
+    root: backing.root,
+    read: backing.read,
+    async write(path, content) {
+      const match = path.match(/^runs\/(run-[a-f0-9-]+)\/revisions\/rev-000001\/state\.json$/);
+      if (match) {
+        attemptedRunId = match[1];
+        throw new Error("forced initial publication failure");
+      }
+      return backing.write(path, content);
+    },
+  };
+  const server = await startInjectedApplication(t, { artifactRoot, artifactStore });
+  const demo = await (await fetch(`${server.address()}/api/demo`)).json();
+  const failed = await fetch(`${server.address()}/api/runs`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ scenario: demo.scenario }),
+  });
+  assert.equal(failed.status, 500);
+  assert.match(attemptedRunId, /^run-[a-f0-9-]+$/);
+  const fetched = await fetch(`${server.address()}/api/runs/${attemptedRunId}`);
+  assert.equal(fetched.status, 404);
+  await assert.rejects(backing.read(`runs/${attemptedRunId}/current.json`));
 });
