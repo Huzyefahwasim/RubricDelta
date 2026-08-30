@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-release-command-suite",
+  "revision": "c1a385e03f30fb2fbe99176809d2f3043dee110a",
+  "commands": [
+    {
+      "id": "npm-test",
+      "revision": "c1a385e03f30fb2fbe99176809d2f3043dee110a",
+      "command": "npm test",
+      "status": "PASS",
+      "exitCode": 0,
+      "startedAt": "2026-08-30T18:07:50.337Z",
+      "endedAt": "2026-08-30T18:11:38.275Z",
+      "outputPath": "artifacts/qa/commands/npm-test.json",
+      "outputSha256": "f1f04ac32bf7ac4e2ceab57c99741fb95763af91dc6af2693535da327b5c7ece"
+    },
+    {
+      "id": "npm-run-eval",
+      "revision": "c1a385e03f30fb2fbe99176809d2f3043dee110a",
+      "command": "npm run eval",
+      "status": "PASS",
+      "exitCode": 0,
+      "startedAt": "2026-08-30T18:11:38.276Z",
+      "endedAt": "2026-08-30T18:11:39.582Z",
+      "outputPath": "artifacts/qa/commands/npm-run-eval.json",
+      "outputSha256": "744f59dd3ef52bafcccac859e872477cd54ec3d5967b210ba344a8e7aa78c5f4"
+    },
+    {
+      "id": "npm-run-replay-check",
+      "revision": "c1a385e03f30fb2fbe99176809d2f3043dee110a",
+      "command": "npm run replay:check",
+      "status": "PASS",
+      "exitCode": 0,
+      "startedAt": "2026-08-30T18:11:39.583Z",
+      "endedAt": "2026-08-30T18:11:41.020Z",
+      "outputPath": "artifacts/qa/commands/npm-run-replay-check.json",
+      "outputSha256": "5a26c1fc36986d18e60a67f5c462bf1a7bb619ac1dc220275e7db53ab889b25f"
+    },
+    {
+      "id": "npm-run-eval-replay",
+      "revision": "c1a385e03f30fb2fbe99176809d2f3043dee110a",
+      "command": "npm run eval:replay",
+      "status": "PASS",
+      "exitCode": 0,
+      "startedAt": "2026-08-30T18:11:41.020Z",
+      "endedAt": "2026-08-30T18:11:42.549Z",
+      "outputPath": "artifacts/qa/commands/npm-run-eval-replay.json",
+      "outputSha256": "aa813eeef9f1983e8aec982ce4df6e375c008500dfe602171f1eeb3b96a5e863"
+    },
+    {
+      "id": "npm-run-evidence",
+      "revision": "c1a385e03f30fb2fbe99176809d2f3043dee110a",
+      "command": "npm run evidence",
+      "status": "PASS",
+      "exitCode": 0,
+      "startedAt": "2026-08-30T18:11:42.549Z",
+      "endedAt": "2026-08-30T18:11:43.172Z",
+      "outputPath": "artifacts/qa/commands/npm-run-evidence.json",
+      "outputSha256": "275d87d770986b473da27bacffec8928fa3311aaeb5d94d21803f29ddff9fee6"
+    },
+    {
+      "id": "npm-run-validate",
+      "revision": "c1a385e03f30fb2fbe99176809d2f3043dee110a",
+      "command": "npm run validate",
+      "status": "PASS",
+      "exitCode": 0,
+      "startedAt": "2026-08-30T18:11:43.172Z",
+      "endedAt": "2026-08-30T18:12:12.477Z",
+      "outputPath": "artifacts/qa/commands/npm-run-validate.json",
+      "outputSha256": "3133bbd0d41e5db4c2446fa358f8b07b3700c281814c9f362e5fe9e056cbf043"
+    },
+    {
+      "id": "git-diff-check",
+      "revision": "c1a385e03f30fb2fbe99176809d2f3043dee110a",
+      "command": "git diff --check",
+      "status": "PASS",
+      "exitCode": 0,
+      "startedAt": "2026-08-30T18:12:12.477Z",
+      "endedAt": "2026-08-30T18:12:12.532Z",
+      "outputPath": "artifacts/qa/commands/git-diff-check.json",
+      "outputSha256": "7b7e5b535d3b61a82cea414247827923c734117ca132acd2bfc39787d9bf3156"
+    }
+  ]
+}

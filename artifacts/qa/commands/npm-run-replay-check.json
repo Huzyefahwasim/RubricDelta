@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-qa-command",
+  "revision": "c1a385e03f30fb2fbe99176809d2f3043dee110a",
+  "command": "npm run replay:check",
+  "status": "PASS",
+  "exitCode": 0,
+  "startedAt": "2026-08-30T18:11:39.583Z",
+  "endedAt": "2026-08-30T18:11:41.020Z",
+  "summary": "Command completed successfully; captured stdout and stderr are bound by SHA-256 hashes and byte counts.",
+  "stdoutSha256": "2d3970a7cf580ff0a184ecd81828492d6d5326dce0809a0dfff6c792cd563544",
+  "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdoutBytes": 122,
+  "stderrBytes": 0
+}
