@@ -110,6 +110,16 @@ Exit gate: final QA must show a judge completing the workflow at the final sourc
 
 Exit gate: `npm run validate:final` must pass its automated contracts. The release record must bind separate human, browser, security, clean-clone, development-agent, and video evidence plus the participant's `approve release` decision.
 
+#### Task 5 release-hardening addendum
+
+- [ ] Require one explicit unrecorded `npm run eval` bootstrap immediately after source freeze, before the unchanged ordered seven-command release suite.
+- [ ] Make stale deterministic evidence fail before command execution with an actionable bootstrap instruction.
+- [ ] Bind participant privacy approval to the exact newline-terminated Codex-export bytes and publish those bytes unchanged.
+- [ ] Rebuild and validate the complete final release envelope through shared schema-closed canonical builders, including command summaries, suite, categories, session, participant attestation, human, development, video, revision, and release decision.
+- [ ] Make judge reproduction commands executable for the canonical remote and both clean checkouts, and keep security and participant claims revision-scoped and evidence-backed.
+
+Task 5 does not change benchmark cases, ground truth, protocol v2, metrics, providers, prompts, replay bytes, deterministic rankings, or the seven recorded commands. The addendum becomes complete only after focused release/validator tests, replay verification, the full suite, and a disposable clean-clone bootstrap check.
+
 ## Decision log
 
 | Date | Decision | Reason |
@@ -119,6 +129,7 @@ Exit gate: `npm run validate:final` must pass its automated contracts. The relea
 | 2026-08-29 | Declare recall at a 20% review budget | The metric measures affected records found under a fixed review limit |
 | 2026-08-29 | Keep the live model provider optional | The benchmark and browser demo remain reproducible without credentials |
 | 2026-08-29 | Use an evidence-dense editorial interface | Judges can inspect rules, records, decisions, and trajectories in one workbench |
+| 2026-08-30 | Bootstrap frozen evaluation evidence before recording the release suite | A fresh source revision cannot satisfy the manifest-to-HEAD preflight until the unrecorded deterministic evaluation refreshes managed evidence; the recorded suite remains exactly seven commands |
 
 ## Risks
 

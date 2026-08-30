@@ -59,9 +59,10 @@ npm run validate
 
 `npm run validate` checks the deterministic system plus provider, prompt, capture, replay, CLI, and artifact contracts. Build mode does not certify participant-owned release evidence.
 
-The release operator uses these commands after the source freeze:
+Immediately after the source freeze, the release operator refreshes managed deterministic evidence once before recording the release suite:
 
 ```bash
+npm run eval
 npm run release:commands
 npm run release:human
 npm run release:development
@@ -69,6 +70,8 @@ npm run release:video-check
 npm run release:compose
 npm run validate:final
 ```
+
+The first `npm run eval` is an unrecorded bootstrap that binds the stale managed manifest to the frozen source revision. `release:commands` still records exactly seven commands in its fixed order, including its own recorded `npm run eval`; the bootstrap is not an eighth command.
 
 The participant supplies the human-review session, development-trajectory privacy decision, video, upload/playback confirmation, eligibility and rights attestations, and final `approve release` decision. The commands reject missing or inconsistent inputs. Read [the reproduction guide](docs/REPRODUCTION.md) for the evidence sequence and canonical paths.
 

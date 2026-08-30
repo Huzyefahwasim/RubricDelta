@@ -548,6 +548,29 @@ test("release composition rejects a missing category and agent-owned approval", 
   }), /participant|category/i);
 });
 
+test("command collection rejects stale deterministic evidence with exact bootstrap remediation", async (t) => {
+  const root = await temporaryRepository(t);
+  const manifest = await readJson(root, "artifacts/evaluation/manifest.json");
+  manifest.git.revision = "b".repeat(40);
+  await writeJson(root, "artifacts/evaluation/manifest.json", manifest);
+  let calls = 0;
+  await assert.rejects(
+    runCommandSuite({
+      root,
+      run() {
+        calls += 1;
+        return { exitCode: 0, stdout: "pass", stderr: "" };
+      },
+      now: timestampSequence(),
+    }),
+    {
+      message: "Deterministic evaluation evidence is stale for HEAD; run `npm run eval` once after source freeze, then rerun `npm run release:commands`.",
+    },
+  );
+  assert.equal(calls, 0);
+  assert.deepEqual(await qaCommandFiles(root), []);
+});
+
 test("command collection publishes no PASS file when one command fails", async (t) => {
   const root = await temporaryRepository(t);
   const calls = [];

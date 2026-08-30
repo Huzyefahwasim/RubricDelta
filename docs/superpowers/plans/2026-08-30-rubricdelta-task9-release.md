@@ -485,7 +485,17 @@ Run `git rev-parse HEAD`. Treat the returned full object ID as `SOURCE_REVISION`
 - Consumes: clean `SOURCE_REVISION`.
 - Produces: seven command records and regenerated deterministic/replay evidence bound to `SOURCE_REVISION`.
 
-- [ ] **Step 1: Run the buffered release command suite**
+- [ ] **Step 1: Bootstrap deterministic evidence at the frozen source revision**
+
+Immediately after recording `SOURCE_REVISION`, run this unrecorded managed-evidence refresh:
+
+```text
+npm run eval
+```
+
+Expected: `artifacts/evaluation/manifest.json` binds `SOURCE_REVISION`. This bootstrap is not command evidence and does not add an eighth recorded command.
+
+- [ ] **Step 2: Run the buffered release command suite**
 
 ```text
 npm run release:commands
@@ -493,15 +503,15 @@ npm run release:commands
 
 Expected: the script exits `0` and writes exactly seven command JSON files after all commands pass.
 
-- [ ] **Step 2: Verify revision and score bindings**
+- [ ] **Step 3: Verify revision and score bindings**
 
 Confirm that `artifacts/evaluation/manifest.json` uses `SOURCE_REVISION`, records the historical clean-source/managed-evidence-dirty state, and reports `0.80`, `0.90`, and `0.10`. Confirm replay reports 50 calls and no substitution.
 
-- [ ] **Step 3: Validate the evidence-only path set**
+- [ ] **Step 4: Validate the evidence-only path set**
 
 List every changed path. Reject the publication if any path falls outside the six managed evidence roots.
 
-- [ ] **Step 4: Commit the automated evidence**
+- [ ] **Step 5: Commit the automated evidence**
 
 ```text
 git add artifacts/evaluation artifacts/representative-trajectories artifacts/expected-replay-report artifacts/qa/commands

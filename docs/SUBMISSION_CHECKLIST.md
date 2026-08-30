@@ -83,6 +83,7 @@ This source checklist defines the release contract. `artifacts/qa/release.json` 
 
 - [ ] Focused tests and the full test suite pass on the final source revision.
 - [ ] The deterministic evaluation and exact replay checks pass with truthful provenance.
+- [ ] Immediately after source freeze, one unrecorded `npm run eval` bootstrap binds managed deterministic evidence to the frozen revision.
 - [ ] `npm run release:commands` records exactly seven PASS commands at the source revision.
 - [ ] `npm run release:human` binds the participant's approve, escalate, undo, and reject sequence to an approved-only CSV.
 - [ ] `npm run release:development` publishes only the privacy-reviewed Codex export.

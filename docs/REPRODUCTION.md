@@ -126,13 +126,21 @@ The command writes a hash-bound deterministic reference under `artifacts/expecte
 
 ## Release evidence commands
 
-The release operator runs the automated suite at the clean source revision:
+Immediately after committing the clean source-freeze revision, refresh the managed deterministic evidence:
+
+```bash
+npm run eval
+```
+
+This bootstrap is intentionally unrecorded. It makes `artifacts/evaluation/manifest.json` name the frozen `HEAD` before the fail-closed command preflight. If it is skipped, `release:commands` stops before executing any command and instructs the operator to run `npm run eval` and retry.
+
+Then run the automated suite:
 
 ```bash
 npm run release:commands
 ```
 
-The command records exactly `npm test`, `npm run eval`, `npm run replay:check`, `npm run eval:replay`, `npm run evidence`, `npm run validate`, and `git diff --check` under `artifacts/qa/commands/`. It publishes no command-suite marker unless all seven commands pass at one revision.
+The suite records exactly `npm test`, `npm run eval`, `npm run replay:check`, `npm run eval:replay`, `npm run evidence`, `npm run validate`, and `git diff --check` under `artifacts/qa/commands/`. It publishes no command-suite marker unless all seven commands pass at one revision. The bootstrap is not an eighth recorded command.
 
 Participant-controlled inputs use the ignored file `artifacts/tmp/release-session.json`. The operator then runs:
 

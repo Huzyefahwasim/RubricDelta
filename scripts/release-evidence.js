@@ -83,9 +83,11 @@ async function verifyDeterministicEvidence(root, revision) {
   const comparison = await readJson(root, "artifacts/evaluation/comparison.json");
   const slots = Object.values(manifest?.reviewBudget?.slotsByCase ?? {});
   const resources = manifest?.resources ?? {};
+  if (manifest?.git?.revision !== revision) {
+    throw new Error("Deterministic evaluation evidence is stale for HEAD; run `npm run eval` once after source freeze, then rerun `npm run release:commands`.");
+  }
   if (manifest?.schemaVersion !== 1
     || manifest?.artifactKind !== "rubricdelta-evaluation-manifest"
-    || manifest?.git?.revision !== revision
     || manifest?.evaluationProtocol?.id !== "rubricdelta-evaluation-v2"
     || manifest?.benchmark?.id !== "rubricdelta-support-guideline-drift-v1"
     || manifest?.provider?.name !== "deterministic"
