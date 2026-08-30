@@ -1539,7 +1539,8 @@ function validateQaRelease(validation) {
         coverage: evidence.coverage,
         status: evidence.status,
       });
-      if (!sameJson(evidence, rebuilt) || evidence.revision !== release.revision || evidence.category !== category) {
+      if (!sameJson(evidence, rebuilt) || evidence.artifactKind !== "rubricdelta-qa-category"
+        || evidence.revision !== release.revision || evidence.category !== category) {
         throw new Error("category evidence differs from its canonical revision/category record");
       }
       categoryEvidence[category] = evidence;
