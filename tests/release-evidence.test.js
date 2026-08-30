@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { createArtifactStore } from "../src/artifacts/store.js";
 import {
   QA_CATEGORIES,
   REQUIRED_RELEASE_COMMANDS,
@@ -97,6 +98,18 @@ async function writeJson(root, relativePath, value) {
 
 async function readJson(root, relativePath) {
   return JSON.parse(await readFile(join(root, ...relativePath.split("/")), "utf8"));
+}
+
+function failingArtifactStore(root, failAt) {
+  const backing = createArtifactStore(root);
+  let writes = 0;
+  return {
+    async write(path, content) {
+      writes += 1;
+      if (writes === failAt) throw new Error(`forced generation write failure at ${path}`);
+      return backing.write(path, content);
+    },
+  };
 }
 
 function humanSession(sourceRevision, reviewer = "owner-reviewer") {
@@ -427,6 +440,8 @@ test("category evidence accepts only one final PASS revision", () => {
 test("human evidence binds participant-reviewed ledger, export, and trajectory hashes", () => {
   const input = {
     revision,
+    runId: "run-participant-001",
+    serverRevision: "rev-000005",
     reviewer: { kind: "participant", id: "owner-reviewer" },
     ledgerPath: "artifacts/qa/human/ledger.jsonl",
     ledgerSha256: hash,
@@ -435,7 +450,10 @@ test("human evidence binds participant-reviewed ledger, export, and trajectory h
     trajectoryPath: "artifacts/representative-trajectories/human-checkpoint.jsonl",
     trajectorySha256: hash,
   };
-  assert.equal(buildHumanEvidence(input).artifactKind, "rubricdelta-human-review-evidence");
+  const evidence = buildHumanEvidence(input);
+  assert.equal(evidence.artifactKind, "rubricdelta-human-review-evidence");
+  assert.equal(evidence.runId, "run-participant-001");
+  assert.equal(evidence.serverRevision, "rev-000005");
   for (const id of ["codex", "release-agent", "hackathon-evidence-generator"]) {
     assert.throws(() => buildHumanEvidence({ ...input, reviewer: { kind: "participant", id } }), /reviewer|participant/i);
   }
@@ -692,6 +710,35 @@ test("development collection rejects absent privacy approval or malformed event 
   }
 });
 
+test("participant session and Codex-export inputs reject Windows cross-drive repository escapes", { skip: process.platform !== "win32" }, async (t) => {
+  const root = await temporaryRepository(t);
+  if (root.slice(0, 2).toLowerCase() === repositoryRoot.slice(0, 2).toLowerCase()) {
+    t.skip("temporary repository and source checkout are on the same Windows drive");
+    return;
+  }
+
+  await assert.rejects(collectHumanReview({
+    root,
+    session: join(repositoryRoot, "package.json"),
+  }), /escapes the repository root/i);
+
+  const sourceRevision = git(root, "rev-parse", "HEAD");
+  await writeJson(root, "artifacts/tmp/release-session.json", {
+    schemaVersion: 1,
+    sourceRevision,
+    privacyReview: {
+      status: "PASS",
+      reviewer: { kind: "participant", id: "owner-reviewer" },
+      reviewedAt: "2026-08-30T12:02:00.000Z",
+    },
+  });
+  await assert.rejects(collectDevelopmentEvidence({
+    root,
+    session: "artifacts/tmp/release-session.json",
+    source: join(repositoryRoot, "package.json"),
+  }), /escapes the repository root/i);
+});
+
 test("MP4 inspection can be imported without running submission validation", () => {
   assert.equal(typeof inspectMp4, "function");
 });
@@ -736,6 +783,45 @@ test("release composition writes eleven unique categories and a fully bound fina
   assert.match(await readFile(join(root, "artifacts", "qa", "README.md"), "utf8"), /browser.*keyboard.*accessib.*mobile.*desktop/is);
 });
 
+test("release composition rejects human evidence from a different selected run or server revision", async (t) => {
+  for (const mutate of [
+    (session) => { session.humanReview.runId = "run-participant-002"; },
+    (session) => { session.humanReview.serverRevision = "rev-000006"; },
+  ]) {
+    const { root, session } = await completeReleaseFixture(t);
+    const mismatched = structuredClone(session);
+    mutate(mismatched);
+    await writeJson(root, "artifacts/tmp/release-session.json", mismatched);
+    await assert.rejects(
+      composeRelease({ root, session: "artifacts/tmp/release-session.json" }),
+      /human review evidence.*participant session|run ID|server revision/i,
+    );
+  }
+});
+
+test("release session is schema-closed before participant claims are republished", async (t) => {
+  const cases = [
+    ["schemaVersion", (session) => { session.schemaVersion = 2; }],
+    ["category unknown field", (session) => { session.categories.browser.privateNote = "do not publish"; }],
+    ["eligibility unknown field", (session) => { session.eligibility.privateClaim = true; }],
+    ["rights unknown field", (session) => { session.rightsReview.privateClaim = true; }],
+    ["top-level unknown field", (session) => { session.privateParticipantData = "do not publish"; }],
+  ];
+  for (const [name, mutate] of cases) {
+    await t.test(name, async (t) => {
+      const { root, session } = await completeReleaseFixture(t);
+      const invalid = structuredClone(session);
+      mutate(invalid);
+      await writeJson(root, "artifacts/tmp/release-session.json", invalid);
+      await assert.rejects(
+        composeRelease({ root, session: "artifacts/tmp/release-session.json" }),
+        /schemaVersion|unknown field|release session/i,
+      );
+      await assert.rejects(readFile(join(root, "artifacts", "qa", "release.json")), /ENOENT/);
+    });
+  }
+});
+
 test("release composition refuses every missing participant-controlled gate before publication", async (t) => {
   const { root, session } = await completeReleaseFixture(t);
   const cases = [
@@ -753,6 +839,71 @@ test("release composition refuses every missing participant-controlled gate befo
     await assert.rejects(composeRelease({ root, session: "artifacts/tmp/release-session.json" }), new RegExp(message, "i"));
     await assert.rejects(readFile(join(root, "artifacts", "qa", "release.json")), /ENOENT/);
   }
+});
+
+test("multi-file evidence publication leaves no active generation marker after an injected write failure", async (t) => {
+  await t.test("commands", async (t) => {
+    const root = await temporaryRepository(t);
+    const run = (command) => ({ exitCode: 0, stdout: `passed ${command}`, stderr: "" });
+    await runCommandSuite({ root, run, now: timestampSequence() });
+    await assert.rejects(runCommandSuite({
+      root,
+      run,
+      now: timestampSequence(),
+      artifactStore: failingArtifactStore(root, 2),
+    }), /forced generation write failure/i);
+    await assert.rejects(readFile(join(root, "artifacts", "qa", "command-suite.json")), /ENOENT/);
+  });
+
+  await t.test("human review", async (t) => {
+    const root = await temporaryRepository(t);
+    await writeHumanFixture(root);
+    await collectHumanReview({ root, session: "artifacts/tmp/release-session.json" });
+    await assert.rejects(collectHumanReview({
+      root,
+      session: "artifacts/tmp/release-session.json",
+      artifactStore: failingArtifactStore(root, 2),
+    }), /forced generation write failure/i);
+    await assert.rejects(readFile(join(root, "artifacts", "qa", "human-review.json")), /ENOENT/);
+  });
+
+  await t.test("development agent", async (t) => {
+    const root = await temporaryRepository(t);
+    const sourceRevision = git(root, "rev-parse", "HEAD");
+    const events = developmentEvents();
+    await writeJson(root, "artifacts/tmp/release-session.json", {
+      schemaVersion: 1,
+      sourceRevision,
+      privacyReview: {
+        status: "PASS",
+        reviewer: { kind: "participant", id: "owner-reviewer" },
+        reviewedAt: "2026-08-30T12:02:00.000Z",
+      },
+    });
+    await writeRelative(root, "artifacts/tmp/codex-export.jsonl", `${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
+    const options = {
+      root,
+      session: "artifacts/tmp/release-session.json",
+      source: "artifacts/tmp/codex-export.jsonl",
+    };
+    await collectDevelopmentEvidence(options);
+    await assert.rejects(collectDevelopmentEvidence({
+      ...options,
+      artifactStore: failingArtifactStore(root, 1),
+    }), /forced generation write failure/i);
+    await assert.rejects(readFile(join(root, "artifacts", "development-agent", "manifest.json")), /ENOENT/);
+  });
+
+  await t.test("final release rerun", async (t) => {
+    const { root } = await completeReleaseFixture(t);
+    await composeRelease({ root, session: "artifacts/tmp/release-session.json" });
+    await assert.rejects(composeRelease({
+      root,
+      session: "artifacts/tmp/release-session.json",
+      artifactStore: failingArtifactStore(root, 3),
+    }), /forced generation write failure/i);
+    await assert.rejects(readFile(join(root, "artifacts", "qa", "release.json")), /ENOENT/);
+  });
 });
 
 test("package exposes the five exact release evidence commands", async () => {

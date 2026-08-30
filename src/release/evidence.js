@@ -166,10 +166,12 @@ export function buildCategoryEvidence(input) {
 export function buildHumanEvidence(input) {
   const kind = "human evidence";
   exactObject(input, new Set([
-    "revision", "reviewer", "ledgerPath", "ledgerSha256", "exportPath", "exportSha256",
+    "revision", "runId", "serverRevision", "reviewer", "ledgerPath", "ledgerSha256", "exportPath", "exportSha256",
     "trajectoryPath", "trajectorySha256",
   ]), kind);
   revision(input.revision, kind);
+  if (typeof input.runId !== "string" || !IDENTIFIER.test(input.runId)) fail(kind, "runId is invalid");
+  if (typeof input.serverRevision !== "string" || !/^rev-\d{6}$/.test(input.serverRevision)) fail(kind, "serverRevision is invalid");
   const reviewer = participant(input.reviewer, kind);
   canonicalPath(input.ledgerPath, "artifacts/qa/human/ledger.jsonl", kind, "ledgerPath");
   canonicalPath(input.exportPath, "artifacts/qa/human/export.csv", kind, "exportPath");
@@ -181,6 +183,8 @@ export function buildHumanEvidence(input) {
     schemaVersion: 1,
     artifactKind: "rubricdelta-human-review-evidence",
     revision: input.revision,
+    runId: input.runId,
+    serverRevision: input.serverRevision,
     reviewer,
     ledgerPath: input.ledgerPath,
     ledgerSha256: input.ledgerSha256,

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { readFile, realpath } from "node:fs/promises";
-import { relative, resolve } from "node:path";
+import { lstat, readFile, realpath, unlink } from "node:fs/promises";
+import { isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createArtifactStore } from "../src/artifacts/store.js";
 import {
@@ -153,6 +153,8 @@ function commandResult(result) {
 export async function runCommandSuite(options = {}) {
   if (!options || typeof options !== "object" || Array.isArray(options)) throw new Error("Release command options must be an object");
   const root = await realpath(resolve(options.root ?? resolve(import.meta.dirname, "..")));
+  const store = artifactStoreFor(root, options);
+  await invalidateGeneration(root, "artifacts/qa/command-suite.json", "artifacts/qa/release.json");
   const now = options.now ?? (() => new Date().toISOString());
   const run = options.run ?? ((command) => commandProcess(root, command));
   if (typeof now !== "function" || typeof run !== "function") throw new Error("Release command options require callable now and run values");
@@ -194,12 +196,9 @@ export async function runCommandSuite(options = {}) {
     buffered.push({ required, evidence, bytes });
   }
 
-  const store = createArtifactStore(root);
-  const records = [];
-  for (const item of buffered) {
+  const records = buffered.map((item) => {
     const outputPath = `artifacts/qa/commands/${item.required.id}.json`;
-    await store.write(outputPath, item.bytes);
-    records.push({
+    return {
       id: item.required.id,
       revision,
       command: item.required.command,
@@ -209,14 +208,59 @@ export async function runCommandSuite(options = {}) {
       endedAt: item.evidence.endedAt,
       outputPath,
       outputSha256: sha256Bytes(item.bytes),
-    });
-  }
+    };
+  });
+  const commandSuite = {
+    schemaVersion: 1,
+    artifactKind: "rubricdelta-release-command-suite",
+    revision,
+    commands: records,
+  };
+  await publishGeneration(
+    store,
+    buffered.map((item) => ({ path: `artifacts/qa/commands/${item.required.id}.json`, bytes: item.bytes })),
+    { path: "artifacts/qa/command-suite.json", bytes: `${JSON.stringify(commandSuite, null, 2)}\n` },
+  );
   return records;
 }
 
 function contained(root, target) {
   const value = relative(root, target);
-  return value === "" || (value !== ".." && !value.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`));
+  return value === "" || (value !== ".."
+    && !value.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`)
+    && !isAbsolute(value));
+}
+
+function artifactStoreFor(root, options) {
+  if (options.artifactStore === undefined) return createArtifactStore(root);
+  if (!options.artifactStore || typeof options.artifactStore !== "object" || Array.isArray(options.artifactStore)
+    || typeof options.artifactStore.write !== "function") {
+    throw new Error("Release evidence artifactStore must provide a write function");
+  }
+  return options.artifactStore;
+}
+
+async function invalidateMarker(root, relativePath) {
+  const configured = resolve(root, ...relativePath.split("/"));
+  if (!contained(root, configured)) throw new Error("Release evidence marker path escapes the repository root");
+  try {
+    const stat = await lstat(configured);
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("Release evidence marker must be a normal file");
+    const actual = await realpath(configured);
+    if (!contained(root, actual)) throw new Error("Release evidence marker resolves outside the repository root");
+    await unlink(configured);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+}
+
+async function invalidateGeneration(root, ...markers) {
+  for (const marker of markers) await invalidateMarker(root, marker);
+}
+
+async function publishGeneration(store, entries, marker) {
+  for (const entry of entries) await store.write(entry.path, entry.bytes);
+  await store.write(marker.path, marker.bytes);
 }
 
 async function readBounded(root, requestedPath, fallback, maximum = MAX_JSON_BYTES) {
@@ -262,6 +306,125 @@ function realTimestamp(value) {
   if (!Number.isFinite(milliseconds)) return false;
   const normalized = new Date(milliseconds).toISOString();
   return value === normalized || value === normalized.replace(".000Z", "Z");
+}
+
+const RELEASE_SESSION_FIELDS = new Set([
+  "schemaVersion", "sourceRevision", "humanReview", "privacyReview", "categories",
+  "video", "eligibility", "rightsReview", "decision",
+]);
+
+function exactSessionObject(value, fields, kind) {
+  if (!value || typeof value !== "object" || Array.isArray(value)
+    || Object.getPrototypeOf(value) !== Object.prototype || Object.getOwnPropertySymbols(value).length > 0) {
+    throw new Error(`${kind} must be a plain schema-closed object`);
+  }
+  for (const key of Object.getOwnPropertyNames(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    if (!descriptor?.enumerable || !Object.hasOwn(descriptor, "value") || !fields.has(key)) {
+      throw new Error(`${kind} has unknown field ${key}`);
+    }
+  }
+  return value;
+}
+
+function closedParticipant(value, kind) {
+  exactSessionObject(value, new Set(["kind", "id"]), kind);
+  return { kind: value.kind, id: value.id };
+}
+
+function closeReleaseSession(value) {
+  const session = exactSessionObject(value, RELEASE_SESSION_FIELDS, "Release session");
+  if (session.schemaVersion !== 1) throw new Error("Release session schemaVersion must be 1");
+  const closed = { schemaVersion: 1, sourceRevision: session.sourceRevision };
+
+  if (Object.hasOwn(session, "humanReview")) {
+    const review = exactSessionObject(session.humanReview, new Set(["runId", "serverRevision", "reviewer"]), "Release session humanReview");
+    closed.humanReview = {
+      runId: review.runId,
+      serverRevision: review.serverRevision,
+      reviewer: closedParticipant(review.reviewer, "Release session humanReview reviewer"),
+    };
+  }
+  if (Object.hasOwn(session, "privacyReview")) {
+    const review = exactSessionObject(session.privacyReview, new Set(["status", "reviewer", "reviewedAt"]), "Release session privacyReview");
+    closed.privacyReview = {
+      status: review.status,
+      reviewer: closedParticipant(review.reviewer, "Release session privacyReview reviewer"),
+      reviewedAt: review.reviewedAt,
+    };
+  }
+  if (Object.hasOwn(session, "categories")) {
+    const categories = exactSessionObject(session.categories, new Set(QA_CATEGORIES), "Release session categories");
+    closed.categories = {};
+    for (const category of Object.keys(categories)) {
+      const input = exactSessionObject(categories[category], new Set(["status", "timestamp", "tool", "coverage"]), `Release session category ${category}`);
+      closed.categories[category] = {
+        status: input.status,
+        timestamp: input.timestamp,
+        tool: input.tool,
+        coverage: Array.isArray(input.coverage) ? [...input.coverage] : input.coverage,
+      };
+    }
+  }
+  if (Object.hasOwn(session, "video")) {
+    const video = exactSessionObject(session.video, new Set(["inspection", "upload", "playback"]), "Release session video");
+    const inspection = exactSessionObject(video.inspection, new Set([
+      "sha256", "durationSeconds", "width", "height", "codec", "videoSampleCount",
+    ]), "Release session video inspection");
+    const upload = exactSessionObject(video.upload, new Set(["status"]), "Release session video upload");
+    const playback = exactSessionObject(video.playback, new Set([
+      "status", "testedAt", "tool", "renderedFrameObserved",
+    ]), "Release session video playback");
+    closed.video = {
+      inspection: {
+        sha256: inspection.sha256,
+        durationSeconds: inspection.durationSeconds,
+        width: inspection.width,
+        height: inspection.height,
+        codec: inspection.codec,
+        videoSampleCount: inspection.videoSampleCount,
+      },
+      upload: { status: upload.status },
+      playback: {
+        status: playback.status,
+        testedAt: playback.testedAt,
+        tool: playback.tool,
+        renderedFrameObserved: playback.renderedFrameObserved,
+      },
+    };
+  }
+  if (Object.hasOwn(session, "eligibility")) {
+    const eligibility = exactSessionObject(session.eligibility, new Set([
+      "status", "ageAndEligibilityConfirmed", "individualEntryConfirmed",
+      "accurateRegistrationConfirmed", "payoutEligibilityUnderstood",
+    ]), "Release session eligibility");
+    closed.eligibility = {
+      status: eligibility.status,
+      ageAndEligibilityConfirmed: eligibility.ageAndEligibilityConfirmed,
+      individualEntryConfirmed: eligibility.individualEntryConfirmed,
+      accurateRegistrationConfirmed: eligibility.accurateRegistrationConfirmed,
+      payoutEligibilityUnderstood: eligibility.payoutEligibilityUnderstood,
+    };
+  }
+  if (Object.hasOwn(session, "rightsReview")) {
+    const rights = exactSessionObject(session.rightsReview, new Set([
+      "status", "originalityConfirmed", "licenseComplianceConfirmed", "dataRightsConfirmed",
+      "credentialsAndPrivateDataExcluded", "preExistingWork",
+    ]), "Release session rightsReview");
+    closed.rightsReview = {
+      status: rights.status,
+      originalityConfirmed: rights.originalityConfirmed,
+      licenseComplianceConfirmed: rights.licenseComplianceConfirmed,
+      dataRightsConfirmed: rights.dataRightsConfirmed,
+      credentialsAndPrivateDataExcluded: rights.credentialsAndPrivateDataExcluded,
+      preExistingWork: rights.preExistingWork,
+    };
+  }
+  if (Object.hasOwn(session, "decision")) {
+    const decision = exactSessionObject(session.decision, new Set(["value", "actor"]), "Release session decision");
+    closed.decision = { value: decision.value, actor: decision.actor };
+  }
+  return closed;
 }
 
 async function sourceRevisionFromSession(root, session) {
@@ -346,7 +509,9 @@ function validateHumanDecisions(decisions, events, reviewer) {
 
 export async function collectHumanReview(options = {}) {
   const root = await realpath(resolve(options.root ?? resolve(import.meta.dirname, "..")));
-  const session = await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session");
+  const store = artifactStoreFor(root, options);
+  await invalidateGeneration(root, "artifacts/qa/human-review.json", "artifacts/qa/release.json");
+  const session = closeReleaseSession(await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session"));
   const revision = await sourceRevisionFromSession(root, session);
   const review = session?.humanReview;
   if (!review || typeof review !== "object" || Array.isArray(review)
@@ -377,6 +542,8 @@ export async function collectHumanReview(options = {}) {
   const ledgerBytes = Buffer.from(`${ledger.map((event) => JSON.stringify(event)).join("\n")}\n`);
   const evidence = buildHumanEvidence({
     revision,
+    runId: review.runId,
+    serverRevision: review.serverRevision,
     reviewer,
     ledgerPath: "artifacts/qa/human/ledger.jsonl",
     ledgerSha256: sha256Bytes(ledgerBytes),
@@ -385,11 +552,11 @@ export async function collectHumanReview(options = {}) {
     trajectoryPath: "artifacts/representative-trajectories/human-checkpoint.jsonl",
     trajectorySha256: sha256Bytes(trajectoryBytes),
   });
-  const store = createArtifactStore(root);
-  await store.write(evidence.ledgerPath, ledgerBytes);
-  await store.write(evidence.exportPath, exportBytes);
-  await store.write(evidence.trajectoryPath, trajectoryBytes);
-  await store.write("artifacts/qa/human-review.json", `${JSON.stringify(evidence, null, 2)}\n`);
+  await publishGeneration(store, [
+    { path: evidence.ledgerPath, bytes: ledgerBytes },
+    { path: evidence.exportPath, bytes: exportBytes },
+    { path: evidence.trajectoryPath, bytes: trajectoryBytes },
+  ], { path: "artifacts/qa/human-review.json", bytes: `${JSON.stringify(evidence, null, 2)}\n` });
   return evidence;
 }
 
@@ -433,7 +600,9 @@ function validateDevelopmentEvents(events) {
 
 export async function collectDevelopmentEvidence(options = {}) {
   const root = await realpath(resolve(options.root ?? resolve(import.meta.dirname, "..")));
-  const session = await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session");
+  const store = artifactStoreFor(root, options);
+  await invalidateGeneration(root, "artifacts/development-agent/manifest.json", "artifacts/qa/release.json");
+  const session = closeReleaseSession(await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session"));
   const revision = await sourceRevisionFromSession(root, session);
   if (session?.privacyReview?.status !== "PASS") throw new Error("Participant privacy review must be PASS before development evidence publication");
   const sourceBytes = await readBounded(root, options.source, "artifacts/tmp/codex-export.jsonl");
@@ -448,9 +617,11 @@ export async function collectDevelopmentEvidence(options = {}) {
     trajectorySha256: sha256Bytes(trajectoryBytes),
     privacyReview: session.privacyReview,
   });
-  const store = createArtifactStore(root);
-  await store.write(manifest.trajectoryPath, trajectoryBytes);
-  await store.write("artifacts/development-agent/manifest.json", `${JSON.stringify(manifest, null, 2)}\n`);
+  await publishGeneration(
+    store,
+    [{ path: manifest.trajectoryPath, bytes: trajectoryBytes }],
+    { path: "artifacts/development-agent/manifest.json", bytes: `${JSON.stringify(manifest, null, 2)}\n` },
+  );
   return manifest;
 }
 
@@ -528,6 +699,12 @@ async function commandRecordsForComposition(root, revision) {
       outputSha256: sha256Bytes(bytes),
     });
   }
+  const suite = await readInputJson(root, "artifacts/qa/command-suite.json", null, "release command suite");
+  exactSessionObject(suite, new Set(["schemaVersion", "artifactKind", "revision", "commands"]), "Release command suite");
+  if (suite.schemaVersion !== 1 || suite.artifactKind !== "rubricdelta-release-command-suite"
+    || suite.revision !== revision || !sameJson(suite.commands, records)) {
+    throw new Error("Release command suite marker must bind one complete command generation");
+  }
   return records;
 }
 
@@ -535,6 +712,8 @@ async function priorEvidenceForComposition(root, revision, session) {
   const human = await readInputJson(root, "artifacts/qa/human-review.json", null, "human review evidence");
   const rebuiltHuman = buildHumanEvidence({
     revision: human?.revision,
+    runId: human?.runId,
+    serverRevision: human?.serverRevision,
     reviewer: human?.reviewer,
     ledgerPath: human?.ledgerPath,
     ledgerSha256: human?.ledgerSha256,
@@ -543,7 +722,9 @@ async function priorEvidenceForComposition(root, revision, session) {
     trajectoryPath: human?.trajectoryPath,
     trajectorySha256: human?.trajectorySha256,
   });
-  if (human.revision !== revision || human.reviewer?.id !== session?.humanReview?.reviewer?.id || !sameJson(human, rebuiltHuman)) {
+  if (human.revision !== revision || human.runId !== session?.humanReview?.runId
+    || human.serverRevision !== session?.humanReview?.serverRevision
+    || human.reviewer?.id !== session?.humanReview?.reviewer?.id || !sameJson(human, rebuiltHuman)) {
     throw new Error("Human review evidence must bind the release revision and participant session");
   }
   for (const [path, expectedHash] of [
@@ -619,7 +800,9 @@ function participantAttestation(session, revision) {
 
 export async function composeRelease(options = {}) {
   const root = await realpath(resolve(options.root ?? resolve(import.meta.dirname, "..")));
-  const session = await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session");
+  const store = artifactStoreFor(root, options);
+  await invalidateGeneration(root, "artifacts/qa/release.json");
+  const session = closeReleaseSession(await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session"));
   const revision = await sourceRevisionFromSession(root, session);
   requireParticipantGates(session);
   if (!session.categories || typeof session.categories !== "object" || Array.isArray(session.categories)
@@ -686,13 +869,13 @@ export async function composeRelease(options = {}) {
   const attestation = participantAttestation(session, revision);
   const readme = `# RubricDelta final release QA\n\nAll eleven structured QA categories passed at source revision ${revision}. Browser and keyboard checks covered the complete fixed-benchmark workflow, visible focus, shortcuts, exports, and the Rule Seam. Accessibility checks covered semantic landmarks, labels, live status, reduced motion, and status text that does not rely on color. Responsive checks covered mobile viewport 375 x 812, tablet viewport 768 x 1024, and desktop viewport 1440 x 900 without hidden decision controls or horizontal overflow. Security, clean-checkout, human-review, development-agent, video, automated-command, and participant release gates are hash-bound in the adjacent JSON evidence.\n`;
 
-  const store = createArtifactStore(root);
-  for (const artifact of categoryArtifacts) await store.write(artifact.evidencePath, artifact.bytes);
-  await store.write("artifacts/qa/video.json", `${JSON.stringify(video, null, 2)}\n`);
-  await store.write("artifacts/qa/participant-attestation.json", `${JSON.stringify(attestation, null, 2)}\n`);
-  await store.write("artifacts/qa/session.json", `${JSON.stringify(session, null, 2)}\n`);
-  await store.write("artifacts/qa/README.md", readme);
-  await store.write("artifacts/qa/release.json", `${JSON.stringify(release, null, 2)}\n`);
+  await publishGeneration(store, [
+    ...categoryArtifacts.map((artifact) => ({ path: artifact.evidencePath, bytes: artifact.bytes })),
+    { path: "artifacts/qa/video.json", bytes: `${JSON.stringify(video, null, 2)}\n` },
+    { path: "artifacts/qa/participant-attestation.json", bytes: `${JSON.stringify(attestation, null, 2)}\n` },
+    { path: "artifacts/qa/session.json", bytes: `${JSON.stringify(session, null, 2)}\n` },
+    { path: "artifacts/qa/README.md", bytes: readme },
+  ], { path: "artifacts/qa/release.json", bytes: `${JSON.stringify(release, null, 2)}\n` });
   return release;
 }
 
