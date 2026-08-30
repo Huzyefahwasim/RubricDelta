@@ -80,6 +80,37 @@ function fixture(t) {
         && !relative.startsWith("/artifacts/runs");
     },
   });
+  for (const args of [
+    ["init", "--quiet"],
+    ["config", "core.autocrlf", "false"],
+    ["config", "user.email", "task8-validator@example.invalid"],
+    ["config", "user.name", "Task 8 Validator Test"],
+    ["add", "--all"],
+    ["commit", "--quiet", "-m", "fixture"],
+  ]) {
+    const command = spawnSync("git", args, { cwd: destination, encoding: "utf8", windowsHide: true });
+    assert.equal(command.status, 0, output(command));
+  }
+  for (const args of [
+    ["scripts/evaluate.js", "--mode", "both", "--output-dir", "artifacts/evaluation"],
+    [
+      "scripts/evaluate.js",
+      "--provider", "replay",
+      "--replay-fixture", replayRelativePath,
+      "--mode", "both",
+      "--repeats", "1",
+      "--output-dir", "artifacts/expected-replay-report/operational-replay",
+    ],
+  ]) {
+    const command = spawnSync(process.execPath, args, {
+      cwd: destination,
+      encoding: "utf8",
+      timeout: 180_000,
+      maxBuffer: 4 * 1024 * 1024,
+      windowsHide: true,
+    });
+    assert.equal(command.status, 0, output(command));
+  }
   return destination;
 }
 
@@ -124,15 +155,16 @@ function assertRejected(command, expected) {
   assert.match(combined, expected);
 }
 
-test("build executes Task 8, defers exactly five Task 9 paths, and leaves canonical evidence untouched", () => {
+test("build executes Task 8, defers exactly five Task 9 paths, and leaves canonical evidence untouched", (t) => {
+  const validationRoot = fixture(t);
   const protectedPaths = [
-    join(root, ...replayRelativePath.split("/")),
-    join(root, "artifacts", "evaluation"),
-    join(root, "artifacts", "expected-replay-report"),
-    join(root, "artifacts", "representative-trajectories"),
+    join(validationRoot, ...replayRelativePath.split("/")),
+    join(validationRoot, "artifacts", "evaluation"),
+    join(validationRoot, "artifacts", "expected-replay-report"),
+    join(validationRoot, "artifacts", "representative-trajectories"),
   ];
   const before = snapshotTree(protectedPaths);
-  const build = run(root);
+  const build = run(validationRoot);
   const combined = output(build);
 
   assert.match(build.stdout, /^MODE: BUILD — NON-FINAL/m);

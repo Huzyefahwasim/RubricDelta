@@ -71,9 +71,54 @@ function validationFixture(t) {
     recursive: true,
     filter(source) {
       const item = source.slice(root.length).replaceAll("\\", "/");
-      return !item.startsWith("/.git") && !item.startsWith("/.superpowers") && !item.startsWith("/tmp");
+      return item !== "/.git"
+        && !item.startsWith("/.git/")
+        && !item.startsWith("/.superpowers")
+        && !item.startsWith("/tmp")
+        && !item.startsWith("/artifacts/tmp")
+        && !item.startsWith("/artifacts/runs")
+        && !item.startsWith("/artifacts/expected-replay-report/operational-replay");
     },
   });
+  return fixture;
+}
+
+function runProject(project, script, args) {
+  return spawnSync(process.execPath, [join(project, "scripts", `${script}.js`), ...args], {
+    cwd: project,
+    encoding: "utf8",
+    timeout: 240_000,
+    maxBuffer: 8 * 1024 * 1024,
+    windowsHide: true,
+  });
+}
+
+function preparedValidationFixture(t) {
+  const fixture = validationFixture(t);
+  for (const args of [
+    ["init", "--quiet"],
+    ["config", "core.autocrlf", "false"],
+    ["config", "user.email", "cli-validator@example.invalid"],
+    ["config", "user.name", "CLI Validator Test"],
+    ["add", "--all"],
+    ["commit", "--quiet", "-m", "fixture"],
+  ]) {
+    const command = spawnSync("git", args, { cwd: fixture, encoding: "utf8", windowsHide: true });
+    assert.equal(command.status, 0, `${command.stdout}\n${command.stderr}`);
+  }
+  for (const args of [
+    ["--mode", "both", "--output-dir", "artifacts/evaluation"],
+    [
+      "--provider", "replay",
+      "--replay-fixture", "data/benchmark/replay/rubricdelta-deterministic-source.v1.json",
+      "--mode", "both",
+      "--repeats", "1",
+      "--output-dir", "artifacts/expected-replay-report/operational-replay",
+    ],
+  ]) {
+    const command = runProject(fixture, "evaluate", args);
+    assert.equal(command.status, 0, `${command.stdout}\n${command.stderr}`);
+  }
   return fixture;
 }
 
@@ -222,8 +267,9 @@ test("evidence generator captures real workflow/server branches and a hash-bound
   assert.match(reference.artifacts.advancedPredictionsSha256, /^[a-f0-9]{64}$/);
 });
 
-test("build validator is explicitly NON-FINAL/pass and final-strict still fails on named Task 9 gates", () => {
-  const build = run(scripts["validate-submission"], ["--mode", "build", "--root", root]);
+test("build validator is explicitly NON-FINAL/pass and final-strict still fails on named Task 9 gates", (t) => {
+  const fixture = preparedValidationFixture(t);
+  const build = runProject(fixture, "validate-submission", ["--mode", "build", "--root", fixture]);
   assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
   assert.ok(build.stdout.startsWith("MODE: BUILD — NON-FINAL\n"));
   assert.match(build.stdout, /PASS: build validation/i);
@@ -233,7 +279,7 @@ test("build validator is explicitly NON-FINAL/pass and final-strict still fails 
     ["[DEFERRED (Task 9)] docs/MAIN_FAILURE_MODE.md, docs/HOT_TAKE.md, docs/MODEL_AND_COSTS.md, artifacts/qa/README.md, artifacts/submission/demo.mp4"],
   );
   assert.doesNotMatch(build.stdout, /eligible|submission ready|fully ready/i);
-  const strict = run(scripts["validate-submission"], ["--mode=final-strict", `--root=${root}`]);
+  const strict = runProject(fixture, "validate-submission", ["--mode=final-strict", `--root=${fixture}`]);
   assert.notEqual(strict.status, 0);
   assert.ok(strict.stdout.startsWith("MODE: FINAL-STRICT\n"));
   for (const role of [
@@ -243,7 +289,7 @@ test("build validator is explicitly NON-FINAL/pass and final-strict still fails 
     "independent-verifier",
     "direct-baseline",
   ]) {
-    assert.ok(existsSync(join(root, "prompts", `${role}.v1.md`)), role);
+    assert.ok(existsSync(join(fixture, "prompts", `${role}.v1.md`)), role);
   }
   for (const path of [
     "docs/MAIN_FAILURE_MODE.md",
@@ -251,7 +297,7 @@ test("build validator is explicitly NON-FINAL/pass and final-strict still fails 
     "docs/MODEL_AND_COSTS.md",
     "artifacts/qa/README.md",
   ]) {
-    assert.ok(existsSync(join(root, ...path.split("/"))), path);
+    assert.ok(existsSync(join(fixture, ...path.split("/"))), path);
   }
   assert.match(strict.stdout, /artifacts\/submission\/demo\.mp4/);
 });

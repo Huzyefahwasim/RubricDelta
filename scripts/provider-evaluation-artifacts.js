@@ -23,6 +23,7 @@ import { canonicalTextSha256 } from "../src/evaluation/evidence-hash.js";
 import {
   createGitState,
   createPublicBenchmarkProjection,
+  managedArtifactRootsForOutput,
 } from "./evaluation-artifacts.js";
 
 const GOLD = /groundTruth|affectedRecordIds|expectedLabels|rationales/i;
@@ -607,7 +608,7 @@ export async function createProviderEvaluationArtifacts({
   }
   const identical = normalizedIdentically(repetitions, systems);
   const resources = resourceSummary(repetitions, systems);
-  const git = createGitState();
+  const git = createGitState(undefined, managedArtifactRootsForOutput(outputDir));
   const writeManifest = (execution) => safeWriteJson(paths.manifest, createManifest({
     benchmark,
     benchmarkSource,

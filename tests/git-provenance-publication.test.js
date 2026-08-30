@@ -145,6 +145,14 @@ function buildPublicationFixture({ prefix, omitManagedEvidence = false }) {
 
   const evaluation = run(source, "scripts/evaluate.js", ["--mode", "both"]);
   assert.equal(evaluation.status, 0, `evaluation\n${output(evaluation)}`);
+  const replay = run(source, "scripts/evaluate.js", [
+    "--provider", "replay",
+    "--replay-fixture", "data/benchmark/replay/rubricdelta-deterministic-source.v1.json",
+    "--mode", "both",
+    "--repeats", "1",
+    "--output-dir", "artifacts/runs/provider-replay",
+  ]);
+  assert.equal(replay.status, 0, `replay publication\n${output(replay)}`);
   const evidence = run(source, "scripts/generate-evidence.js");
   assert.equal(evidence.status, 0, `evidence\n${output(evidence)}`);
   const generationState = readManifest(source).git;

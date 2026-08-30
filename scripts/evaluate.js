@@ -3,14 +3,18 @@
 import { createHash } from "node:crypto";
 import {
   closeSync,
+  copyFileSync,
+  existsSync,
   fstatSync,
   lstatSync,
+  mkdirSync,
   openSync,
   readFileSync,
   readSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { TextDecoder } from "node:util";
 import { fileURLToPath } from "node:url";
 import {
@@ -34,6 +38,30 @@ import {
   createProviderEvaluationArtifacts,
 } from "./evaluation-artifacts.js";
 import { createExpectedReplayBinding } from "./capture-replay.js";
+
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const replayFixturePath = resolve(
+  repositoryRoot,
+  "data",
+  "benchmark",
+  "replay",
+  "rubricdelta-deterministic-source.v1.json",
+);
+const legacyReplayOutput = resolve(repositoryRoot, "artifacts", "runs", "provider-replay");
+const operationalReplayOutput = resolve(
+  repositoryRoot,
+  "artifacts",
+  "expected-replay-report",
+  "operational-replay",
+);
+const replayBundleFiles = Object.freeze([
+  "manifest.json",
+  "summary.json",
+  "comparison.json",
+  "report.md",
+  "repetitions/1/baseline-predictions.json",
+  "repetitions/1/advanced-predictions.json",
+]);
 
 const HELP = `RubricDelta evaluation CLI
 
@@ -370,11 +398,17 @@ async function providerArtifactEvaluation(options) {
     ? replayProviderFor(options)
     : openAIProviderFor(options);
   const benchmark = loadBenchmark(options.benchmarkPath);
+  const publishOperationalReplay = options.provider === "replay"
+    && options.mode === "both"
+    && options.repeats === 1
+    && resolve(options.replayFixturePath) === replayFixturePath
+    && resolve(options.outputDir) === legacyReplayOutput;
+  const outputDir = publishOperationalReplay ? operationalReplayOutput : options.outputDir;
   const result = await createProviderEvaluationArtifacts({
     benchmark,
     benchmarkSource: benchmarkSourceAt(options.benchmarkPath),
     mode: options.mode,
-    outputDir: options.outputDir,
+    outputDir,
     provider: selected.provider,
     model: selected.model,
     repeats: options.repeats,
@@ -383,17 +417,64 @@ async function providerArtifactEvaluation(options) {
     score: evaluatePredictions,
     replay: selected.replay,
   });
+  if (publishOperationalReplay) mirrorReplayPublication(result.outputDir, options.outputDir);
   const summary = {
     benchmarkId: benchmark.benchmarkId,
     provider: options.provider,
     model: selected.model,
     repeats: options.repeats,
-    outputDir: displayPath(result.outputDir),
+    outputDir: displayPath(options.outputDir),
+    ...(publishOperationalReplay ? { operationalPublicationDir: displayPath(result.outputDir) } : {}),
     baseline: result.summary.baseline?.primaryMetric ?? null,
     advanced: result.summary.advanced?.primaryMetric ?? null,
     replayStatus: result.manifest.replay.status,
   };
   process.stdout.write(`${JSON.stringify(summary, null, options.compact ? 0 : 2)}\n`);
+}
+
+function lstatOrNull(path) {
+  try {
+    return lstatSync(path);
+  } catch (error) {
+    if (error && error.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function rejectLinkedAncestors(path) {
+  let current = path;
+  while (true) {
+    if (lstatOrNull(current)?.isSymbolicLink()) {
+      throw new Error("Replay compatibility output root or ancestor is a link, junction, or reparse point");
+    }
+    if (current === repositoryRoot) return;
+    const parent = dirname(current);
+    if (parent === current) throw new Error("Replay compatibility output escaped the repository root");
+    current = parent;
+  }
+}
+
+function mirrorReplayPublication(sourceRoot, targetRoot) {
+  if (resolve(sourceRoot) !== operationalReplayOutput || resolve(targetRoot) !== legacyReplayOutput) {
+    throw new Error("Replay compatibility mirror paths are not canonical");
+  }
+  rejectLinkedAncestors(targetRoot);
+  const target = lstatOrNull(targetRoot);
+  if (target && (target.isSymbolicLink() || !target.isDirectory())) {
+    throw new Error("Replay compatibility output must be a non-linked directory");
+  }
+  if (target) rmSync(targetRoot, { recursive: true, force: true });
+  for (const relativePath of replayBundleFiles) {
+    const source = resolve(sourceRoot, ...relativePath.split("/"));
+    const destination = resolve(targetRoot, ...relativePath.split("/"));
+    const sourceStat = lstatOrNull(source);
+    if (!sourceStat?.isFile() || sourceStat.isSymbolicLink()) {
+      throw new Error("Canonical replay publication is incomplete");
+    }
+    mkdirSync(dirname(destination), { recursive: true });
+    if (existsSync(destination)) throw new Error("Replay compatibility output was not reset");
+    copyFileSync(source, destination);
+  }
 }
 
 export function main(argv = process.argv.slice(2)) {

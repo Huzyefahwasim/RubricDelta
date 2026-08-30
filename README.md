@@ -97,7 +97,9 @@ npm run replay:check
 npm run eval:replay
 ```
 
-The replay run writes to `artifacts/runs/provider-replay/`. It reports provider `replay`, model `deterministic-role-capture-v1`, 50 calls and 50 attempts, no network requirement, zero tokens, zero provider latency, zero cost, `operational: true`, and `substituted: false`. Replay reproduces the deterministic 0.80 and 0.90 scores. The committed fixture at `data/benchmark/replay/rubricdelta-deterministic-source.v1.json` provides deterministic capture evidence, not a live OpenAI result.
+The normal replay command publishes the validator-owned bundle at `artifacts/expected-replay-report/operational-replay/` and keeps a byte-equivalent compatibility copy at the explicit `artifacts/runs/provider-replay/` CLI destination. It reports provider `replay`, model `deterministic-role-capture-v1`, 50 calls and 50 attempts, no network requirement, zero tokens, zero provider latency, zero cost, `operational: true`, and `substituted: false`. Replay reproduces the deterministic 0.80 and 0.90 scores. The adjacent `reference-comparison.json` remains the non-operational deterministic reference with `replayOperational: false`. The committed fixture at `data/benchmark/replay/rubricdelta-deterministic-source.v1.json` provides deterministic capture evidence, not a live OpenAI result.
+
+Build and final validation require the canonical operational bundle. They bind its revision to the deterministic manifest, verify its provider and resource telemetry, and compare its stable result bytes with a fresh isolated replay. Score values live in `comparison.json` and `report.md`; the manifest owns provenance, protocol, resource, replay, and content-hash fields.
 
 For an approved live call, set `OPENAI_API_KEY` in the current process and run:
 

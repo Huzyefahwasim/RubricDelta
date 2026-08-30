@@ -11,6 +11,12 @@ import { isGitObjectId } from "./git-provenance.js";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const canonicalEvidenceRoot = resolve(repositoryRoot, "artifacts", "evaluation");
+const canonicalOperationalReplayRoot = resolve(
+  repositoryRoot,
+  "artifacts",
+  "expected-replay-report",
+  "operational-replay",
+);
 const GOLD = /groundTruth|affectedRecordIds|expectedLabels|rationales/i;
 const TRACE_TIME = "2000-01-01T00:00:00.000Z";
 const SAFE_CASE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
@@ -154,6 +160,12 @@ function managedGitPaths(paths) {
     if (item === "" || item === ".." || item.startsWith(`..${sep}`) || isAbsolute(item)) return null;
     return item.replaceAll("\\", "/");
   }).filter(Boolean))];
+}
+
+export function managedArtifactRootsForOutput(outputDir) {
+  const target = resolve(outputDir);
+  const approved = [canonicalEvidenceRoot, canonicalOperationalReplayRoot];
+  return approved.some((root) => relative(root, target) === "") ? approved : [];
 }
 
 export function classifyGitState({
@@ -393,7 +405,7 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
   const target = resolve(outputDir);
   const trajectoryRoot = managedArtifactPath(target, "trajectories");
   for (const item of benchmark.cases) trajectoryPath(trajectoryRoot, item.id);
-  const managedGitRoots = relative(canonicalEvidenceRoot, target) === "" ? [canonicalEvidenceRoot] : [];
+  const managedGitRoots = managedArtifactRootsForOutput(target);
   const publishedGitState = () => createGitState(git, managedGitRoots);
   rejectLinkedOutputAncestors(target);
   mkdirSync(target, { recursive: true });

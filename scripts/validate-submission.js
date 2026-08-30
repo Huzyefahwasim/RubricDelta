@@ -57,6 +57,7 @@ const PROVIDER_ROLES = ["rule-compiler", "change-analyst", "impact-investigator"
 const MODEL = "deterministic-role-capture-v1";
 const FIXTURE_PATH = "data/benchmark/replay/rubricdelta-deterministic-source.v1.json";
 const REPLAY_CHECK_SCRIPT = "node scripts/capture-replay.js --check";
+const OPERATIONAL_REPLAY_PATH = "artifacts/expected-replay-report/operational-replay";
 const EVAL_REPLAY_SCRIPT = "node scripts/evaluate.js --provider replay --replay-fixture data/benchmark/replay/rubricdelta-deterministic-source.v1.json --mode both --repeats 1 --output-dir artifacts/runs/provider-replay";
 const TASK9_DEFERRED_PATHS = Object.freeze([
   "docs/MAIN_FAILURE_MODE.md",
@@ -958,15 +959,24 @@ function validateReplayPredictionTraces(validation, predictions, roles, promptMa
   }
 }
 
-function validateReplayOutput(validation, outputRoot, fixtureInfo, benchmark) {
+function validateReplayOutput(validation, outputRoot, fixtureInfo, benchmark, {
+  label = "isolated replay",
+  failureKind = "REPLAY EVALUATION",
+  expectedRevision,
+} = {}) {
   const start = validation.errors.length;
+  const artifactPath = (path) => `${label}/${path}`;
   const readJson = (path) => {
     const absolute = join(outputRoot, ...path.split("/"));
+    if (!existsSync(absolute)) {
+      validation.fail("MISSING", artifactPath(path), "create or regenerate the canonical operational replay publication");
+      return null;
+    }
     try {
-      if (!existsSync(absolute) || !lstatSync(absolute).isFile() || lstatSync(absolute).isSymbolicLink()) throw new Error();
+      if (!lstatSync(absolute).isFile() || lstatSync(absolute).isSymbolicLink()) throw new Error();
       return JSON.parse(decodeUtf8(readBounded(absolute)));
     } catch {
-      validation.fail("REPLAY EVALUATION", path, "missing or invalid isolated replay artifact");
+      validation.fail(failureKind, artifactPath(path), "missing or invalid replay artifact");
       return null;
     }
   };
@@ -976,42 +986,79 @@ function validateReplayOutput(validation, outputRoot, fixtureInfo, benchmark) {
   const baseline = readJson("repetitions/1/baseline-predictions.json");
   const advanced = readJson("repetitions/1/advanced-predictions.json");
   const report = join(outputRoot, "report.md");
-  if (!existsSync(report) || !lstatSync(report).isFile()) validation.fail("REPLAY EVALUATION", "report.md", "missing isolated replay report");
-  if (!manifest || !summary || !comparison || !baseline || !advanced) return;
+  if (!existsSync(report) || !lstatSync(report).isFile() || lstatSync(report).isSymbolicLink()) {
+    validation.fail(failureKind, artifactPath("report.md"), "missing or invalid replay report");
+  }
+  if (!manifest || !summary || !comparison || !baseline || !advanced) return null;
   if (!sameJson(manifest.evaluationProtocol, EVALUATION_PROTOCOL) || manifest.runtimeEnvironment?.networkRequired !== false
     || !sameJson(manifest.provider, { name: "replay", model: MODEL, seed: 0, status: "operational" })
     || !sameJson(manifest.resources?.providerCalls, { baseline: 10, advanced: 40, total: 50 })
     || !sameJson(manifest.resources?.providerAttempts, { baseline: 10, advanced: 40, total: 50 })
     || manifest.resources?.inputTokens !== 0 || manifest.resources?.outputTokens !== 0 || manifest.resources?.totalTokens !== 0
-    || manifest.resources?.latencyMs !== 0 || manifest.resources?.estimatedCostUsd !== 0) validation.fail("REPLAY EVALUATION", "manifest.json", "provider/protocol/network/resource claims are not exact");
+    || manifest.resources?.latencyMs !== 0 || manifest.resources?.estimatedCostUsd !== 0) validation.fail(failureKind, artifactPath("manifest.json"), "provider/protocol/network/resource claims are not exact");
   if (!sameJson(manifest.replay?.binding, fixtureInfo.fixture.binding) || !sameJson(manifest.replay?.source, fixtureInfo.fixture.binding.source)
     || manifest.replay?.fixture?.sha256 !== fixtureInfo.sha256 || manifest.replay?.status !== "operational"
-    || manifest.replay?.operational !== true || manifest.replay?.substituted !== false) validation.fail("REPLAY EVALUATION", "manifest.replay", "fixture/source/status binding mismatch");
+    || manifest.replay?.operational !== true || manifest.replay?.substituted !== false) validation.fail(failureKind, artifactPath("manifest.replay"), "fixture/source/status binding mismatch");
+  if (expectedRevision !== undefined) {
+    const state = manifest.git;
+    if (!isGitObjectId(expectedRevision) || state?.revision !== expectedRevision || state?.baseRevision !== expectedRevision) {
+      validation.fail(failureKind, artifactPath("manifest.git"), "revision and baseRevision must equal the deterministic frozen source revision");
+    }
+    if (state?.sourceTrackedWorkingTreeDirty !== false || state?.sourceUntrackedWorkingTreeDirty !== false
+      || state?.sourceWorkingTreeDirty !== false || state?.wholeWorkingTreeDirty !== true
+      || state?.managedArtifactDirty !== true || state?.sourceState !== "clean-source-managed-artifacts-dirty"
+      || state?.packagingCommit !== null) {
+      validation.fail(failureKind, artifactPath("manifest.git"), "must record clean source with managed replay evidence pending publication");
+    }
+  }
   if (summary.provider !== "replay" || summary.model !== MODEL || summary.repeats !== 1
     || summary.baseline?.primaryMetric?.mean !== 0.8 || summary.baseline?.primaryMetric?.min !== 0.8 || summary.baseline?.primaryMetric?.max !== 0.8
     || summary.advanced?.primaryMetric?.mean !== 0.9 || summary.advanced?.primaryMetric?.min !== 0.9 || summary.advanced?.primaryMetric?.max !== 0.9
-    || summary.improvement?.absolute !== 0.1) validation.fail("REPLAY EVALUATION", "summary.json", "expected one-repeat 0.80 to 0.90 summary");
-  validatePrediction(validation, benchmark, baseline, "baseline", "isolated/repetitions/1");
-  validatePrediction(validation, benchmark, advanced, "advanced", "isolated/repetitions/1");
+    || summary.improvement?.absolute !== 0.1) validation.fail(failureKind, artifactPath("summary.json"), "expected one-repeat 0.80 to 0.90 summary");
+  validatePrediction(validation, benchmark, baseline, "baseline", `${label}/repetitions/1`);
+  validatePrediction(validation, benchmark, advanced, "advanced", `${label}/repetitions/1`);
   try {
     const baselineScore = evaluatePredictions(benchmark, baseline);
     const advancedScore = evaluatePredictions(benchmark, advanced);
-    if (baselineScore.primaryMetric?.value !== 0.8 || advancedScore.primaryMetric?.value !== 0.9) validation.fail("REPLAY EVALUATION", "raw predictions", "independent raw scoring did not reproduce 0.80/0.90");
+    if (baselineScore.primaryMetric?.value !== 0.8 || advancedScore.primaryMetric?.value !== 0.9) validation.fail(failureKind, artifactPath("raw predictions"), "independent raw scoring did not reproduce 0.80/0.90");
   } catch {
-    validation.fail("REPLAY EVALUATION", "raw predictions", "independent raw scoring failed");
+    validation.fail(failureKind, artifactPath("raw predictions"), "independent raw scoring failed");
   }
   const rawHashes = manifest.replay?.rawPredictionSha256ByRepetition?.["1"];
   const baselineBytes = readBounded(join(outputRoot, "repetitions", "1", "baseline-predictions.json"));
   const advancedBytes = readBounded(join(outputRoot, "repetitions", "1", "advanced-predictions.json"));
-  if (rawHashes?.baseline !== sha256(baselineBytes) || rawHashes?.advanced !== sha256(advancedBytes)) validation.fail("REPLAY EVALUATION", "manifest.replay.rawPredictionSha256ByRepetition", "raw prediction hashes mismatch durable bytes");
-  validateReplayPredictionTraces(validation, baseline, ["direct-baseline"], fixtureInfo.fixture.binding.prompts, "baseline traces");
-  validateReplayPredictionTraces(validation, advanced, PROVIDER_ROLES, fixtureInfo.fixture.binding.prompts, "advanced traces");
+  if (rawHashes?.baseline !== sha256(baselineBytes) || rawHashes?.advanced !== sha256(advancedBytes)) validation.fail(failureKind, artifactPath("manifest.replay.rawPredictionSha256ByRepetition"), "raw prediction hashes mismatch durable bytes");
+  validateReplayPredictionTraces(validation, baseline, ["direct-baseline"], fixtureInfo.fixture.binding.prompts, artifactPath("baseline traces"));
+  validateReplayPredictionTraces(validation, advanced, PROVIDER_ROLES, fixtureInfo.fixture.binding.prompts, artifactPath("advanced traces"));
   validateGlobalReplayResponseIds(validation, baseline, advanced);
   if (comparison?.fairComparison?.repeats !== 1 || comparison?.fairComparison?.provider !== "replay" || comparison?.fairComparison?.model !== MODEL
     || comparison?.fairComparison?.reviewBudgetFraction !== benchmark.reviewBudgetFraction
     || !sameJson(comparison?.fairComparison?.orderedCaseIds, benchmark.cases.map((item) => item.id))
-    || comparison?.repetitions?.length !== 1 || comparison.repetitions[0]?.repetition !== 1) validation.fail("REPLAY EVALUATION", "comparison.json", "paired fairness/provider/repeat binding mismatch");
-  validation.passIfClean(start, "isolated eval:replay exhausted exact fixture and reproduced bound zero-resource 0.80/0.90 artifacts");
+    || comparison?.repetitions?.length !== 1 || comparison.repetitions[0]?.repetition !== 1) validation.fail(failureKind, artifactPath("comparison.json"), "paired fairness/provider/repeat binding mismatch");
+  validation.passIfClean(start, `${label} exhausted exact fixture and reproduced bound zero-resource 0.80/0.90 artifacts`);
+  return { manifest, summary, comparison, baseline, advanced };
+}
+
+function comparePublishedReplay(validation, publishedRoot, isolatedRoot) {
+  const start = validation.errors.length;
+  for (const path of [
+    "summary.json",
+    "comparison.json",
+    "report.md",
+    "repetitions/1/baseline-predictions.json",
+    "repetitions/1/advanced-predictions.json",
+  ]) {
+    try {
+      const published = readBounded(join(publishedRoot, ...path.split("/")), 64 * 1024 * 1024);
+      const isolated = readBounded(join(isolatedRoot, ...path.split("/")), 64 * 1024 * 1024);
+      if (sha256(published) !== sha256(isolated)) {
+        validation.fail("REPLAY PUBLICATION", `${OPERATIONAL_REPLAY_PATH}/${path}`, "published bytes differ from the isolated exact replay output");
+      }
+    } catch {
+      validation.fail("REPLAY PUBLICATION", `${OPERATIONAL_REPLAY_PATH}/${path}`, "could not cross-check published bytes against the isolated exact replay output");
+    }
+  }
+  validation.passIfClean(start, "published operational replay bytes match the isolated exact replay output");
 }
 
 function validateTask8(validation, benchmark) {
@@ -1038,6 +1085,15 @@ function validateTask8(validation, benchmark) {
   }
   const fixtureInfo = validateReplayFixtureSemantic(validation, benchmark);
   const structuralValid = validation.errors.length === start && syntaxValid && inventoryValid && fixtureInfo?.valid === true;
+  const deterministicManifest = validation.json("artifacts/evaluation/manifest.json");
+  const publishedRoot = join(validation.root, ...OPERATIONAL_REPLAY_PATH.split("/"));
+  const publishedReplay = fixtureInfo?.valid
+    ? validateReplayOutput(validation, publishedRoot, fixtureInfo, benchmark, {
+      label: OPERATIONAL_REPLAY_PATH,
+      failureKind: "REPLAY PUBLICATION",
+      expectedRevision: deterministicManifest?.git?.revision,
+    })
+    : null;
   let testsOk = false;
   if (structuralValid) testsOk = runBounded(validation, "PROVIDER/WORKFLOW TESTS", [...TASK8_TEST_HASHES.keys()].join(", "), process.execPath, ["--test", ...TASK8_TEST_HASHES.keys()], 240_000);
   else if (!syntaxValid || !inventoryValid) validation.fail("PROVIDER/WORKFLOW TESTS", [...TASK8_TEST_HASHES.keys()].join(", "), "accepted test inventory failed before execution");
@@ -1051,7 +1107,8 @@ function validateTask8(validation, benchmark) {
         "scripts/evaluate.js", "--provider", "replay", "--replay-fixture", FIXTURE_PATH,
         "--mode", "both", "--repeats", "1", "--output-dir", outputRoot,
       ], 180_000);
-      if (ok) validateReplayOutput(validation, outputRoot, fixtureInfo, benchmark);
+      const isolatedReplay = ok ? validateReplayOutput(validation, outputRoot, fixtureInfo, benchmark) : null;
+      if (publishedReplay && isolatedReplay) comparePublishedReplay(validation, publishedRoot, outputRoot);
       scanAbsoluteTree(validation, outputRoot, "isolated replay output");
     } finally {
       if (isWithin(tmpdir(), outputRoot) && posix(outputRoot).includes("rubricdelta-validator-replay-")) rmSync(outputRoot, { recursive: true, force: true });

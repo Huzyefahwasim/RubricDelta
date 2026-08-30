@@ -62,6 +62,9 @@ Exit evidence: deterministic agent, verifier-boundary, trace-role, and evaluatio
 - [x] Prove that replay binds benchmark, prompts, source, request order, model, mode, and all 50 calls.
 - [x] Prove that explicit OpenAI and replay failures never substitute deterministic rankings.
 - [x] Run the Task 8 focused suite and build validator on the integrated source.
+- [x] Publish the canonical offline replay run under `artifacts/expected-replay-report/operational-replay/` while retaining the deterministic `reference-comparison.json` and its `replayOperational: false` disclosure.
+- [x] Treat only the canonical deterministic-evaluation and operational-replay output directories as generated evidence during evaluator Git-provenance capture; unrelated tracked or untracked paths remain source dirt.
+- [x] Require build and final validation to cross-check the published operational replay bundle against an isolated exact replay run, frozen source revision, 50-call/50-attempt telemetry, zero-resource claims, and no-substitution/secret contracts.
 
 Exit gate: offline replay reproduces the deterministic comparison with replay provenance, while the default remains synchronous and network-free. No live OpenAI result is required.
 
@@ -132,6 +135,7 @@ Verification distinguishes the main source checkout's expected R3 stale manifest
 | 2026-08-29 | Keep the live model provider optional | The benchmark and browser demo remain reproducible without credentials |
 | 2026-08-29 | Use an evidence-dense editorial interface | Judges can inspect rules, records, decisions, and trajectories in one workbench |
 | 2026-08-30 | Bootstrap frozen evaluation evidence before recording the release suite | A fresh source revision cannot satisfy the manifest-to-HEAD preflight until the unrecorded deterministic evaluation refreshes managed evidence; the recorded suite remains exactly seven commands |
+| 2026-08-31 | Publish operational replay beside, not inside, the deterministic reference | `reference-comparison.json` remains the non-operational deterministic score reference. `eval:replay` owns a separate canonical `operational-replay/` bundle. Score values remain canonical in comparison/report artifacts rather than being duplicated into the provenance manifest. |
 
 ## Risks
 

@@ -59,6 +59,15 @@ function autocrlfClone(t) {
   git(seed, ["add", "."]);
   git(seed, ["commit", "-m", "portability fixture"]);
   git(temporary, ["-c", "core.autocrlf=true", "clone", "--no-hardlinks", seed, clone]);
+  const replay = command(clone, process.execPath, [
+    "scripts/evaluate.js",
+    "--provider", "replay",
+    "--replay-fixture", "data/benchmark/replay/rubricdelta-deterministic-source.v1.json",
+    "--mode", "both",
+    "--repeats", "1",
+    "--output-dir", "artifacts/runs/provider-replay",
+  ], { timeout: 30_000 });
+  assert.equal(replay.status, 0, `seed replay\n${replay.stdout}\n${replay.stderr}`);
   return clone;
 }
 

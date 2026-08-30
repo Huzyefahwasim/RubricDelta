@@ -139,3 +139,16 @@ Reviewer agreement cannot detect a shared misreading of the same guideline. Team
 - Binding: prompt SHA-256 0c4e725c3152b7bf1e038d0557c9b681b520b91a0b5d350afc70ee0c092febc2; fixture SHA-256 4fd8a97493c534a2f1c5f3444cf70a4f0037ffb3292309785af5c8c73113a9bf (1180036 bytes); source SHA-256 remains 52bdd1845e10719356831545966b55ea9d25b3d77bc28bd3ce15063343402b16. Sequences 14,18,22,26,30,34,38,42,46,50 are the ten changed verifier request hashes.
 - Invariants: all 50 result objects and result hashes, source binding, benchmark, protocol v2, baseline prompt and algorithm, seed, review budget, 50 calls/50 attempts, unsubstituted replay, and deterministic baseline 0.80/advanced 0.90/delta 0.10 remain unchanged.
 - Classification: release-contract correction, not an ablation or measured quality improvement.
+
+## REL-011: Publish and verify canonical operational replay
+
+- Date: 2026-08-31
+- Trigger: The deterministic reference disclosed `replayOperational: false`, while the normal offline replay command wrote only to an untrusted run directory. Strict validation could therefore pass without a revision-bound operational publication beside the reference.
+- Change: Kept the frozen replay command and its literal legacy destination, added a byte-equivalent canonical publication at `artifacts/expected-replay-report/operational-replay/`, scoped generated-artifact classification to the two approved evaluation roots, and made build and final validation cross-check the publication against an isolated exact replay.
+- RED evidence: `node --test tests/replay-publication.test.js` failed 0/3 because the normal command did not create the canonical bundle, build validation accepted its absence, and build validation accepted forged replay provenance, telemetry, and result bytes.
+- GREEN evidence: `node --test tests/replay-publication.test.js` passed 3/3 after the smallest publication and validation change. The release-focused verification record is stored in `.superpowers/sdd/2026-08-30-rubricdelta-task9-release/task-6-replay-publication-fix-report.md`.
+- Frozen-contract handling: `package.json`, `tests/task8-cli.test.js`, and its accepted SHA-256 remain unchanged. The explicit legacy destination still receives all six stable files. Custom output directories remain literal and untrusted.
+- Evaluation impact: None. Benchmark cases, ground truth, prompts, protocol v2, provider semantics, seed, review budget, ranking behavior, and the deterministic 0.80 versus 0.90 comparison remain unchanged. Scores remain owned by comparison and report artifacts, not the manifest.
+- Resource impact: The normal offline replay performs the same 50 deterministic-source calls and 50 attempts with no network access, tokens, provider latency, or provider cost. It adds one local six-file compatibility copy.
+- Decision: Keep. A release can now prove that the operational replay is complete, source-bound, unsubstituted, secret-free, and reproducible without weakening source-dirty detection.
+- Evidence paths: `scripts/evaluate.js`, `scripts/evaluation-artifacts.js`, `scripts/provider-evaluation-artifacts.js`, `scripts/validate-submission.js`, and `tests/replay-publication.test.js`.

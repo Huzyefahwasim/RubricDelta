@@ -59,7 +59,7 @@ Expected primary result:
 
 The result measures affected-record recall across the complete frozen 100-record synthetic benchmark. It measures the full deterministic system bundle against the lexical baseline and does not assign the gain to one stage.
 
-The deterministic manifest records replay as `status: not-selected`, `operational: false`, and `substituted: false`. The separate replay command writes operational replay evidence under `artifacts/runs/provider-replay/`.
+The deterministic manifest records replay as `status: not-selected`, `operational: false`, and `substituted: false`. The normal replay command publishes its canonical operational evidence under `artifacts/expected-replay-report/operational-replay/` and keeps a byte-equivalent compatibility copy under the explicit `artifacts/runs/provider-replay/` destination.
 
 These CLI forms produce the same deterministic run:
 
@@ -96,7 +96,9 @@ The fixture contains 50 ordered deterministic captures: ten direct-baseline call
 - zero provider latency and cost
 - `networkRequired: false`
 
-Replay must reproduce baseline 0.80 and advanced 0.90. Deterministic-source replay validates the captured request and result bindings. The fixture contains no OpenAI responses and provides no evidence about live-model behavior.
+The package command retains the frozen explicit `artifacts/runs/provider-replay/` argument. For that exact replay fixture, provider, mode, repeat count, and destination, it also publishes the canonical bundle at `artifacts/expected-replay-report/operational-replay/`. Custom destinations remain literal and untrusted. Build and final validation require the canonical publication, bind its revision to the deterministic manifest, and compare its stable bytes with an isolated replay.
+
+Replay must reproduce baseline 0.80 and advanced 0.90. Those scores belong to `comparison.json` and `report.md`; the replay manifest records provenance, protocol, resources, replay state, and hashes. Deterministic-source replay validates the captured request and result bindings. The fixture contains no OpenAI responses and provides no evidence about live-model behavior.
 
 ## Optional OpenAI evaluation
 
@@ -124,7 +126,7 @@ npm run evidence
 
 The command derives verifier disagreement, uncertainty, and retry/recovery trajectories from the deterministic evaluation. It also drives the guarded local decision endpoint with reviewer name `hackathon-evidence-generator`. That event demonstrates the server boundary and does not prove participant review, reviewer identity, or human approval. Final human-review evidence must come from the participant.
 
-The command writes a hash-bound deterministic reference under `artifacts/expected-replay-report/`. Its `replayOperational: false` field describes that deterministic reference. The separate `eval:replay` artifacts record the operational replay run.
+The command writes a hash-bound deterministic reference under `artifacts/expected-replay-report/`. Its `replayOperational: false` field describes that deterministic reference. `eval:replay` writes the separate operational bundle under the adjacent `operational-replay/` directory without changing the reference.
 
 ## Release evidence commands
 

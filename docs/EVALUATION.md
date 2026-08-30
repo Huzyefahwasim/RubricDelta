@@ -79,6 +79,14 @@ The report must disclose token, call, runtime, and cost differences. Resource pa
 6. Write raw predictions, per-case results, aggregates, manifest, and trajectories.
 7. Run three live-model repetitions when budget permits and report mean plus range.
 
+## Canonical offline replay publication
+
+`npm run eval:replay` consumes the frozen 50-entry deterministic-role capture without network access. The normal command publishes the authoritative operational bundle at `artifacts/expected-replay-report/operational-replay/` and retains a byte-equivalent compatibility copy at its explicit `artifacts/runs/provider-replay/` CLI destination. Arbitrary custom output directories remain literal and do not become trusted publications.
+
+The operational manifest owns source revision, provider, protocol, replay binding, 50-call/50-attempt telemetry, zero-resource claims, substitution status, and content hashes. Scores remain canonical in `comparison.json` and `report.md`; they are not duplicated into the manifest. `artifacts/expected-replay-report/reference-comparison.json` remains the deterministic reference and continues to disclose `replayOperational: false`.
+
+Build and final validation bind the operational manifest to the deterministic evaluation revision, independently score its raw predictions, scan the publication for secrets, and compare its stable result bytes with a fresh isolated replay. Only the canonical deterministic-evaluation and operational-replay roots count as managed generated evidence during evaluator provenance capture. Dirt elsewhere remains source-working-tree dirt.
+
 ## Required report fields
 
 - Git revision
