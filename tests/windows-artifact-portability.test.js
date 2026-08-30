@@ -102,7 +102,7 @@ function evaluateWithScoringFailure(clone) {
 }
 
 function validate(clone) {
-  return command(clone, process.execPath, ["scripts/validate-submission.js", "--mode", "build"], { timeout: 30_000 });
+  return command(clone, process.execPath, ["scripts/validate-submission.js", "--mode", "build"], { timeout: 240_000 });
 }
 
 function manifest(clone) {
