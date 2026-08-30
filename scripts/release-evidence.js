@@ -154,7 +154,7 @@ export async function runCommandSuite(options = {}) {
   if (!options || typeof options !== "object" || Array.isArray(options)) throw new Error("Release command options must be an object");
   const root = await realpath(resolve(options.root ?? resolve(import.meta.dirname, "..")));
   const store = artifactStoreFor(root, options);
-  await invalidateGeneration(root, "artifacts/qa/command-suite.json", "artifacts/qa/release.json");
+  await invalidateGeneration(root, "artifacts/qa/release.json", "artifacts/qa/command-suite.json");
   const now = options.now ?? (() => new Date().toISOString());
   const run = options.run ?? ((command) => commandProcess(root, command));
   if (typeof now !== "function" || typeof run !== "function") throw new Error("Release command options require callable now and run values");

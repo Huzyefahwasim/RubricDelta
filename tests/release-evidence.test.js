@@ -906,6 +906,28 @@ test("multi-file evidence publication leaves no active generation marker after a
   });
 });
 
+test("command invalidation removes the final release marker before a later marker error", async (t) => {
+  const { root } = await completeReleaseFixture(t);
+  await composeRelease({ root, session: "artifacts/tmp/release-session.json" });
+  const commandMarker = join(root, "artifacts", "qa", "command-suite.json");
+  const releaseMarker = join(root, "artifacts", "qa", "release.json");
+  await rm(commandMarker);
+  await mkdir(commandMarker);
+
+  let commandCalls = 0;
+  await assert.rejects(runCommandSuite({
+    root,
+    run() {
+      commandCalls += 1;
+      return { exitCode: 0, stdout: "pass", stderr: "" };
+    },
+    now: timestampSequence(),
+  }), /marker must be a normal file/i);
+
+  assert.equal(commandCalls, 0);
+  await assert.rejects(readFile(releaseMarker), /ENOENT/);
+});
+
 test("package exposes the five exact release evidence commands", async () => {
   const packageJson = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8"));
   assert.deepEqual(Object.fromEntries(Object.entries(packageJson.scripts).filter(([name]) => name.startsWith("release:"))), {
