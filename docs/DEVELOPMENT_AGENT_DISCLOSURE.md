@@ -14,14 +14,14 @@ Node.js, Git, Codex, installed skills, and installed plugins existed as developm
 
 The repository does not contain a participant-confirmed inventory that proves whether any project-specific code, design, data, or asset existed before kickoff. The participant must review the final tree and record that provenance before submission. Until then, this document makes no “built from scratch” claim.
 
-## Tools and plugins that changed the project
+## Material development tools and sources
 
 | Capability | Material contribution | Repository record |
 |---|---|---|
 | Codex and Superpowers workflow skills | Produced plans, isolated task work, tests, fixes, cross-agent review, and verification. | Dated files under `docs/superpowers/`, Git history, and the Improvement Changelog. |
 | `frontend-design` | Shaped the browser workbench, responsive states, keyboard interaction, and visual hierarchy. | `public/`, interface tests, and the submission implementation plan. |
 | `stop-slop` | Removed formulaic prose and forced direct evidence limits in submission documents. | This disclosure, the Improvement Changelog, and the Task 9 judge-facing documents. |
-| OpenAI documentation skill | Checked the Responses API and structured-output contracts used by the optional provider. | `src/providers/openai.js`, versioned prompts, and links in the reproduction guide. |
+| Official OpenAI API documentation | The optional-provider code targets the Responses API and structured-output contracts cited in the reproduction guide. | `src/providers/openai.js`, versioned prompts, and the official documentation links in `docs/REPRODUCTION.md`. |
 
 The release contract assigns the standard source scan to Codex Security. A reader can count that scan as a material contribution when `artifacts/qa/release.json` binds a PASS security category and its category record names the tool, findings, fixes, and verification. This source document makes no clean-scan or zero-vulnerability claim.
 

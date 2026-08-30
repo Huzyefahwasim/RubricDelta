@@ -10,7 +10,7 @@ Introduce the annotation operations lead who can inspect 20% of the existing lab
 
 ## 0:20 to 0:45: Simple baseline
 
-Open the committed evaluation report or run `npm run eval:baseline` in the terminal. Show the lexical baseline result, `16/20 = 0.80` affected-record recall, and one miss from the hard precedence case. Do not imply that the browser has a separate baseline-run button.
+Open the committed `artifacts/evaluation/report.md`. Show the lexical baseline result, `16/20 = 0.80` affected-record recall, and one miss from the hard precedence case. If the recording needs a live baseline run, use `node scripts/evaluate.js --mode baseline --output-dir artifacts/runs/demo-baseline`; the ignored disposable directory keeps baseline-mode pruning away from the canonical release evidence. Do not run `npm run eval:baseline` after release evidence exists, and do not imply that the browser has a separate baseline-run button.
 
 ## 0:45 to 1:10: Fair comparison
 
