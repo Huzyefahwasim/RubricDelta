@@ -72,6 +72,42 @@ test("evaluation rejects a linked intermediate output ancestor before creating i
   assert.equal(existsSync(join(external, "evaluation")), false);
 });
 
+test("evaluation revalidates output ancestors after evaluator callbacks before pruning", (t) => {
+  const parent = temporaryDirectory(t, "rubricdelta-callback-linked-output-");
+  const external = join(parent, "external");
+  const outputDir = join(parent, "evaluation");
+  mkdirSync(external);
+  const probe = join(parent, "link-probe");
+  if (!directoryLinkOrSkip(t, external, probe)) return;
+  rmSync(probe, { recursive: true, force: true });
+  const sentinel = join(external, "manifest.json");
+  const sentinelContents = "external managed-name sentinel remains intact\n";
+  writeFileSync(sentinel, sentinelContents, "utf8");
+  let callbackRan = false;
+  let failure = null;
+
+  try {
+    createEvaluationArtifacts({
+      ...deterministicOptions(outputDir),
+      mode: "baseline",
+      createBaseline(publicBenchmark) {
+        callbackRan = true;
+        rmSync(outputDir, { recursive: true, force: true });
+        symlinkSync(external, outputDir, process.platform === "win32" ? "junction" : "dir");
+        return createBaselinePredictions(publicBenchmark);
+      },
+    });
+  } catch (error) {
+    failure = error;
+  }
+
+  assert.equal(callbackRan, true);
+  assert.equal(existsSync(sentinel), true, "managed pruning must not follow the callback-created output link");
+  assert.equal(readFileSync(sentinel, "utf8"), sentinelContents);
+  assert.match(failure?.message ?? "", /output root or ancestor.*link|link.*output root or ancestor/i);
+  assert.equal(existsSync(join(external, "baseline-predictions.json")), false);
+});
+
 test("unsafe benchmark case IDs cannot escape the trajectory directory", (t) => {
   const outputDir = temporaryDirectory(t, "rubricdelta-case-path-");
   const benchmark = structuredClone(loadBenchmark());

@@ -50,7 +50,9 @@ function managedArtifactPath(root, name) {
 
 function safeWrite(path, source) {
   const parent = dirname(path);
+  rejectLinkedOutputAncestors(parent);
   mkdirSync(parent, { recursive: true });
+  rejectLinkedOutputAncestors(parent);
   const token = `${process.pid}-${randomUUID()}`;
   const temporary = resolve(parent, `.${basename(path)}.${token}.tmp`);
   const backup = resolve(parent, `.${basename(path)}.${token}.bak`);
@@ -101,7 +103,8 @@ function rejectLinkedOutputAncestors(target) {
   }
 }
 
-function removeManagedFile(path) {
+function removeManagedFile(root, path) {
+  rejectLinkedOutputAncestors(root);
   const existing = lstatOrNull(path);
   if (!existing) return;
   if (existing.isDirectory() && !existing.isSymbolicLink()) {
@@ -125,10 +128,14 @@ function prepareModeArtifacts(target, mode) {
       : commonFiles;
   for (const path of new Set(staleFiles)) {
     if (!contained(target, path)) throw new Error("refusing to prune a managed artifact outside the output directory");
-    removeManagedFile(path);
+    removeManagedFile(target, path);
   }
   if (!contained(target, trajectoryRoot)) throw new Error("refusing to prune managed trajectories outside the output directory");
-  if (lstatOrNull(trajectoryRoot)) rmSync(trajectoryRoot, { recursive: true, force: true });
+  rejectLinkedOutputAncestors(target);
+  if (lstatOrNull(trajectoryRoot)) {
+    rejectLinkedOutputAncestors(target);
+    rmSync(trajectoryRoot, { recursive: true, force: true });
+  }
   return { baselinePath, advancedPath, trajectoryRoot, manifestPath, comparisonPath, reportPath };
 }
 
@@ -455,7 +462,9 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
   safeWriteJson(artifactPaths.comparisonPath, comparisonValue);
   safeWrite(artifactPaths.reportPath, report(reportManifest, comparisonValue));
   if (advancedPredictions) {
+    rejectLinkedOutputAncestors(trajectoryRoot);
     mkdirSync(trajectoryRoot, { recursive: true });
+    rejectLinkedOutputAncestors(trajectoryRoot);
     for (const item of advancedPredictions.cases) safeWrite(trajectoryPath(trajectoryRoot, item.caseId), `${item.trajectory.map(JSON.stringify).join("\n")}\n`);
   }
   const manifestValue = manifest({ benchmark, benchmarkSource, provider, model, repeats, execution, gitState: publishedGitState(), artifacts });
