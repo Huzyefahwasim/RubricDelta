@@ -247,3 +247,44 @@ test("build validation rejects forged operational replay provenance and telemetr
   assert.match(combined, /\[FAIL\].*REPLAY PUBLICATION.*operational-replay\/manifest\.git.*revision/i);
   assert.match(combined, /\[FAIL\].*REPLAY PUBLICATION.*operational-replay\/report\.md.*isolated/i);
 });
+
+test("build validation rejects incomplete operational replay execution", (t) => {
+  const project = fixture(t);
+  bootstrapDeterministic(project);
+  generateOperational(project);
+
+  const manifestPath = `${operationalRelativePath}/manifest.json`;
+  const manifest = json(project, manifestPath);
+  manifest.execution.status = "incomplete";
+  manifest.execution.phase = "scoring";
+  manifest.execution.failure = { code: "FORGED_INCOMPLETE" };
+  writeJson(project, manifestPath, manifest);
+
+  const command = validate(project);
+  const combined = output(command);
+  assert.notEqual(command.status, 0, combined);
+  assert.match(combined, /\[FAIL\].*REPLAY PUBLICATION.*operational-replay\/manifest\.json.*(?:complete|immutable)/i);
+});
+
+test("build validation rejects immutable operational replay manifest drift", (t) => {
+  const project = fixture(t);
+  bootstrapDeterministic(project);
+  generateOperational(project);
+
+  const manifestPath = `${operationalRelativePath}/manifest.json`;
+  const manifest = json(project, manifestPath);
+  manifest.schemaVersion = 2;
+  manifest.artifactKind = "forged-replay-manifest";
+  manifest.benchmark.id = "forged-benchmark";
+  manifest.reviewBudget.fraction = 0.5;
+  manifest.runtimeEnvironment.runtimeDependencies = 1;
+  manifest.versions.baselineAlgorithm = "forged-baseline";
+  manifest.repeats.requested = 2;
+  manifest.unexpectedImmutableField = true;
+  writeJson(project, manifestPath, manifest);
+
+  const command = validate(project);
+  const combined = output(command);
+  assert.notEqual(command.status, 0, combined);
+  assert.match(combined, /\[FAIL\].*REPLAY PUBLICATION.*operational-replay\/manifest\.json.*immutable/i);
+});

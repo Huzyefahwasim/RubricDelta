@@ -959,6 +959,79 @@ function validateReplayPredictionTraces(validation, predictions, roles, promptMa
   }
 }
 
+function validReplayExecution(execution) {
+  if (!exactKeys(execution, ["endedAt", "phase", "runtimeMs", "startedAt", "status"])) return false;
+  const startedAt = Date.parse(execution.startedAt);
+  const endedAt = Date.parse(execution.endedAt);
+  return execution.status === "complete"
+    && execution.phase === "complete"
+    && RFC3339_TIMESTAMP.test(execution.startedAt)
+    && RFC3339_TIMESTAMP.test(execution.endedAt)
+    && Number.isFinite(startedAt)
+    && Number.isFinite(endedAt)
+    && endedAt >= startedAt
+    && Number.isFinite(execution.runtimeMs)
+    && execution.runtimeMs >= 0;
+}
+
+function validReplayRuntimeEnvironment(runtime) {
+  const node = /^v(\d+)\.\d+\.\d+$/.exec(runtime?.node ?? "");
+  return exactKeys(runtime, ["architecture", "networkRequired", "node", "platform", "runtimeDependencies"])
+    && Number(node?.[1]) >= 24
+    && typeof runtime.platform === "string"
+    && runtime.platform !== ""
+    && typeof runtime.architecture === "string"
+    && runtime.architecture !== ""
+    && runtime.runtimeDependencies === 0
+    && runtime.networkRequired === false;
+}
+
+function validPublishedReplayGit(state, expectedRevision) {
+  return exactKeys(state, [
+    "baseRevision",
+    "branch",
+    "managedArtifactDirty",
+    "packagingCommit",
+    "provenanceNote",
+    "revision",
+    "sourceState",
+    "sourceTrackedWorkingTreeDirty",
+    "sourceUntrackedWorkingTreeDirty",
+    "sourceWorkingTreeDirty",
+    "trackedWorkingTreeDirty",
+    "wholeWorkingTreeDirty",
+  ])
+    && isGitObjectId(expectedRevision)
+    && state.revision === expectedRevision
+    && state.baseRevision === expectedRevision
+    && typeof state.branch === "string"
+    && typeof state.trackedWorkingTreeDirty === "boolean"
+    && state.sourceTrackedWorkingTreeDirty === false
+    && state.sourceUntrackedWorkingTreeDirty === false
+    && state.sourceWorkingTreeDirty === false
+    && state.wholeWorkingTreeDirty === true
+    && state.managedArtifactDirty === true
+    && state.packagingCommit === null
+    && state.provenanceNote === "revision identifies the clean source commit; generated evidence is added by the subsequent packaging commit"
+    && state.sourceState === "clean-source-managed-artifacts-dirty";
+}
+
+function normalizedReplayManifest(manifest) {
+  const normalized = structuredClone(manifest);
+  normalized.git = "<validated-dynamic-git-state>";
+  if (normalized.execution && typeof normalized.execution === "object" && !Array.isArray(normalized.execution)) {
+    normalized.execution.startedAt = "<validated-dynamic-timing>";
+    normalized.execution.endedAt = "<validated-dynamic-timing>";
+    normalized.execution.runtimeMs = "<validated-dynamic-timing>";
+  }
+  if (normalized.runtimeEnvironment && typeof normalized.runtimeEnvironment === "object" && !Array.isArray(normalized.runtimeEnvironment)) {
+    normalized.runtimeEnvironment.node = "<validated-host-runtime>";
+    normalized.runtimeEnvironment.platform = "<validated-host-runtime>";
+    normalized.runtimeEnvironment.architecture = "<validated-host-runtime>";
+  }
+  return normalized;
+}
+
 function validateReplayOutput(validation, outputRoot, fixtureInfo, benchmark, {
   label = "isolated replay",
   failureKind = "REPLAY EVALUATION",
@@ -990,25 +1063,24 @@ function validateReplayOutput(validation, outputRoot, fixtureInfo, benchmark, {
     validation.fail(failureKind, artifactPath("report.md"), "missing or invalid replay report");
   }
   if (!manifest || !summary || !comparison || !baseline || !advanced) return null;
-  if (!sameJson(manifest.evaluationProtocol, EVALUATION_PROTOCOL) || manifest.runtimeEnvironment?.networkRequired !== false
+  if (!sameJson(manifest.evaluationProtocol, EVALUATION_PROTOCOL)
     || !sameJson(manifest.provider, { name: "replay", model: MODEL, seed: 0, status: "operational" })
     || !sameJson(manifest.resources?.providerCalls, { baseline: 10, advanced: 40, total: 50 })
     || !sameJson(manifest.resources?.providerAttempts, { baseline: 10, advanced: 40, total: 50 })
     || manifest.resources?.inputTokens !== 0 || manifest.resources?.outputTokens !== 0 || manifest.resources?.totalTokens !== 0
-    || manifest.resources?.latencyMs !== 0 || manifest.resources?.estimatedCostUsd !== 0) validation.fail(failureKind, artifactPath("manifest.json"), "provider/protocol/network/resource claims are not exact");
+    || manifest.resources?.latencyMs !== 0 || manifest.resources?.estimatedCostUsd !== 0) validation.fail(failureKind, artifactPath("manifest.json"), "provider, protocol, and resource claims are not exact");
+  if (!validReplayRuntimeEnvironment(manifest.runtimeEnvironment)) {
+    validation.fail(failureKind, artifactPath("manifest.json"), "runtime environment must be an exact dependency-free offline Node 24+ contract");
+  }
+  if (!validReplayExecution(manifest.execution)) {
+    validation.fail(failureKind, artifactPath("manifest.json"), "execution must be exact, complete, failure-free, ordered, and nonnegative");
+  }
   if (!sameJson(manifest.replay?.binding, fixtureInfo.fixture.binding) || !sameJson(manifest.replay?.source, fixtureInfo.fixture.binding.source)
     || manifest.replay?.fixture?.sha256 !== fixtureInfo.sha256 || manifest.replay?.status !== "operational"
     || manifest.replay?.operational !== true || manifest.replay?.substituted !== false) validation.fail(failureKind, artifactPath("manifest.replay"), "fixture/source/status binding mismatch");
   if (expectedRevision !== undefined) {
-    const state = manifest.git;
-    if (!isGitObjectId(expectedRevision) || state?.revision !== expectedRevision || state?.baseRevision !== expectedRevision) {
-      validation.fail(failureKind, artifactPath("manifest.git"), "revision and baseRevision must equal the deterministic frozen source revision");
-    }
-    if (state?.sourceTrackedWorkingTreeDirty !== false || state?.sourceUntrackedWorkingTreeDirty !== false
-      || state?.sourceWorkingTreeDirty !== false || state?.wholeWorkingTreeDirty !== true
-      || state?.managedArtifactDirty !== true || state?.sourceState !== "clean-source-managed-artifacts-dirty"
-      || state?.packagingCommit !== null) {
-      validation.fail(failureKind, artifactPath("manifest.git"), "must record clean source with managed replay evidence pending publication");
+    if (!validPublishedReplayGit(manifest.git, expectedRevision)) {
+      validation.fail(failureKind, artifactPath("manifest.git"), "must exactly bind the deterministic frozen revision to clean source with managed replay evidence pending publication");
     }
   }
   if (summary.provider !== "replay" || summary.model !== MODEL || summary.repeats !== 1
@@ -1041,6 +1113,15 @@ function validateReplayOutput(validation, outputRoot, fixtureInfo, benchmark, {
 
 function comparePublishedReplay(validation, publishedRoot, isolatedRoot) {
   const start = validation.errors.length;
+  try {
+    const publishedManifest = JSON.parse(decodeUtf8(readBounded(join(publishedRoot, "manifest.json"))));
+    const isolatedManifest = JSON.parse(decodeUtf8(readBounded(join(isolatedRoot, "manifest.json"))));
+    if (!sameJson(normalizedReplayManifest(publishedManifest), normalizedReplayManifest(isolatedManifest))) {
+      validation.fail("REPLAY PUBLICATION", `${OPERATIONAL_REPLAY_PATH}/manifest.json`, "immutable manifest content differs from the isolated exact replay output");
+    }
+  } catch {
+    validation.fail("REPLAY PUBLICATION", `${OPERATIONAL_REPLAY_PATH}/manifest.json`, "could not cross-check immutable manifest content against the isolated exact replay output");
+  }
   for (const path of [
     "summary.json",
     "comparison.json",
