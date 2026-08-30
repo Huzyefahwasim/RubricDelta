@@ -89,6 +89,18 @@ function lstatOrNull(path) {
   }
 }
 
+function rejectLinkedOutputAncestors(target) {
+  let current = target;
+  while (true) {
+    if (lstatOrNull(current)?.isSymbolicLink()) {
+      throw new Error("Evaluation output root or ancestor is a link, junction, or reparse point");
+    }
+    const parent = dirname(current);
+    if (parent === current) return;
+    current = parent;
+  }
+}
+
 function removeManagedFile(path) {
   const existing = lstatOrNull(path);
   if (!existing) return;
@@ -376,7 +388,9 @@ export function createEvaluationArtifacts({ benchmark, benchmarkSource, mode, ou
   for (const item of benchmark.cases) trajectoryPath(trajectoryRoot, item.id);
   const managedGitRoots = relative(canonicalEvidenceRoot, target) === "" ? [canonicalEvidenceRoot] : [];
   const publishedGitState = () => createGitState(git, managedGitRoots);
+  rejectLinkedOutputAncestors(target);
   mkdirSync(target, { recursive: true });
+  rejectLinkedOutputAncestors(target);
   const publicBenchmark = createPublicBenchmarkProjection(benchmark); const baselineRuns = []; const advancedRuns = [];
   for (let repeat = 0; repeat < repeats; repeat += 1) {
     if (mode !== "advanced") {

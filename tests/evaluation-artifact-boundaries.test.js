@@ -12,6 +12,66 @@ function temporaryDirectory(t, prefix) {
   return path;
 }
 
+function directoryLinkOrSkip(t, target, link) {
+  try {
+    symlinkSync(target, link, process.platform === "win32" ? "junction" : "dir");
+    return true;
+  } catch (error) {
+    if (!["EPERM", "EACCES", "UNKNOWN"].includes(error.code)) throw error;
+    t.skip("Directory links are unavailable on this platform");
+    return false;
+  }
+}
+
+function deterministicOptions(outputDir) {
+  return {
+    benchmark: loadBenchmark(),
+    mode: "both",
+    outputDir,
+    provider: "deterministic",
+    model: null,
+    repeats: 1,
+    createBaseline: createBaselinePredictions,
+    createAdvanced: createAdvancedPredictions,
+    score: evaluatePredictions,
+  };
+}
+
+test("evaluation rejects a linked output root before writing artifacts", (t) => {
+  const parent = temporaryDirectory(t, "rubricdelta-linked-root-");
+  const external = join(parent, "external");
+  const outputDir = join(parent, "evaluation");
+  mkdirSync(external);
+  const sentinel = join(external, "keep.txt");
+  writeFileSync(sentinel, "outside root remains intact\n", "utf8");
+  if (!directoryLinkOrSkip(t, external, outputDir)) return;
+
+  assert.throws(
+    () => createEvaluationArtifacts(deterministicOptions(outputDir)),
+    /output root or ancestor.*link|link.*output root or ancestor/i,
+  );
+  assert.equal(readFileSync(sentinel, "utf8"), "outside root remains intact\n");
+  assert.equal(existsSync(join(external, "manifest.json")), false);
+});
+
+test("evaluation rejects a linked intermediate output ancestor before creating its leaf", (t) => {
+  const parent = temporaryDirectory(t, "rubricdelta-linked-ancestor-");
+  const external = join(parent, "external");
+  const linkedAncestor = join(parent, "linked-parent");
+  const outputDir = join(linkedAncestor, "evaluation");
+  mkdirSync(external);
+  const sentinel = join(external, "keep.txt");
+  writeFileSync(sentinel, "outside ancestor remains intact\n", "utf8");
+  if (!directoryLinkOrSkip(t, external, linkedAncestor)) return;
+
+  assert.throws(
+    () => createEvaluationArtifacts(deterministicOptions(outputDir)),
+    /output root or ancestor.*link|link.*output root or ancestor/i,
+  );
+  assert.equal(readFileSync(sentinel, "utf8"), "outside ancestor remains intact\n");
+  assert.equal(existsSync(join(external, "evaluation")), false);
+});
+
 test("unsafe benchmark case IDs cannot escape the trajectory directory", (t) => {
   const outputDir = temporaryDirectory(t, "rubricdelta-case-path-");
   const benchmark = structuredClone(loadBenchmark());
