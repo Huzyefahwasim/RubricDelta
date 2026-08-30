@@ -1,6 +1,8 @@
 # Five-Minute Demo Script
 
-Target length: 4 minutes 40 seconds. Stop at 4:40 to preserve a 20-second upload margin.
+Target length: 4 minutes 40 seconds. Stop at 4:40, which leaves 20 seconds below the limit.
+
+Record this script after the automated, human-review, development-agent, browser, accessibility, security, and clean-checkout evidence exists at one final source revision. The participant performs the review actions and recording. After the video and participant attestations exist, `artifacts/qa/release.json` becomes the completion authority. This script does not prove that recording, upload, playback, or release approval occurred.
 
 ## 0:00 to 0:20: User and problem
 
@@ -18,14 +20,14 @@ Show that baseline and advanced results use the same ten cases, ordered records,
 
 Choose **Load benchmark example**. The browser sends the first public ten-record case to the local deterministic server and creates a server-owned run. Open the Rule Seam and connect the changed clause to its structured interpretation, citations, boundary case, and ranked records.
 
-## 2:05 to 3:10: Owner review and guarded export
+## 2:05 to 3:10: Participant review and guarded export
 
-Enter the participant's reviewer attribution, then use exactly two records:
+The participant enters the public reviewer attribution, then uses two records:
 
 - approve a supported correction on the first record and leave that approval active;
 - escalate the second record, undo that decision, then reject the same record.
 
-Open the trajectory to show the appended checkpoint events. Download the CSV and show its one active approval. Pending, rejected, escalated, and undone decisions stay out of the export.
+Open the trajectory and show the appended checkpoint events. Download the CSV and show its one active approval. The server excludes all other decision states from the export.
 
 ## 3:10 to 3:50: Results and visible failure
 
@@ -37,7 +39,7 @@ Open the Improvement Changelog. Describe the four-stage system as the `largest s
 
 ## 4:20 to 4:40: Reproduction and hot take
 
-Show `npm run eval`, the run manifest, and one JSONL trajectory. Close with the supported conclusion: high reviewer agreement can coexist with shared guideline drift, so review leads need policy-version impact analysis.
+Show `npm run eval`, the run manifest, and one JSONL trajectory. Close with the supported conclusion: reviewer agreement can coexist with shared guideline drift, so review leads need policy-version impact analysis.
 
 ## Recording checklist
 
@@ -46,3 +48,4 @@ Show `npm run eval`, the run manifest, and one JSONL trajectory. Close with the 
 - Label replay evidence as deterministic-source replay and do not present it as a live model run.
 - Remove terminal and browser wait time without hiding failures.
 - Measure the encoded file and keep it at or below 300 seconds.
+- Record upload acceptance and a rendered playback frame only after the participant observes both on the submission platform.

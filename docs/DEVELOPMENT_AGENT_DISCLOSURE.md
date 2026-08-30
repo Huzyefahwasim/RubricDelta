@@ -14,23 +14,29 @@ Node.js, Git, Codex, installed skills, and installed plugins existed as developm
 
 The repository does not contain a participant-confirmed inventory that proves whether any project-specific code, design, data, or asset existed before kickoff. The participant must review the final tree and record that provenance before submission. Until then, this document makes no “built from scratch” claim.
 
-## Skills and plugins used
+## Tools and plugins that changed the project
 
-| Capability | Status | Material use |
+| Capability | Material contribution | Repository record |
 |---|---|---|
-| Superpowers plugin | Used | Brainstorming, implementation plans, isolated worktree setup, test-driven development, debugging, bounded agent tasks, and review loops. |
-| `frontend-design` | Used | Designed and refined the browser workbench, responsive states, keyboard interactions, and visual hierarchy. |
-| `stop-slop` | Used | Edited submission prose for direct claims and explicit limits. |
-| OpenAI documentation skill | Used | Checked official Responses API and structured-output contracts for the optional provider design. |
-| `gh-fix-ci` | Installed and considered, not used | No GitHub pull-request CI failure existed in the recorded development work. |
-| `gh-address-comments` | Installed and considered, not used | No open pull request or GitHub review comment existed to address. |
-| Codex Security plugin | Installed; release scan pending | The final standard repository scan has not run. This document makes no clean-scan or zero-vulnerability claim. |
+| Codex and Superpowers workflow skills | Produced plans, isolated task work, tests, fixes, cross-agent review, and verification. | Dated files under `docs/superpowers/`, Git history, and the Improvement Changelog. |
+| `frontend-design` | Shaped the browser workbench, responsive states, keyboard interaction, and visual hierarchy. | `public/`, interface tests, and the submission implementation plan. |
+| `stop-slop` | Removed formulaic prose and forced direct evidence limits in submission documents. | This disclosure, the Improvement Changelog, and the Task 9 judge-facing documents. |
+| OpenAI documentation skill | Checked the Responses API and structured-output contracts used by the optional provider. | `src/providers/openai.js`, versioned prompts, and links in the reproduction guide. |
 
-Installing a skill or plugin does not count as using it. The table separates available tooling from capabilities that changed project work.
+The release contract assigns the standard source scan to Codex Security. A reader can count that scan as a material contribution when `artifacts/qa/release.json` binds a PASS security category and its category record names the tool, findings, fixes, and verification. This source document makes no clean-scan or zero-vulnerability claim.
+
+## Installed tools and plugins that did not change the project
+
+| Capability | Status | Reason |
+|---|---|---|
+| `gh-fix-ci` | Installed, no material use | The recorded work contains no GitHub pull-request CI failure. |
+| `gh-address-comments` | Installed, no material use | The recorded work contains no open pull request or GitHub review comment. |
+
+Installation alone does not establish material use.
 
 ## Agent workflow
 
-Codex subagents filled the implementer, reviewer, and owner roles in the development workflow. Implementer subagents wrote tests and changes, reviewer subagents inspected work from other agents, and owner subagents integrated accepted findings into the shared worktree. Those role labels do not identify extra human teammates. The single participant owns final integration approval and submission. Dated plans and Git history record integration points; the final whole-branch review remains pending.
+Codex subagents filled implementer, reviewer, and controller roles in the development workflow. Implementer subagents wrote tests and changes. Reviewer subagents inspected another agent's work, and the controller integrated accepted findings into the shared worktree. Those labels do not identify extra human teammates. The single participant owns final integration approval and submission. Dated plans and Git history record integration points.
 
 The tracked planning and audit trail includes:
 
@@ -40,9 +46,11 @@ The tracked planning and audit trail includes:
 - [Improvement Changelog](../IMPROVEMENT_CHANGELOG.md);
 - tests and JSON or JSONL product-evaluation evidence.
 
-These files form a task log and repository audit trail. They are not an exported Codex development-agent trajectory. The repository does not yet include a representative development trajectory that connects an agent instruction to its tool calls, results, feedback, review, and final verification.
+These files form a task log and repository audit trail. They do not qualify as the exported Codex development-agent trajectory.
 
-The participant must export or share representative development-agent evidence, inspect it for private information, and identify it in the submission package. This document must keep that item pending until the evidence exists.
+The canonical submission path is `artifacts/development-agent/trajectory.jsonl`. `npm run release:development` accepts actual `codex-export` events only after the participant reviews the exact JSONL bytes for credentials, private paths, personal information, unrelated conversation, and unsafe submission content. The command also writes `artifacts/development-agent/manifest.json`, which binds the source revision, trajectory hash, event count, run ID, agent, source, review time, and participant privacy-review PASS.
+
+Treat the trajectory as release evidence only when `artifacts/qa/release.json` binds the development-agent category to that manifest. Source prose cannot certify the participant's privacy decision.
 
 ## Product-agent trajectory boundary
 
@@ -56,15 +64,8 @@ All ten deterministic case trajectories terminate with `status: partial` and `es
 
 Final QA must add participant-entered approval, rejection, escalation, and undo events through the interface. The release record must identify that run without exposing private information.
 
-## Pending release work
+## Release evidence authority
 
-The project still needs recorded evidence for:
+Post-freeze completion state lives in `artifacts/qa/release.json`. Its hash-bound categories cover automated checks, browser and keyboard QA, accessibility and responsive QA, security, clean checkout, human review, video, development-agent evidence, and release approval. Separate manifests bind participant attestations, the approved-only CSV, the development trajectory, and video inspection plus upload/playback confirmation.
 
-- participant confirmation of pre-existing work, licenses, originality, eligibility, and submission details;
-- a privacy-reviewed representative development-agent trajectory or share link;
-- the Codex Security standard repository scan and verification of accepted fixes;
-- final browser, keyboard, accessibility, and responsive QA;
-- clean-checkout reproduction at the final source revision;
-- final whole-branch review and participant release decision;
-- a participant-recorded video of no more than 300 seconds;
-- participant authorization for any push, public publication, or live OpenAI spend.
+The participant retains authority over provenance, licenses, originality, eligibility, privacy approval, the final release decision, and each push, publication, upload, submission, or live OpenAI expense. Missing canonical evidence leaves the related claim unverified.

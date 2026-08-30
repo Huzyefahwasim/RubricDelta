@@ -4,7 +4,7 @@ RubricDelta finds existing labels that may have become invalid after an annotati
 
 ## Status
 
-The deterministic benchmark, browser demo, exact replay provider, and optional OpenAI adapter are implemented.
+The deterministic benchmark, browser workbench, exact replay provider, optional OpenAI adapter, and fail-closed release-evidence commands are implemented.
 
 - The default path uses the deterministic systems. It needs no credentials or network access.
 - The replay path consumes the committed `deterministic-role-capture` fixture. It tests the provider workflow without a network call.
@@ -13,6 +13,10 @@ The deterministic benchmark, browser demo, exact replay provider, and optional O
 Provider failures stop the selected run. RubricDelta does not substitute deterministic rankings for failed replay or OpenAI calls. The repository contains no verified live OpenAI evaluation result.
 
 The default deterministic manifest records replay as `status: not-selected`, `operational: false`, and `substituted: false`.
+
+The committed capture fixture contains 50 ordered deterministic-source calls. `npm run replay:check` checks those bytes, and `npm run eval:replay` consumes all 50 entries without network access.
+
+Source documents describe the release contract. After the source freeze, [the structured release record](artifacts/qa/release.json) becomes the authority for participant QA, privacy review, security, video, and release approval. Absence of that file means the strict release gate has not passed.
 
 ## Product flow
 
@@ -42,7 +46,7 @@ npm start
 
 Open `http://localhost:4173` and choose **Load benchmark example**.
 
-Run the offline release checks:
+Run the offline source checks:
 
 ```bash
 npm test
@@ -53,15 +57,20 @@ npm run evidence
 npm run validate
 ```
 
-`npm run validate` starts with `MODE: BUILD — NON-FINAL`. It validates the deterministic system and all Task 8 provider, prompt, capture, replay, CLI, and artifact gates. Build mode defers these five Task 9 paths:
+`npm run validate` checks the deterministic system plus provider, prompt, capture, replay, CLI, and artifact contracts. Build mode does not certify participant-owned release evidence.
 
-- `docs/MAIN_FAILURE_MODE.md`
-- `docs/HOT_TAKE.md`
-- `docs/MODEL_AND_COSTS.md`
-- `artifacts/qa/README.md`
-- `artifacts/submission/demo.mp4`
+The release operator uses these commands after the source freeze:
 
-`npm run validate:final` applies the final release gates, including participant-owned QA and video evidence.
+```bash
+npm run release:commands
+npm run release:human
+npm run release:development
+npm run release:video-check
+npm run release:compose
+npm run validate:final
+```
+
+The participant supplies the human-review session, development-trajectory privacy decision, video, upload/playback confirmation, eligibility and rights attestations, and final `approve release` decision. The commands reject missing or inconsistent inputs. Read [the reproduction guide](docs/REPRODUCTION.md) for the evidence sequence and canonical paths.
 
 ## Measured result
 
@@ -85,7 +94,7 @@ npm run replay:check
 npm run eval:replay
 ```
 
-The replay run writes to `artifacts/runs/provider-replay/`. It reports provider `replay`, model `deterministic-role-capture-v1`, 50 calls and 50 attempts, no network requirement, zero tokens, zero provider latency, zero cost, `operational: true`, and `substituted: false`. Replay reproduces the deterministic 0.80 and 0.90 scores. It is deterministic capture evidence, not a live OpenAI run.
+The replay run writes to `artifacts/runs/provider-replay/`. It reports provider `replay`, model `deterministic-role-capture-v1`, 50 calls and 50 attempts, no network requirement, zero tokens, zero provider latency, zero cost, `operational: true`, and `substituted: false`. Replay reproduces the deterministic 0.80 and 0.90 scores. The committed fixture at `data/benchmark/replay/rubricdelta-deterministic-source.v1.json` provides deterministic capture evidence, not a live OpenAI result.
 
 For an approved live call, set `OPENAI_API_KEY` in the current process and run:
 
@@ -110,6 +119,10 @@ The primary metric is **affected-record recall at a 20% human-review budget**. R
 - [Submission checklist](docs/SUBMISSION_CHECKLIST.md)
 - [Five-minute demo script](docs/DEMO_SCRIPT.md)
 - [Improvement changelog](IMPROVEMENT_CHANGELOG.md)
+- [Model and cost disclosure](docs/MODEL_AND_COSTS.md)
+- [Development-agent disclosure](docs/DEVELOPMENT_AGENT_DISCLOSURE.md)
+- [Main failure mode](docs/MAIN_FAILURE_MODE.md)
+- [Hot take](docs/HOT_TAKE.md)
 
 ## Safety boundary
 

@@ -1,6 +1,6 @@
 # Submission Checklist
 
-Every item stays unchecked until the participant or release evidence confirms it.
+This source checklist defines the release contract. `artifacts/qa/release.json` records post-freeze completion and binds each PASS category to a unique evidence file. An unchecked source item does not authorize an agent to claim participant action. Missing release evidence leaves the item unverified.
 
 ## Participant eligibility and registration
 
@@ -38,6 +38,7 @@ Every item stays unchecked until the participant or release evidence confirms it
 - [ ] The participant exported or shared representative development-agent trajectories after checking them for private information.
 - [ ] The development trajectories show agent instructions, tool calls, tool results, feedback, retries, review, and verification.
 - [ ] The submission does not describe plans, task logs, or generated product trajectories as exported development-agent trajectories.
+- [ ] `artifacts/development-agent/trajectory.jsonl` and its manifest bind the participant's privacy-review PASS to the final source revision.
 
 ## Deliverable 1: Code and engineering record
 
@@ -56,6 +57,7 @@ Every item stays unchecked until the participant or release evidence confirms it
 - [ ] Runtime, calls, attempts, tokens, and cost use measured values or `null` when no measurement exists.
 - [ ] Deterministic, replay, and optional OpenAI evidence use distinct labels and output directories.
 - [ ] A clean-checkout record captures command output, exit codes, artifact hashes, and the final source revision.
+- [ ] The untouched submitted checkout passes `npm run validate:final`, `npm test`, and `npm run replay:check`, then remains clean.
 
 ## Deliverable 3: Video
 
@@ -66,6 +68,7 @@ Every item stays unchecked until the participant or release evidence confirms it
 - [ ] The video opens the Improvement Changelog, names the largest supported measured change, and explains one removed experiment.
 - [ ] The video shows the reproduction command, main failure mode, and supported hot take.
 - [ ] The participant recorded the filename, SHA-256 hash, duration, resolution, and submission-platform acceptance.
+- [ ] The platform displayed a rendered frame, and hash-bound video evidence records playback PASS.
 
 ## Deliverable 4: Product-agent trajectories
 
@@ -80,6 +83,11 @@ Every item stays unchecked until the participant or release evidence confirms it
 
 - [ ] Focused tests and the full test suite pass on the final source revision.
 - [ ] The deterministic evaluation and exact replay checks pass with truthful provenance.
+- [ ] `npm run release:commands` records exactly seven PASS commands at the source revision.
+- [ ] `npm run release:human` binds the participant's approve, escalate, undo, and reject sequence to an approved-only CSV.
+- [ ] `npm run release:development` publishes only the privacy-reviewed Codex export.
+- [ ] `npm run release:video-check` validates the canonical H.264 video without claiming upload or playback.
+- [ ] `npm run release:compose` writes the 11 category records, participant attestations, and `artifacts/qa/release.json`.
 - [ ] `npm run validate:final` passes its automated contract checks.
 - [ ] Browser, keyboard, accessibility, responsive, and reduced-motion QA results exist for the final revision.
 - [ ] A final security scan records findings, accepted fixes, focused tests, and verification results.

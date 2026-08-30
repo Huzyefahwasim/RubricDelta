@@ -16,7 +16,7 @@ Both records are false positives. The system missed:
 - `a11y-02`: an unlabeled checkout control that blocks a screen reader;
 - `a11y-04`: a submit button that cannot be reached with the keyboard.
 
-The case scored `0/2 = 0.00` affected-record recall and `0/2 = 0.00` precision at the fixed 20% review budget. The complete deterministic benchmark still scored `18/20 = 0.90`, compared with the baseline's `16/20 = 0.80`.
+The evaluator records `0/2 = 0.00` affected-record recall and `0/2 = 0.00` precision for this case at the fixed 20% review budget. Across all ten cases, the deterministic advanced system records `18/20 = 0.90`, compared with the baseline's `16/20 = 0.80`. `artifacts/evaluation/comparison.json` contains every selected, missed, and false-positive record ID behind those values.
 
 ## Why the controller abstains
 
@@ -43,7 +43,9 @@ A reviewer who trusts rank alone could spend the full accessibility budget on ap
 
 The next evidence-safe experiment should add an explicit old-to-new category relation supplied by the policy document or a versioned label ontology. The agent may use that relation only when it cites both rule versions. The experiment must run against the same frozen cases, seed, provider, and review budget. It must not read ground truth during ranking.
 
-The current release keeps the abstention because no tested implementation establishes that relation without benchmark-specific knowledge.
+The team kept the abstention because no tested implementation establishes that relation without benchmark-specific knowledge.
+
+This mitigation remains an experiment proposal. The submitted artifacts contain no result for an ontology-backed recovery.
 
 ## Evidence
 

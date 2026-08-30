@@ -1,10 +1,10 @@
-# Hot Take: Removing Unsupported Reasoning Can Lower the Score and Improve the Agent
+# Hot Take: Evidence Support Outranks One Benchmark Point
 
 ## Claim
 
-Removing unsupported reasoning can lower an agent's benchmark score and raise its engineering quality.
+Teams should remove an unsupported inference even when a benchmark score falls.
 
-RubricDelta's first deterministic advanced run found `19/20` affected records at the fixed 20% review budget. Review then found that the investigator could receive transition credit from one rule delta while the verifier used evidence from another. The score rewarded a relationship that the policy analysis could not support.
+An archived deterministic advanced revision found `19/20` affected records at the fixed 20% review budget. Review found that the investigator could receive transition credit from one rule delta while the verifier used evidence from another. The score rewarded a relationship that the policy analysis could not support.
 
 The team removed that cross-delta credit and added two regression boundaries:
 
@@ -13,15 +13,15 @@ The team removed that cross-delta credit and added two regression boundaries:
 
 The official advanced result fell from `19/20 = 0.95` to `18/20 = 0.90`. The baseline stayed at `16/20 = 0.80`. Cases, affected records, seed, deterministic provider, and review-budget formula stayed fixed.
 
-## Why this counts as an engineering improvement
+## Engineering basis
 
-The current behavior fails in public. It misses both affected records in the accessibility case and records the case as partial and escalated. The prior behavior hid an evidence gap behind a higher recall number.
+The current behavior exposes its failure. It misses both affected records in the accessibility case and records the case as partial and escalated. The prior behavior attached a higher recall number to evidence from the wrong delta.
 
-The regression tests now reject cross-delta evidence and require an abstention when the analyzer cannot connect old and new rules. A human still decides whether any recommendation enters an export. Those boundaries make each recommendation easier to audit, even though the benchmark records one extra miss.
+The regression tests reject cross-delta evidence and require an abstention when the analyzer cannot connect old and new rules. A human decides whether any recommendation enters an export. Reviewers can trace the remaining recommendations to one selected delta, even though the benchmark records one extra miss.
 
 ## Limits of the claim
 
-This result comes from one frozen, 100-record synthetic benchmark and a deterministic provider. It does not show that lower scores indicate better systems in general. It shows that this specific score decrease followed the removal of a tested unsupported inference.
+This result comes from one frozen, 100-record synthetic benchmark and a deterministic provider. It supports one narrow claim: this score decrease followed the removal of a tested unsupported inference. It cannot establish a general relationship between lower scores and system quality.
 
 RubricDelta can regain the lost point only through a new evidence source, such as a cited category migration or versioned label ontology. A benchmark-specific exception would contradict the claim.
 

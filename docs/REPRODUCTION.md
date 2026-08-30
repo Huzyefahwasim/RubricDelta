@@ -16,6 +16,18 @@ The manifest's Git booleans describe the post-generation, pre-publication state.
 ```bash
 git clone <submission-url>
 cd RubricDelta
+npm run validate:final
+npm test
+npm run replay:check
+git status --short
+npm start
+```
+
+The first three checks inspect the submitted release without regenerating evidence. `git status --short` must print no paths. Open `http://localhost:4173` and load the benchmark example.
+
+Use a second clean checkout for a source-level reproduction because these commands regenerate managed evidence:
+
+```bash
 npm test
 npm run eval
 npm run replay:check
@@ -25,7 +37,7 @@ npm run validate
 npm start
 ```
 
-Open `http://localhost:4173` and load the benchmark example.
+The release record at `artifacts/qa/release.json` identifies the source revision and the evidence-only publication chain. A clone without that record cannot pass `npm run validate:final`.
 
 ## Deterministic evaluation
 
@@ -112,6 +124,34 @@ The command derives verifier disagreement, uncertainty, and retry/recovery traje
 
 The command writes a hash-bound deterministic reference under `artifacts/expected-replay-report/`. Its `replayOperational: false` field describes that deterministic reference. The separate `eval:replay` artifacts record the operational replay run.
 
+## Release evidence commands
+
+The release operator runs the automated suite at the clean source revision:
+
+```bash
+npm run release:commands
+```
+
+The command records exactly `npm test`, `npm run eval`, `npm run replay:check`, `npm run eval:replay`, `npm run evidence`, `npm run validate`, and `git diff --check` under `artifacts/qa/commands/`. It publishes no command-suite marker unless all seven commands pass at one revision.
+
+Participant-controlled inputs use the ignored file `artifacts/tmp/release-session.json`. The operator then runs:
+
+```bash
+npm run release:human
+npm run release:development
+npm run release:video-check
+npm run release:compose
+```
+
+These commands use fixed inputs and outputs:
+
+- `release:human` reads the participant's browser run and writes `artifacts/qa/human/ledger.jsonl`, `artifacts/qa/human/export.csv`, and `artifacts/qa/human-review.json`.
+- `release:development` reads a real Codex export from `artifacts/tmp/codex-export.jsonl` and writes `artifacts/development-agent/trajectory.jsonl` plus its manifest after participant privacy-review PASS.
+- `release:video-check` inspects `artifacts/submission/demo.mp4` without claiming upload or playback.
+- `release:compose` writes category evidence, participant attestations, video evidence, `artifacts/qa/session.json`, and `artifacts/qa/release.json` only after every machine and participant gate passes.
+
+No source document substitutes for those artifacts. Their absence leaves the related participant or release claim unverified.
+
 ## Validator phases
 
 ```bash
@@ -119,15 +159,9 @@ npm run validate
 npm run validate:final
 ```
 
-`npm run validate` runs build mode and starts with `MODE: BUILD — NON-FINAL`. It validates the deterministic evidence plus all Task 8 provider, prompt, capture, replay, CLI, and artifact gates. It defers these five Task 9 paths:
+`npm run validate` checks build-time source, deterministic evidence, provider, prompt, capture, replay, CLI, and artifact contracts. It does not certify participant evidence.
 
-- `docs/MAIN_FAILURE_MODE.md`
-- `docs/HOT_TAKE.md`
-- `docs/MODEL_AND_COSTS.md`
-- `artifacts/qa/README.md`
-- `artifacts/submission/demo.mp4`
-
-`npm run validate:final` checks the final release evidence. Participant review, browser and accessibility QA, security review, clean-checkout proof, a playable video no longer than five minutes, development-agent evidence, and the release decision must use the final source revision.
+`npm run validate:final` adds hash-bound participant review, browser and accessibility QA, security review, clean-checkout proof, a playable H.264 video no longer than five minutes, development-agent evidence, upload/playback confirmation, and the participant's release decision. Every record must bind the source revision in the deterministic manifest.
 
 ## Expected outputs
 
@@ -139,7 +173,12 @@ npm run validate:final
 - one deterministic JSONL trajectory per case
 - replay manifest, summary, repetitions, raw predictions, resources, and provider traces
 - representative mechanism trajectories and deterministic reference hashes
+- seven command records and 11 release-category records
+- participant decision ledger and approved-only CSV
+- privacy-reviewed development-agent trajectory and manifest
+- inspected demo video plus upload/playback evidence
+- `artifacts/qa/release.json` as the post-freeze completion record
 
 ## Acceptance test
 
-A reviewer can reproduce the release when a clean checkout completes the clean setup commands, reports 16/20 and 18/20 on the deterministic run, verifies and runs the exact replay, starts the browser demo, records a participant decision, and exports only active approved corrections.
+A reviewer can reproduce the measured system when a clean checkout reports 16/20 and 18/20 on the deterministic run, verifies and runs the exact replay, and starts the browser workbench. The submitted release qualifies only when the untouched checkout also passes `npm run validate:final` and stays clean.

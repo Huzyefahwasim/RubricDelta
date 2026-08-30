@@ -6,7 +6,7 @@ Ship a judge-ready RubricDelta submission that demonstrates an end-to-end review
 
 ## Status convention
 
-A checked item has repository evidence. An unchecked item still needs implementation, final-revision verification, or participant action. A checked feature does not replace final browser QA or the participant's release decision.
+A checked item has source-repository evidence. An unchecked item requires final-revision evidence or participant action. After the source freeze, `artifacts/qa/release.json` records completion state so this source plan can remain unchanged. A checked feature does not replace final browser QA or the participant's release decision.
 
 ## Success conditions
 
@@ -57,11 +57,11 @@ Exit evidence: deterministic agent, verifier-boundary, trace-role, and evaluatio
 
 ### Phase 2B: Optional provider and replay release
 
-- [ ] Land the complete Task 8 CLI, provider, prompt, capture, fixture, and validator integration.
-- [ ] Expose `replay:check` and `eval:replay` commands that consume the exact deterministic-role capture.
-- [ ] Prove that replay binds benchmark, prompts, source, request order, model, mode, and all 50 calls.
-- [ ] Prove that explicit OpenAI and replay failures never substitute deterministic rankings.
-- [ ] Run the Task 8 focused suite and build validator on the integrated source.
+- [x] Land the complete Task 8 CLI, provider, prompt, capture, fixture, and validator integration.
+- [x] Expose `replay:check` and `eval:replay` commands that consume the exact deterministic-role capture.
+- [x] Prove that replay binds benchmark, prompts, source, request order, model, mode, and all 50 calls.
+- [x] Prove that explicit OpenAI and replay failures never substitute deterministic rankings.
+- [x] Run the Task 8 focused suite and build validator on the integrated source.
 
 Exit gate: offline replay reproduces the deterministic comparison with replay provenance, while the default remains synchronous and network-free. No live OpenAI result is required.
 
@@ -92,11 +92,13 @@ Exit gate: final QA must show a judge completing the workflow at the final sourc
 ### Phase 5: Submission evidence and release
 
 - [x] Record the removed cross-delta inference experiment as EXP-002.
-- [ ] Record the baseline-to-final system bundle in the Improvement Changelog with linked evaluation evidence.
+- [x] Record the baseline-to-final system bundle in the Improvement Changelog with linked evaluation evidence.
 - [x] Document the main failure mode and supported hot take.
 - [x] Store representative deterministic product-agent trajectories.
 - [x] Document deterministic provider, model, calls, tokens, cost, and live-run limits.
-- [ ] Replace the clone placeholder with the published repository URL and exact directory.
+- [x] Add fail-closed release commands for automated, human, development-agent, video, and composition evidence.
+- [x] Make `artifacts/qa/release.json` the post-freeze completion authority.
+- [ ] Publish the repository URL through the participant-controlled submission platform.
 - [ ] Record final clean-run runtime and command output.
 - [ ] Run and record the clean-checkout reproduction.
 - [ ] Run and record the final Codex Security scan and accepted-fix verification.
@@ -106,7 +108,7 @@ Exit gate: final QA must show a judge completing the workflow at the final sourc
 - [ ] Record, measure, and upload the video at no more than 300 seconds.
 - [ ] Publish or package the final commit for judge access.
 
-Exit gate: `npm run validate:final` must pass its automated contracts, and the QA record must contain the separate human, browser, security, clean-clone, and video evidence.
+Exit gate: `npm run validate:final` must pass its automated contracts. The release record must bind separate human, browser, security, clean-clone, development-agent, and video evidence plus the participant's `approve release` decision.
 
 ## Decision log
 

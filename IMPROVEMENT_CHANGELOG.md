@@ -51,7 +51,7 @@ Record each experiment against the same evaluation contract. Include failed and 
 
 The advanced queue fails on `assistive-technology-blocker`. Vocabulary and boundary signals place `a11y-03` and `a11y-07` in the two review slots, while ground-truth affected records `a11y-02` and `a11y-04` fall outside the budget. See `docs/MAIN_FAILURE_MODE.md` for the release explanation.
 
-## Working hot take
+## Hot take
 
 Reviewer agreement cannot detect a shared misreading of the same guideline. Teams should measure which historical records a policy revision affects, then route the evidence to a qualified reviewer. See `docs/HOT_TAKE.md`.
 
@@ -117,3 +117,16 @@ Reviewer agreement cannot detect a shared misreading of the same guideline. Team
 - Causal limit: The after revision also added validation hardening. This record proves the source-bound before-and-after behavior and does not present the commit comparison as an isolated causal ablation.
 - Decision: Remove. Evidence integrity takes priority over the unsupported 19/20 result.
 - Evidence paths: `artifacts/experiments/exp-002-unsupported-inference/`, `scripts/verify-removed-experiment.js`, and `tests/removed-experiment.test.js`.
+
+## REL-009: Fail-closed release evidence and judge narrative
+
+- Date: 2026-08-30
+- Trigger: The Task 9 release audit found that source prose could drift from participant QA, privacy, security, video, and approval state after the source freeze.
+- Change: Added buffered release commands for automated checks, participant review, development-agent evidence, video inspection, and final composition. Aligned the judge-facing documents with canonical evidence paths and a 4 minutes 40 seconds demo target.
+- Evaluation command: `node --test tests/release-evidence.test.js` for the producer contract; Task 9 verification also runs the focused validator tests and `npm test`.
+- Before: Source checklists carried release state, and the model disclosure retained a stale Task 8 fixture warning.
+- After: `artifacts/qa/release.json` owns post-freeze completion state. The model disclosure cites the committed 50-entry deterministic-source fixture. Source documents make no participant QA, privacy approval, security PASS, video, upload, playback, live OpenAI, or platform-submission claim.
+- Cost or runtime change: No ranking change and no per-system runtime claim. The release commands add local verification work and zero provider cost.
+- Failure analysis: Before the source freeze, the Task 8 manifest names an older source revision. Under Controller Ruling 3, the corresponding current-repository build assertion remains the sole allowed full-suite failure through Task 5. Regeneration at the frozen source revision resolves that binding; weakening the validator would hide it.
+- Decision: Keep the evidence producer and source/evidence split. Participant-controlled facts enter the release record only after the participant supplies them.
+- Evidence paths: `scripts/release-evidence.js`, `tests/release-evidence.test.js`, `docs/REPRODUCTION.md`, `docs/DEVELOPMENT_AGENT_DISCLOSURE.md`, and `artifacts/qa/release.json` when the release composer succeeds.
