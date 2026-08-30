@@ -20,7 +20,10 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluatePredictions, loadBenchmark } from "../src/evaluation/index.js";
 import { canonicalTextSha256 } from "../src/evaluation/evidence-hash.js";
-import { containsCredentialLikeText } from "../src/domain/credentials.js";
+import {
+  containsCredentialLikeText,
+  redactCredentialLikeText,
+} from "../src/domain/credentials.js";
 import {
   QA_CATEGORIES,
   REQUIRED_RELEASE_COMMANDS,
@@ -46,6 +49,8 @@ import {
 const scriptRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MAX_JSON_BYTES = 16 * 1024 * 1024;
 const MAX_REPLAY_BYTES = 8 * 1024 * 1024;
+// Keep every validator diagnostic safe for one-line terminal and log consumers.
+const MAX_DIAGNOSTIC_CHARACTERS = 512;
 const GOLD_FIELDS = /groundTruth|affectedRecordIds|expectedLabels|rationales/i;
 const ROLE_SET = new Set(["rule-compiler", "change-analyst", "impact-investigator", "skeptical-verifier", "orchestrator"]);
 const PROVIDER_ROLES = ["rule-compiler", "change-analyst", "impact-investigator", "independent-verifier"];
@@ -246,6 +251,19 @@ function containsSecret(value) {
   return containsCredentialLikeText(source);
 }
 
+function sanitizeDiagnostic(value) {
+  const singleLine = redactCredentialLikeText(String(value))
+    .replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+  if (singleLine.length <= MAX_DIAGNOSTIC_CHARACTERS) return singleLine;
+  const marker = " ... ";
+  const available = MAX_DIAGNOSTIC_CHARACTERS - marker.length;
+  const headLength = Math.ceil(available / 2);
+  const tailLength = available - headLength;
+  return `${singleLine.slice(0, headLength)}${marker}${singleLine.slice(-tailLength)}`;
+}
+
 class Validation {
   constructor(root) {
     this.root = root;
@@ -255,7 +273,7 @@ class Validation {
 
   fail(kind, path, detail) {
     const location = typeof path === "string" && isAbsolute(path) ? rel(this.root, path) : path;
-    this.errors.push(`${kind}: ${location}${detail ? ` — ${detail}` : ""}`);
+    this.errors.push(sanitizeDiagnostic(`${kind}: ${location}${detail ? ` — ${detail}` : ""}`));
   }
 
   pass(detail) {
@@ -1501,7 +1519,7 @@ function validateQaRelease(validation) {
   for (const category of QA_CATEGORIES) {
     const status = release.categories?.[category]?.status;
     if (status !== undefined && status !== "PASS") {
-      validation.fail("RELEASE QA", "artifacts/qa/release.json", `${category} must be PASS, never ${status}`);
+      validation.fail("RELEASE QA", "artifacts/qa/release.json", `${category} must be PASS; non-PASS values are rejected`);
     }
   }
   const categoryPathList = Object.values(release.categories ?? {}).map((record) => record?.evidencePath);
