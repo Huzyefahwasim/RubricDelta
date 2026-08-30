@@ -35,7 +35,7 @@ Compare `16/20 = 0.80` baseline recall with `18/20 = 0.90` advanced recall on th
 
 ## 3:50 to 4:20: Improvement evidence
 
-Open the Improvement Changelog. Describe the four-stage system as the measured bundle, not proof that any one stage caused the gain. Show the removed cross-delta inference experiment, its `19/20` to `18/20` score change, and the evidence defect that justified removal.
+Open the Improvement Changelog. The benchmark measures the complete four-stage system against the lexical baseline. No isolated stage experiment identifies the cause of the gain. Show the removed cross-delta inference experiment, its `19/20` to `18/20` score change, and the evidence defect that justified removal.
 
 ## 4:20 to 4:40: Reproduction and hot take
 

@@ -96,7 +96,7 @@ The fixture contains 50 ordered deterministic captures: ten direct-baseline call
 - zero provider latency and cost
 - `networkRequired: false`
 
-Replay must reproduce baseline 0.80 and advanced 0.90. It verifies request order, prompt, benchmark, source, model, mode, repetition, result, and resource bindings. This is deterministic-source replay, not a live-model run or result. The fixture came from deterministic role capture, contains no OpenAI responses, and provides no live-model evidence.
+Replay must reproduce baseline 0.80 and advanced 0.90. Deterministic-source replay validates the captured request and result bindings. The fixture contains no OpenAI responses and provides no evidence about live-model behavior.
 
 ## Optional OpenAI evaluation
 

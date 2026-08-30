@@ -26,8 +26,10 @@ test("judge reproduction, security, ownership, and demo wording remain release-a
     reproduction,
     new RegExp(`git clone ${remote.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} RubricDelta-source\\s+cd RubricDelta-source`),
   );
-  assert.match(reproduction, /deterministic-source replay/i);
-  assert.match(reproduction, /(?:not|no) (?:a )?live-model (?:run|result|evidence)/i);
+  assert.match(
+    reproduction,
+    /Deterministic-source replay validates the captured request and result bindings\.\s+The fixture contains no OpenAI responses and provides no evidence about live-model behavior\./,
+  );
 
   assert.match(security, /security (?:scan|review).*(?:source )?revision|(?:source )?revision.*security (?:scan|review)/i);
   assert.match(security, /artifacts\/qa\/release\.json/i);
@@ -36,7 +38,10 @@ test("judge reproduction, security, ownership, and demo wording remain release-a
   assert.doesNotMatch(failureMode, /\bThe team\b/i);
   assert.match(failureMode, /current implementation/i);
   assert.doesNotMatch(demo, /largest supported measured system bundle|stage-level causal attribution|isolated stage ablation/i);
-  assert.match(demo, /measured bundle.{0,100}not.{0,60}(?:one|any) stage/is);
+  assert.match(
+    demo,
+    /The benchmark measures the complete four-stage system against the lexical baseline\.\s+No isolated stage experiment identifies the cause of the gain\./,
+  );
 
   for (const source of [reproduction, security, failureMode, demo]) {
     assert.doesNotMatch(source, /participant (?:has |already )?(?:completed|approved|confirmed) (?:the )?(?:release|review|upload|playback)/i);
