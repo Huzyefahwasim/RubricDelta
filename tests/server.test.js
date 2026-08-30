@@ -10,6 +10,7 @@ import { requestPathIsSafe } from "../src/server/router.js";
 import { createRubricDeltaApplication } from "../src/server/app.js";
 import { createServerDataService } from "../src/composition.js";
 import { createArtifactStore } from "../src/artifacts/store.js";
+import { containsCredentialLikeText } from "../src/domain/credentials.js";
 
 function rawRequest(url, { method = "POST", headers = {}, chunks = [] } = {}) {
   return new Promise((resolve, reject) => {
@@ -554,6 +555,60 @@ test("runtime redacts every validator credential format without changing ordinar
     const content = await readFile(join(current.path, name), "utf8");
     persisted.set(name, content);
     for (const credential of credentials) assert.equal(content.includes(credential.fragment), false, `${name}: ${credential.name}`);
+  }
+  assert.equal(persisted.get("input.json").includes(scenarioMarker), true);
+  assert.equal(persisted.get("state.json").includes(scenarioMarker), true);
+  assert.equal(persisted.get("decisions.json").includes(decisionMarker), true);
+  assert.equal(persisted.get("trajectory.jsonl").includes(decisionMarker), true);
+  assert.equal(persisted.get("export.csv").includes(decisionMarker), true);
+});
+test("runtime redacts unterminated PEM material through the end of each field", async (t) => {
+  const scenarioMarker = "ordinary scenario text before PEM remains visible";
+  const decisionMarker = "ordinary decision text before PEM remains visible";
+  const privateBody = "MIIEunterminatedprivatekeymaterial123456";
+  const privateTail = "after-pem-private-context";
+  const unterminatedPem = `-----BEGIN PRIVATE KEY-----\n${privateBody}\n${privateTail}`;
+  const { server, artifactRoot } = await startServer(t);
+  const demo = await (await fetch(`${server.address()}/api/demo`)).json();
+  demo.scenario.records[0].text += `\n${scenarioMarker}\n${unterminatedPem}`;
+  const createdResponse = await fetch(`${server.address()}/api/runs`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ scenario: demo.scenario }),
+  });
+  assert.equal(createdResponse.status, 201);
+  const createdText = await createdResponse.text();
+  assert.equal(createdText.includes(scenarioMarker), true);
+  assert.equal(createdText.includes(privateBody), false);
+  assert.equal(createdText.includes(privateTail), false);
+  assert.equal(createdText.includes("-----BEGIN PRIVATE KEY-----"), false);
+  assert.equal(containsCredentialLikeText(unterminatedPem), true);
+  const created = JSON.parse(createdText);
+  const recordId = created.run.recommendations[0].recordId;
+  const decisionResponse = await fetch(`${server.address()}/api/runs/${created.runId}/decisions`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      recordId,
+      decision: "approve",
+      reviewer: "judge",
+      reason: `${decisionMarker}\n${unterminatedPem}`,
+    }),
+  });
+  assert.equal(decisionResponse.status, 200);
+  const decisionText = await decisionResponse.text();
+  assert.equal(decisionText.includes(decisionMarker), true);
+  assert.equal(decisionText.includes(privateBody), false);
+  assert.equal(decisionText.includes(privateTail), false);
+  assert.equal(decisionText.includes("-----BEGIN PRIVATE KEY-----"), false);
+  const current = await currentRevisionRoot(artifactRoot, created.runId);
+  const persisted = new Map();
+  for (const name of ["input.json", "state.json", "decisions.json", "trajectory.jsonl", "export.csv"]) {
+    const content = await readFile(join(current.path, name), "utf8");
+    persisted.set(name, content);
+    assert.equal(content.includes(privateBody), false, name);
+    assert.equal(content.includes(privateTail), false, name);
+    assert.equal(content.includes("-----BEGIN PRIVATE KEY-----"), false, name);
   }
   assert.equal(persisted.get("input.json").includes(scenarioMarker), true);
   assert.equal(persisted.get("state.json").includes(scenarioMarker), true);
