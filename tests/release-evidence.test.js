@@ -73,6 +73,33 @@ async function temporaryRepository(t) {
   return root;
 }
 
+async function realCommandRepository(t) {
+  const root = await temporaryRepository(t);
+  await writeJson(root, "package.json", {
+    type: "module",
+    scripts: {
+      test: "node record-command.mjs npm-test",
+      eval: "node record-command.mjs npm-run-eval",
+      "replay:check": "node record-command.mjs npm-run-replay-check",
+      "eval:replay": "node record-command.mjs npm-run-eval-replay",
+      evidence: "node record-command.mjs npm-run-evidence",
+      validate: "node record-command.mjs npm-run-validate",
+    },
+  });
+  await writeRelative(root, "record-command.mjs", [
+    'import { appendFileSync, existsSync } from "node:fs";',
+    'if (existsSync("artifacts/qa/commands")) throw new Error("command evidence published before the allowlist completed");',
+    'appendFileSync("command-order.txt", `${process.argv[2]}\\n`);',
+    "",
+  ].join("\n"));
+  git(root, "add", "package.json", "record-command.mjs");
+  git(root, "commit", "--quiet", "-m", "real command fixture");
+  const manifest = await readJson(root, "artifacts/evaluation/manifest.json");
+  manifest.git.revision = git(root, "rev-parse", "HEAD");
+  await writeJson(root, "artifacts/evaluation/manifest.json", manifest);
+  return root;
+}
+
 function timestampSequence() {
   let offset = 0;
   return () => new Date(Date.parse(startedAt) + offset++ * 1_000).toISOString();
@@ -646,6 +673,17 @@ test("command collection runs the exact allowlist in order before publishing has
     assert.equal(evidence.stdoutBytes, Buffer.byteLength(`passed ${record.command}; pending fixture text`));
     assert.doesNotMatch(bytes.toString("utf8"), /\bPENDING\b/i);
   }
+});
+
+test("default command runner buffers all records until the real allowlist succeeds", async (t) => {
+  const root = await realCommandRepository(t);
+  const records = await runCommandSuite({ root, now: timestampSequence() });
+  assert.equal(
+    await readFile(join(root, "command-order.txt"), "utf8"),
+    "npm-test\nnpm-run-eval\nnpm-run-replay-check\nnpm-run-eval-replay\nnpm-run-evidence\nnpm-run-validate\n",
+  );
+  assert.deepEqual(records.map(({ id, command }) => ({ id, command })), REQUIRED_RELEASE_COMMANDS);
+  assert.deepEqual(await qaCommandFiles(root), REQUIRED_RELEASE_COMMANDS.map((item) => `${item.id}.json`).sort());
 });
 
 test("command collection rejects dirty source before executing any command", async (t) => {

@@ -117,10 +117,11 @@ function commandProcess(root, command) {
   const required = REQUIRED_RELEASE_COMMANDS.find((item) => item.command === command);
   if (!required) throw new Error(`Command is not allowlisted: ${command}`);
   const isGit = command === "git diff --check";
-  const executable = isGit ? "git" : process.platform === "win32" ? "npm.cmd" : "npm";
+  const npmArgs = command.split(" ").slice(1);
+  const executable = isGit ? "git" : process.platform === "win32" ? "cmd.exe" : "npm";
   const args = isGit
     ? ["-c", `safe.directory=${root.replaceAll("\\", "/")}`, "-C", root, "diff", "--check"]
-    : command.split(" ").slice(1);
+    : process.platform === "win32" ? ["/d", "/s", "/c", "npm.cmd", ...npmArgs] : npmArgs;
   const result = spawnSync(executable, args, {
     cwd: root,
     encoding: "utf8",
