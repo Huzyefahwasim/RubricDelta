@@ -4,6 +4,7 @@ import { extname, isAbsolute, relative, resolve, sep } from "node:path";
 import { analyzeScenario } from "../agents/workflow.js";
 import { createArtifactStore } from "../artifacts/store.js";
 import { exportApprovedCSV } from "../domain/csv.js";
+import { redactCredentialLikeText } from "../domain/credentials.js";
 import { createDecisionLedger } from "../domain/decisions.js";
 import { responseHeaders } from "./headers.js";
 
@@ -150,7 +151,7 @@ function sanitizeHumanText(value) {
   let clean = value;
   const configuredSecret = process.env.OPENAI_API_KEY;
   if (configuredSecret) clean = clean.replaceAll(configuredSecret, "[REDACTED]");
-  return clean.replace(/\bsk-[A-Za-z0-9_-]{8,}\b/g, "[REDACTED]").trim();
+  return redactCredentialLikeText(clean).trim();
 }
 
 function sanitizeValue(value) {

@@ -490,17 +490,38 @@ test("ambiguous transfer framing is rejected with secured connection-close error
   assert.match(response, /Connection: close/i);
   assert.doesNotMatch(response, /node:internal|stack|D:\\/i);
 });
-test("browser-supplied secrets are redacted from responses and persisted run artifacts", async (t) => {
-  const secret = "sk-serversecret123456789";
+test("runtime redacts every validator credential format without changing ordinary text", async (t) => {
+  const configuredSecret = "configured-runtime-secret-value-123456";
+  const credentials = [
+    { name: "OpenAI key", value: "sk-serversecret123456789", fragment: "sk-serversecret123456789" },
+    { name: "Bearer token", value: "Bearer runtime-bearer-token-123456", fragment: "runtime-bearer-token-123456" },
+    { name: "GitHub classic token", value: "ghp_abcdefghijklmnopqrstuvwxyz123456", fragment: "ghp_abcdefghijklmnopqrstuvwxyz123456" },
+    { name: "GitHub fine-grained token", value: "github_pat_abcdefghijklmnopqrstuvwxyz123456", fragment: "github_pat_abcdefghijklmnopqrstuvwxyz123456" },
+    { name: "Slack token", value: "xoxb-1234567890-abcdefghij", fragment: "xoxb-1234567890-abcdefghij" },
+    { name: "AWS access key", value: "AKIAABCDEFGHIJKLMNOP", fragment: "AKIAABCDEFGHIJKLMNOP" },
+    { name: "Google API key", value: "AIzaabcdefghijklmnopqrstuvwx", fragment: "AIzaabcdefghijklmnopqrstuvwx" },
+    { name: "Stripe live key", value: "rk_live_abcdefghijklmnop", fragment: "rk_live_abcdefghijklmnop" },
+    { name: "JWT", value: "eyJabcdefghij.abcdefghijk.abcdefghijk", fragment: "eyJabcdefghij.abcdefghijk.abcdefghijk" },
+    {
+      name: "PEM private key",
+      value: "-----BEGIN PRIVATE KEY-----\nMIIEruntimecredentialmaterial\n-----END PRIVATE KEY-----",
+      fragment: "MIIEruntimecredentialmaterial",
+    },
+    { name: "credential assignment", value: "client_secret=runtimeassignment123456", fragment: "runtimeassignment123456" },
+    { name: "OpenAI assignment", value: "OPENAI_API_KEY=runtimeopenaiassignment123456", fragment: "runtimeopenaiassignment123456" },
+    { name: "configured OpenAI key", value: configuredSecret, fragment: configuredSecret },
+  ];
+  const scenarioMarker = "ordinary scenario text remains visible";
+  const decisionMarker = "ordinary decision text remains visible";
   const previous = process.env.OPENAI_API_KEY;
-  process.env.OPENAI_API_KEY = secret;
+  process.env.OPENAI_API_KEY = configuredSecret;
   t.after(() => {
     if (previous === undefined) delete process.env.OPENAI_API_KEY;
     else process.env.OPENAI_API_KEY = previous;
   });
   const { server, artifactRoot } = await startServer(t);
   const demo = await (await fetch(`${server.address()}/api/demo`)).json();
-  demo.scenario.records[0].text += ` supplied ${secret}`;
+  demo.scenario.records[0].text += ` ${scenarioMarker}\n${credentials.map(({ value }) => value).join("\n")}`;
   const createdResponse = await fetch(`${server.address()}/api/runs`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -508,22 +529,37 @@ test("browser-supplied secrets are redacted from responses and persisted run art
   });
   assert.equal(createdResponse.status, 201);
   const createdText = await createdResponse.text();
-  assert.doesNotMatch(createdText, new RegExp(secret));
+  for (const { name, fragment } of credentials) assert.equal(createdText.includes(fragment), false, name);
+  assert.equal(createdText.includes(scenarioMarker), true);
   const created = JSON.parse(createdText);
   const recordId = created.run.recommendations[0].recordId;
   const decisionResponse = await fetch(`${server.address()}/api/runs/${created.runId}/decisions`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ recordId, decision: "approve", reviewer: "judge", reason: `contains ${secret} and sk-othersecret987654` }),
+    body: JSON.stringify({
+      recordId,
+      decision: "approve",
+      reviewer: `judge ${credentials[1].value}`,
+      reason: `${decisionMarker}\n${credentials.map(({ value }) => value).join("\n")}`,
+    }),
   });
   const decisionText = await decisionResponse.text();
   assert.equal(decisionResponse.status, 200);
-  assert.doesNotMatch(decisionText, /sk-(?:serversecret|othersecret)/);
+  for (const { name, fragment } of credentials) assert.equal(decisionText.includes(fragment), false, name);
+  const decision = JSON.parse(decisionText);
+  assert.equal(decision.event.reason.includes(decisionMarker), true);
   const current = await currentRevisionRoot(artifactRoot, created.runId);
+  const persisted = new Map();
   for (const name of ["input.json", "state.json", "decisions.json", "trajectory.jsonl", "export.csv"]) {
     const content = await readFile(join(current.path, name), "utf8");
-    assert.doesNotMatch(content, /sk-(?:serversecret|othersecret)/, name);
+    persisted.set(name, content);
+    for (const credential of credentials) assert.equal(content.includes(credential.fragment), false, `${name}: ${credential.name}`);
   }
+  assert.equal(persisted.get("input.json").includes(scenarioMarker), true);
+  assert.equal(persisted.get("state.json").includes(scenarioMarker), true);
+  assert.equal(persisted.get("decisions.json").includes(decisionMarker), true);
+  assert.equal(persisted.get("trajectory.jsonl").includes(decisionMarker), true);
+  assert.equal(persisted.get("export.csv").includes(decisionMarker), true);
 });
 test("request path validation rejects Windows filesystem aliases before lookup", () => {
   for (const path of ["/app.js%3A%24DATA", "/CON", "/con.txt", "/LPT1.css", "/app.js.", "/asset%20", "/HIDDEN~1", "/FILE~12.TXT"]) {
