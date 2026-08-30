@@ -743,6 +743,25 @@ test("MP4 inspection can be imported without running submission validation", () 
   assert.equal(typeof inspectMp4, "function");
 });
 
+test("MP4 inspection enforces one cumulative box budget across top-level and child boxes", () => {
+  const mvhd = Buffer.alloc(20);
+  mvhd.writeUInt32BE(1_000, 12);
+  mvhd.writeUInt32BE(1_000, 16);
+  const movieChildren = Buffer.concat([
+    isoBox("mvhd", mvhd),
+    ...Array.from({ length: 9_998 }, () => isoBox("free")),
+  ]);
+  const malicious = Buffer.concat([
+    isoBox("ftyp", Buffer.alloc(8)),
+    isoBox("moov", movieChildren),
+  ]);
+  assert.ok(malicious.length < 128 * 1024);
+  assert.throws(
+    () => inspectMp4(malicious),
+    { message: "ISO-BMFF box enumeration exceeds bounded validation limit" },
+  );
+});
+
 test("video check prints inspected hash and AVC metadata without claiming upload acceptance", async (t) => {
   const root = await temporaryRepository(t);
   const video = validAvcVideo();

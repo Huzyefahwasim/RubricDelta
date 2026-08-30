@@ -1145,7 +1145,16 @@ function scanAbsoluteTree(validation, rootPath, label) {
   validation.passIfClean(start, "isolated replay artifact scan completed");
 }
 
-function parseIsoBoxes(buffer, start = 0, end = buffer.length) {
+const MAX_ISO_BOXES = 10_000;
+const ISO_BOX_BUDGET_ERROR = "ISO_BOX_BUDGET_EXCEEDED";
+
+function boxBudgetExceeded() {
+  const error = new Error("ISO-BMFF box enumeration exceeds bounded validation limit");
+  error.code = ISO_BOX_BUDGET_ERROR;
+  return error;
+}
+
+function parseIsoBoxes(buffer, start, end, budget) {
   const boxes = [];
   let offset = start;
   while (offset < end) {
@@ -1164,14 +1173,16 @@ function parseIsoBoxes(buffer, start = 0, end = buffer.length) {
       size = end - offset;
     }
     if (size < headerSize || offset + size > end) throw new Error("invalid ISO-BMFF box bounds");
+    if (budget.remaining === 0) throw boxBudgetExceeded();
+    budget.remaining -= 1;
     boxes.push({ type, start: offset, end: offset + size, dataStart: offset + headerSize });
     offset += size;
   }
   return boxes;
 }
 
-function childBoxes(buffer, box, offset = box.dataStart) {
-  return parseIsoBoxes(buffer, offset, box.end);
+function childBoxes(buffer, box, budget, offset = box.dataStart) {
+  return parseIsoBoxes(buffer, offset, box.end, budget);
 }
 
 function movieDurationSeconds(buffer, mvhd) {
@@ -1320,13 +1331,14 @@ function validateAvcSamplePayloads(buffer, sampleRanges, lengthSize) {
 }
 export function inspectMp4(buffer) {
   if (buffer.length > 512 * 1024 * 1024) throw new Error("video exceeds bounded validation size");
-  const top = parseIsoBoxes(buffer);
+  const boxBudget = { remaining: MAX_ISO_BOXES };
+  const top = parseIsoBoxes(buffer, 0, buffer.length, boxBudget);
   const ftyp = top.find((box) => box.type === "ftyp");
   const moov = top.find((box) => box.type === "moov");
   const mediaBoxes = top.filter((box) => box.type === "mdat");
   const mediaBytes = mediaBoxes.reduce((total, box) => total + box.end - box.dataStart, 0);
   if (!ftyp || ftyp.end - ftyp.dataStart < 8 || !moov) throw new Error("ISO-BMFF ftyp or moov metadata is missing");
-  const movie = childBoxes(buffer, moov);
+  const movie = childBoxes(buffer, moov, boxBudget);
   const mvhd = movie.find((box) => box.type === "mvhd");
   if (!mvhd) throw new Error("ISO-BMFF moov box has no mvhd metadata");
   const durationSeconds = movieDurationSeconds(buffer, mvhd);
@@ -1334,17 +1346,17 @@ export function inspectMp4(buffer) {
   if (durationSeconds > 300) { const error = new Error(`${durationSeconds.toFixed(2)} seconds exceeds five minutes`); error.code = "VIDEO_TOO_LONG"; throw error; }
   let accepted = null;
   for (const trak of movie.filter((box) => box.type === "trak")) {
-    const track = childBoxes(buffer, trak);
+    const track = childBoxes(buffer, trak, boxBudget);
     const tkhd = track.find((box) => box.type === "tkhd");
     const mdia = track.find((box) => box.type === "mdia");
     if (!tkhd || !mdia) continue;
-    const media = childBoxes(buffer, mdia);
+    const media = childBoxes(buffer, mdia, boxBudget);
     const hdlr = media.find((box) => box.type === "hdlr");
     const minf = media.find((box) => box.type === "minf");
     if (!hdlr || !minf || hdlr.end - hdlr.dataStart < 12 || buffer.toString("ascii", hdlr.dataStart + 8, hdlr.dataStart + 12) !== "vide") continue;
-    const stbl = childBoxes(buffer, minf).find((box) => box.type === "stbl");
+    const stbl = childBoxes(buffer, minf, boxBudget).find((box) => box.type === "stbl");
     if (!stbl) continue;
-    const tables = childBoxes(buffer, stbl);
+    const tables = childBoxes(buffer, stbl, boxBudget);
     const stsd = tables.find((box) => box.type === "stsd");
     const stts = tables.find((box) => box.type === "stts");
     const stsc = tables.find((box) => box.type === "stsc");
@@ -1362,8 +1374,9 @@ export function inspectMp4(buffer) {
     let configBox = null;
     if (sampleChildrenStart < sampleOffset + sampleSize) {
       try {
-        configBox = parseIsoBoxes(buffer, sampleChildrenStart, sampleOffset + sampleSize).find((box) => box.type === "avcC" && box.end > box.dataStart) ?? null;
-      } catch {
+        configBox = parseIsoBoxes(buffer, sampleChildrenStart, sampleOffset + sampleSize, boxBudget).find((box) => box.type === "avcC" && box.end > box.dataStart) ?? null;
+      } catch (error) {
+        if (error?.code === ISO_BOX_BUDGET_ERROR) throw error;
         configBox = null;
       }
     }
