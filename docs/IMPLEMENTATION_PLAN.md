@@ -120,6 +120,8 @@ Exit gate: `npm run validate:final` must pass its automated contracts. The relea
 
 Task 5 does not change benchmark cases, ground truth, protocol v2, metrics, providers, prompts, replay bytes, deterministic rankings, or the seven recorded commands. The addendum becomes complete only after focused release/validator tests, replay verification, the full suite, and a disposable clean-clone bootstrap check.
 
+Verification distinguishes the main source checkout's expected R3 stale manifest failure, where managed evaluation evidence is deliberately left untouched, from a disposable clean clone. In the clone, the unrecorded `npm run eval` bootstrap refreshes managed evidence and the same suite must pass without an R3 failure.
+
 ## Decision log
 
 | Date | Decision | Reason |

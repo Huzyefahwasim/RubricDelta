@@ -43,7 +43,7 @@ A reviewer who trusts rank alone could spend the full accessibility budget on ap
 
 The next evidence-safe experiment should add an explicit old-to-new category relation supplied by the policy document or a versioned label ontology. The agent may use that relation only when it cites both rule versions. The experiment must run against the same frozen cases, seed, provider, and review budget. It must not read ground truth during ranking.
 
-The team kept the abstention because no tested implementation establishes that relation without benchmark-specific knowledge.
+The current implementation keeps the abstention because no tested approach establishes that relation without benchmark-specific knowledge.
 
 This mitigation remains an experiment proposal. The submitted artifacts contain no result for an ontology-backed recovery.
 
