@@ -154,11 +154,24 @@ npm run release:compose
 These commands use fixed inputs and outputs:
 
 - `release:human` reads the participant's browser run and writes `artifacts/qa/human/ledger.jsonl`, `artifacts/qa/human/export.csv`, and `artifacts/qa/human-review.json`.
-- `release:development` reads a real Codex export from `artifacts/tmp/codex-export.jsonl` and writes `artifacts/development-agent/trajectory.jsonl` plus its manifest after participant privacy-review PASS.
+- `release:development` reads a real newline-terminated Codex export from `artifacts/tmp/codex-export.jsonl`. The participant records the SHA-256 of those exact reviewed bytes as `privacyReview.sourceSha256` in the ignored session input. Collection rejects a mismatch before parsing and publishes the reviewed bytes unchanged to `artifacts/development-agent/trajectory.jsonl`; its manifest and final session retain the same hash.
 - `release:video-check` inspects `artifacts/submission/demo.mp4` without claiming upload or playback.
 - `release:compose` writes category evidence, participant attestations, video evidence, `artifacts/qa/session.json`, and `artifacts/qa/release.json` only after every machine and participant gate passes.
 
 No source document substitutes for those artifacts. Their absence leaves the related participant or release claim unverified.
+
+The relevant ignored-session fragment is:
+
+```json
+{
+  "privacyReview": {
+    "status": "PASS",
+    "reviewer": { "kind": "participant", "id": "<participant-reviewer-id>" },
+    "reviewedAt": "<RFC3339-UTC-timestamp>",
+    "sourceSha256": "<sha256-of-exact-newline-terminated-artifacts/tmp/codex-export.jsonl>"
+  }
+}
+```
 
 ## Validator phases
 

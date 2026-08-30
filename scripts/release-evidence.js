@@ -348,11 +348,12 @@ function closeReleaseSession(value) {
     };
   }
   if (Object.hasOwn(session, "privacyReview")) {
-    const review = exactSessionObject(session.privacyReview, new Set(["status", "reviewer", "reviewedAt"]), "Release session privacyReview");
+    const review = exactSessionObject(session.privacyReview, new Set(["status", "reviewer", "reviewedAt", "sourceSha256"]), "Release session privacyReview");
     closed.privacyReview = {
       status: review.status,
       reviewer: closedParticipant(review.reviewer, "Release session privacyReview reviewer"),
       reviewedAt: review.reviewedAt,
+      sourceSha256: review.sourceSha256,
     };
   }
   if (Object.hasOwn(session, "categories")) {
@@ -608,15 +609,19 @@ export async function collectDevelopmentEvidence(options = {}) {
   const revision = await sourceRevisionFromSession(root, session);
   if (session?.privacyReview?.status !== "PASS") throw new Error("Participant privacy review must be PASS before development evidence publication");
   const sourceBytes = await readBounded(root, options.source, "artifacts/tmp/codex-export.jsonl");
+  const sourceSha256 = sha256Bytes(sourceBytes);
+  if (session.privacyReview.sourceSha256 !== sourceSha256) {
+    throw new Error("Participant privacy review sourceSha256 must match the exact Codex export bytes");
+  }
   const events = jsonLines(sourceBytes, "Codex export");
   const runId = validateDevelopmentEvents(events);
-  const trajectoryBytes = Buffer.from(`${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
+  const trajectoryBytes = sourceBytes;
   const manifest = buildDevelopmentManifest({
     revision,
     runId,
     eventCount: events.length,
     trajectoryPath: "artifacts/development-agent/trajectory.jsonl",
-    trajectorySha256: sha256Bytes(trajectoryBytes),
+    trajectorySha256: sourceSha256,
     privacyReview: session.privacyReview,
   });
   await publishGeneration(

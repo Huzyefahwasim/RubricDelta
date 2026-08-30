@@ -197,7 +197,7 @@ Run the focused test and confirm it fails before implementing `collectHumanRevie
 
 `collectHumanReview()` reads the exact revision named by `artifacts/runs/RUN_ID/current.json`, where `RUN_ID` comes from the participant-reviewed session input. It must bind the final ledger, CSV, trajectory, reviewer, source revision, and hashes.
 
-`collectDevelopmentEvidence()` reads a real Codex export at `artifacts/tmp/codex-export.jsonl`. It must verify contiguous sequence, one run ID, agent `codex`, source `codex-export`, ordered timestamps, substantive payloads, and the required event types `instruction`, `tool-call`, `tool-result`, `feedback`, and `verification`. It writes the canonical JSONL and a manifest only after the session input records participant privacy review PASS.
+`collectDevelopmentEvidence()` reads a real newline-terminated Codex export at `artifacts/tmp/codex-export.jsonl`. Before parsing, it must compare those exact bytes with the participant-approved `privacyReview.sourceSha256`. It then verifies contiguous sequence, one run ID, agent `codex`, source `codex-export`, ordered timestamps, substantive payloads, and the required event types `instruction`, `tool-call`, `tool-result`, `feedback`, and `verification`. It publishes the reviewed bytes unchanged and writes a manifest whose trajectory hash equals the reviewed source hash.
 
 - [ ] **Step 8: Make the existing MP4 inspection reusable without changing its rules**
 
@@ -620,13 +620,13 @@ The participant checks for credentials, private paths, personal information, unr
 
 - [ ] **Step 4: Record participant privacy review and collect evidence**
 
-After the participant states PASS, add the review time and reviewer kind to the ignored session input. Run:
+After the participant states PASS, hash the exact newline-terminated `artifacts/tmp/codex-export.jsonl` bytes and add that value as `privacyReview.sourceSha256` beside the review time and reviewer identity in the ignored session input. Run:
 
 ```text
 npm run release:development
 ```
 
-Expected: the canonical trajectory and manifest bind `SOURCE_REVISION`, exact hash, event count, run ID, source, agent, and participant privacy review.
+Expected: the canonical trajectory bytes are identical to the reviewed source bytes. `privacyReview.sourceSha256`, the manifest trajectory hash, and the final session bind that same hash together with `SOURCE_REVISION`, event count, run ID, source, agent, and participant privacy review.
 
 ### Task 10: Record, inspect, upload, and attest the demo video
 

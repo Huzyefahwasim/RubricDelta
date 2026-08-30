@@ -149,7 +149,12 @@ test("development trajectory cannot traverse outside its dedicated evidence root
   writeJson(project, "artifacts/development-agent/manifest.json", {
     schemaVersion: 1,
     artifactKind: "rubricdelta-development-agent-evidence",
-    privacyReview: { status: "PASS", reviewer: { kind: "participant" }, reviewedAt: "2026-08-30T00:00:00.000Z" },
+    privacyReview: {
+      status: "PASS",
+      reviewer: { kind: "participant" },
+      reviewedAt: "2026-08-30T00:00:00.000Z",
+      sourceSha256: sha256(bytes),
+    },
     source: "codex-export",
     agent: "codex",
     runId: "validator-codex-run",

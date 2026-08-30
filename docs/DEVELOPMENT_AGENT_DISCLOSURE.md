@@ -48,7 +48,7 @@ The tracked planning and audit trail includes:
 
 These files form a task log and repository audit trail. They do not qualify as the exported Codex development-agent trajectory.
 
-The canonical submission path is `artifacts/development-agent/trajectory.jsonl`. `npm run release:development` accepts actual `codex-export` events only after the participant reviews the exact JSONL bytes for credentials, private paths, personal information, unrelated conversation, and unsafe submission content. The command also writes `artifacts/development-agent/manifest.json`, which binds the source revision, trajectory hash, event count, run ID, agent, source, review time, and participant privacy-review PASS.
+The canonical submission path is `artifacts/development-agent/trajectory.jsonl`. `npm run release:development` accepts actual `codex-export` events only after the participant reviews the exact newline-terminated bytes at `artifacts/tmp/codex-export.jsonl` for credentials, private paths, personal information, unrelated conversation, and unsafe submission content. The ignored release session records those approved bytes as `privacyReview.sourceSha256`. Collection compares that hash before parsing, publishes the reviewed bytes unchanged, and writes `artifacts/development-agent/manifest.json` with the same privacy source hash and trajectory hash plus the source revision, event count, run ID, agent, source, review time, and participant privacy-review PASS.
 
 Treat the trajectory as release evidence only when `artifacts/qa/release.json` binds the development-agent category to that manifest. Source prose cannot certify the participant's privacy decision.
 

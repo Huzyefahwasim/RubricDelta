@@ -205,10 +205,14 @@ export function buildDevelopmentManifest(input) {
   if (!Number.isInteger(input.eventCount) || input.eventCount < 5) fail(kind, "eventCount must be at least five");
   canonicalPath(input.trajectoryPath, "artifacts/development-agent/trajectory.jsonl", kind, "trajectoryPath");
   sha256(input.trajectorySha256, kind, "trajectorySha256");
-  exactObject(input.privacyReview, new Set(["status", "reviewer", "reviewedAt"]), "privacy review");
+  exactObject(input.privacyReview, new Set(["status", "reviewer", "reviewedAt", "sourceSha256"]), "privacy review");
   if (input.privacyReview.status !== "PASS") fail(kind, "privacy review status must be PASS");
   const reviewer = participant(input.privacyReview.reviewer, "privacy review");
   timestamp(input.privacyReview.reviewedAt, kind, "privacyReview.reviewedAt");
+  sha256(input.privacyReview.sourceSha256, kind, "privacyReview.sourceSha256");
+  if (input.trajectorySha256 !== input.privacyReview.sourceSha256) {
+    fail(kind, "trajectorySha256 must equal the participant-reviewed privacyReview.sourceSha256");
+  }
   return {
     schemaVersion: 1,
     artifactKind: "rubricdelta-development-agent-evidence",
@@ -223,6 +227,7 @@ export function buildDevelopmentManifest(input) {
       status: "PASS",
       reviewer,
       reviewedAt: input.privacyReview.reviewedAt,
+      sourceSha256: input.privacyReview.sourceSha256,
     },
   };
 }

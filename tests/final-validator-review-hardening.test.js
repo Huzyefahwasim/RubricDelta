@@ -62,6 +62,10 @@ function failLines(command) {
   return output(command).split(/\r?\n/).filter((line) => line.startsWith("[FAIL]")).join("\n");
 }
 
+function passLines(command) {
+  return output(command).split(/\r?\n/).filter((line) => line.startsWith("[PASS]")).join("\n");
+}
+
 test("human undo restores the prior decision and exactly binds undo trajectory fields", (t) => {
   const project = fixture(t);
   const reviewer = "owner-reviewer";
@@ -175,4 +179,64 @@ test("development evidence rejects a structurally plausible manual fabrication",
   const command = run(project);
   assert.notEqual(command.status, 0, output(command));
   assert.match(failLines(command), /DEVELOPMENT TRAJECTORY.*(?:codex-export|export source|event count|run identity|agent identity)/i);
+});
+
+test("final-strict rejects a substituted development export even when its trajectory hash is recomputed", (t) => {
+  const project = fixture(t);
+  const revision = "a".repeat(40);
+  const runId = "codex-task-privacy-001";
+  const payloads = [
+    ["instruction", { instruction: "Implement the reviewed release evidence hardening." }],
+    ["tool-call", { tool: "shell", arguments: { command: "npm test" } }],
+    ["tool-result", { tool: "shell", result: "Command completed successfully." }],
+    ["feedback", { feedback: "Substituted private content that the participant did not review." }],
+    ["verification", { command: "npm test", status: "PASS", exitCode: 0 }],
+  ];
+  const events = payloads.map(([type, payload], index) => ({
+    schemaVersion: 1,
+    runId,
+    sequence: index + 1,
+    timestamp: `2026-08-30T00:00:0${index}.000Z`,
+    source: "codex-export",
+    agent: "codex",
+    type,
+    payload,
+  }));
+  const substitutedBytes = Buffer.from(`${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
+  const reviewedBytes = Buffer.from(substitutedBytes.toString("utf8").replace(
+    "Substituted private content that the participant did not review.",
+    "Participant-reviewed development feedback for the release.",
+  ));
+  write(project, "docs/DEVELOPMENT_AGENT_DISCLOSURE.md", `# Development evidence\n\n${"The privacy-reviewed artifacts/development-agent/ trajectory binds exact Codex export bytes and verification evidence. ".repeat(8)}\n`);
+  write(project, "artifacts/development-agent/trajectory.jsonl", substitutedBytes);
+  writeJson(project, "artifacts/development-agent/manifest.json", {
+    schemaVersion: 1,
+    artifactKind: "rubricdelta-development-agent-evidence",
+    revision,
+    source: "codex-export",
+    agent: "codex",
+    runId,
+    eventCount: events.length,
+    trajectoryPath: "artifacts/development-agent/trajectory.jsonl",
+    trajectorySha256: sha256(substitutedBytes),
+    privacyReview: {
+      status: "PASS",
+      reviewer: { kind: "participant", id: "owner-reviewer" },
+      reviewedAt: "2026-08-30T00:01:00.000Z",
+      sourceSha256: sha256(reviewedBytes),
+    },
+  });
+  writeJson(project, "artifacts/qa/release.json", {
+    schemaVersion: 1,
+    artifactKind: "rubricdelta-release-qa",
+    revision,
+    categories: {},
+    commands: [],
+    decision: { value: "approve release", actor: "participant" },
+  });
+
+  const command = run(project);
+  assert.notEqual(command.status, 0, output(command));
+  assert.match(failLines(command), /DEVELOPMENT TRAJECTORY.*(?:privacy|sourceSha256|substitut|reviewed source)/i);
+  assert.doesNotMatch(passLines(command), /privacy-reviewed development-agent trajectory is hash-bound and complete/i);
 });

@@ -38,7 +38,7 @@ This source checklist defines the release contract. `artifacts/qa/release.json` 
 - [ ] The participant exported or shared representative development-agent trajectories after checking them for private information.
 - [ ] The development trajectories show agent instructions, tool calls, tool results, feedback, retries, review, and verification.
 - [ ] The submission does not describe plans, task logs, or generated product trajectories as exported development-agent trajectories.
-- [ ] `artifacts/development-agent/trajectory.jsonl` and its manifest bind the participant's privacy-review PASS to the final source revision.
+- [ ] `privacyReview.sourceSha256`, `artifacts/development-agent/trajectory.jsonl`, its manifest, and the final session bind the participant's PASS to the exact reviewed newline-terminated Codex-export bytes and final source revision.
 
 ## Deliverable 1: Code and engineering record
 
@@ -86,7 +86,7 @@ This source checklist defines the release contract. `artifacts/qa/release.json` 
 - [ ] Immediately after source freeze, one unrecorded `npm run eval` bootstrap binds managed deterministic evidence to the frozen revision.
 - [ ] `npm run release:commands` records exactly seven PASS commands at the source revision.
 - [ ] `npm run release:human` binds the participant's approve, escalate, undo, and reject sequence to an approved-only CSV.
-- [ ] `npm run release:development` publishes only the privacy-reviewed Codex export.
+- [ ] `npm run release:development` compares `privacyReview.sourceSha256` before parsing and publishes only the exact privacy-reviewed Codex-export bytes unchanged.
 - [ ] `npm run release:video-check` validates the canonical H.264 video without claiming upload or playback.
 - [ ] `npm run release:compose` writes the 11 category records, participant attestations, and `artifacts/qa/release.json`.
 - [ ] `npm run validate:final` passes its automated contract checks.

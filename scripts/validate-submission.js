@@ -1526,10 +1526,12 @@ function validateDevelopmentEvidence(validation, release) {
   if (!manifest || manifest.schemaVersion !== 1 || manifest.artifactKind !== "rubricdelta-development-agent-evidence" || manifest.revision !== release?.revision
     || manifest.privacyReview?.status !== "PASS" || manifest.privacyReview?.reviewer?.kind !== "participant"
     || !RFC3339_TIMESTAMP.test(manifest.privacyReview?.reviewedAt ?? "")
+    || !/^[a-f0-9]{64}$/.test(manifest.privacyReview?.sourceSha256 ?? "")
     || manifest.source !== "codex-export" || manifest.agent !== "codex" || !/^[A-Za-z0-9][A-Za-z0-9._-]{3,120}$/.test(manifest.runId ?? "")
     || !Number.isInteger(manifest.eventCount) || manifest.eventCount < 5
-    || !/^[a-f0-9]{64}$/.test(manifest.trajectorySha256 ?? "")) {
-    validation.fail("DEVELOPMENT TRAJECTORY", "artifacts/development-agent/manifest.json", "privacy-reviewed revision/hash-bound codex-export evidence requires exact event count, participant review, run identity, and agent identity");
+    || !/^[a-f0-9]{64}$/.test(manifest.trajectorySha256 ?? "")
+    || manifest.trajectorySha256 !== manifest.privacyReview.sourceSha256) {
+    validation.fail("DEVELOPMENT TRAJECTORY", "artifacts/development-agent/manifest.json", "privacy-reviewed revision/hash-bound codex-export evidence requires exact participant-reviewed sourceSha256, event count, participant review, run identity, and agent identity");
     return;
   }
   const path = typeof manifest.trajectoryPath === "string" ? manifest.trajectoryPath : "artifacts/development-agent/trajectory.jsonl";
@@ -1547,7 +1549,10 @@ function validateDevelopmentEvidence(validation, release) {
     return;
   }
   const events = validation.jsonl(path);
-  if (manifest.trajectorySha256 !== sha256(readBounded(absolute))) validation.fail("DEVELOPMENT TRAJECTORY", path, "manifest hash differs from trajectory bytes");
+  const trajectorySha256 = sha256(readBounded(absolute));
+  if (manifest.trajectorySha256 !== trajectorySha256 || manifest.privacyReview.sourceSha256 !== trajectorySha256) {
+    validation.fail("DEVELOPMENT TRAJECTORY", path, "participant-reviewed sourceSha256 and manifest trajectory hash must equal the published trajectory bytes");
+  }
   if (events?.length !== manifest.eventCount || !validateDevelopmentEvents(events, manifest)) validation.fail("DEVELOPMENT TRAJECTORY", path, "events require exact manifest event count, contiguous sequence, RFC3339 timestamps, codex-export/run/agent identity, schema v1, and substantive type-specific payloads");
   const types = new Set((events ?? []).map((event) => event.type));
   for (const required of ["instruction", "tool-call", "tool-result", "feedback", "verification"]) if (!types.has(required)) validation.fail("DEVELOPMENT TRAJECTORY", path, `missing ${required} event`);

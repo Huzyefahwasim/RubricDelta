@@ -266,13 +266,14 @@ function validAvcVideo() {
   return value;
 }
 
-function completeSession(sourceRevision) {
+function completeSession(sourceRevision, sourceSha256) {
   return {
     ...humanSession(sourceRevision),
     privacyReview: {
       status: "PASS",
       reviewer: { kind: "participant", id: "owner-reviewer" },
       reviewedAt: "2026-08-30T12:02:00.000Z",
+      sourceSha256,
     },
     categories: Object.fromEntries(QA_CATEGORIES.map((category) => [category, {
       status: "PASS",
@@ -325,10 +326,11 @@ async function completeReleaseFixture(t) {
   });
   const human = await writeHumanFixture(root);
   await collectHumanReview({ root, session: "artifacts/tmp/release-session.json" });
-  const session = completeSession(human.session.sourceRevision);
-  await writeJson(root, "artifacts/tmp/release-session.json", session);
   const events = developmentEvents();
-  await writeRelative(root, "artifacts/tmp/codex-export.jsonl", `${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
+  const sourceBytes = Buffer.from(`${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
+  const session = completeSession(human.session.sourceRevision, sha256Bytes(sourceBytes));
+  await writeJson(root, "artifacts/tmp/release-session.json", session);
+  await writeRelative(root, "artifacts/tmp/codex-export.jsonl", sourceBytes);
   await collectDevelopmentEvidence({
     root,
     session: "artifacts/tmp/release-session.json",
@@ -472,15 +474,26 @@ test("development manifest requires a real privacy-reviewed Codex export", () =>
       status: "PASS",
       reviewer: { kind: "participant", id: "owner-reviewer" },
       reviewedAt: endedAt,
+      sourceSha256: hash,
     },
   };
   const manifest = buildDevelopmentManifest(input);
   assert.equal(manifest.source, "codex-export");
   assert.equal(manifest.agent, "codex");
+  assert.equal(manifest.privacyReview.sourceSha256, hash);
+  assert.equal(manifest.trajectorySha256, manifest.privacyReview.sourceSha256);
   assert.throws(() => buildDevelopmentManifest({
     ...input,
     privacyReview: { ...input.privacyReview, status: "PENDING" },
   }), /privacy|PASS/i);
+  assert.throws(() => buildDevelopmentManifest({
+    ...input,
+    privacyReview: {
+      status: "PASS",
+      reviewer: input.privacyReview.reviewer,
+      reviewedAt: input.privacyReview.reviewedAt,
+    },
+  }), /sourceSha256|privacy|hash/i);
   assert.throws(() => buildDevelopmentManifest({ ...input, eventCount: 4 }), /eventCount/i);
   assert.throws(() => buildDevelopmentManifest({ ...input, extra: true }), /unknown field/i);
 });
@@ -685,6 +698,7 @@ test("development collection publishes only contiguous substantive privacy-revie
   const root = await temporaryRepository(t);
   const sourceRevision = git(root, "rev-parse", "HEAD");
   const events = developmentEvents();
+  const sourceBytes = Buffer.from(`${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
   await writeJson(root, "artifacts/tmp/release-session.json", {
     schemaVersion: 1,
     sourceRevision,
@@ -692,9 +706,10 @@ test("development collection publishes only contiguous substantive privacy-revie
       status: "PASS",
       reviewer: { kind: "participant", id: "owner-reviewer" },
       reviewedAt: "2026-08-30T12:02:00.000Z",
+      sourceSha256: sha256Bytes(sourceBytes),
     },
   });
-  await writeRelative(root, "artifacts/tmp/codex-export.jsonl", `${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
+  await writeRelative(root, "artifacts/tmp/codex-export.jsonl", sourceBytes);
   const manifest = await collectDevelopmentEvidence({
     root,
     session: "artifacts/tmp/release-session.json",
@@ -708,12 +723,69 @@ test("development collection publishes only contiguous substantive privacy-revie
   assert.deepEqual(await readJson(root, "artifacts/development-agent/manifest.json"), manifest);
 });
 
+test("development collection publishes the exact participant-reviewed JSONL bytes unchanged", async (t) => {
+  const root = await temporaryRepository(t);
+  const sourceRevision = git(root, "rev-parse", "HEAD");
+  const sourceBytes = Buffer.from(`${developmentEvents().map((event) => `  ${JSON.stringify(event)} `).join("\n")}\n`);
+  const sourceSha256 = sha256Bytes(sourceBytes);
+  await writeJson(root, "artifacts/tmp/release-session.json", {
+    schemaVersion: 1,
+    sourceRevision,
+    privacyReview: {
+      status: "PASS",
+      reviewer: { kind: "participant", id: "owner-reviewer" },
+      reviewedAt: "2026-08-30T12:02:00.000Z",
+      sourceSha256,
+    },
+  });
+  await writeRelative(root, "artifacts/tmp/codex-export.jsonl", sourceBytes);
+  const manifest = await collectDevelopmentEvidence({
+    root,
+    session: "artifacts/tmp/release-session.json",
+    source: "artifacts/tmp/codex-export.jsonl",
+  });
+  const published = await readFile(join(root, "artifacts", "development-agent", "trajectory.jsonl"));
+  assert.deepEqual(published, sourceBytes);
+  assert.equal(manifest.privacyReview.sourceSha256, sourceSha256);
+  assert.equal(manifest.trajectorySha256, sourceSha256);
+});
+
+test("development collection rejects substitution after participant privacy review", async (t) => {
+  const root = await temporaryRepository(t);
+  const sourceRevision = git(root, "rev-parse", "HEAD");
+  const reviewedBytes = Buffer.from(`${developmentEvents().map((event) => JSON.stringify(event)).join("\n")}\n`);
+  const substituted = developmentEvents();
+  substituted[3].payload.feedback = "Substituted but still structurally valid private export content.";
+  const substitutedBytes = Buffer.from(`${substituted.map((event) => JSON.stringify(event)).join("\n")}\n`);
+  await writeJson(root, "artifacts/tmp/release-session.json", {
+    schemaVersion: 1,
+    sourceRevision,
+    privacyReview: {
+      status: "PASS",
+      reviewer: { kind: "participant", id: "owner-reviewer" },
+      reviewedAt: "2026-08-30T12:02:00.000Z",
+      sourceSha256: sha256Bytes(reviewedBytes),
+    },
+  });
+  await writeRelative(root, "artifacts/tmp/codex-export.jsonl", substitutedBytes);
+  await assert.rejects(
+    collectDevelopmentEvidence({
+      root,
+      session: "artifacts/tmp/release-session.json",
+      source: "artifacts/tmp/codex-export.jsonl",
+    }),
+    { message: "Participant privacy review sourceSha256 must match the exact Codex export bytes" },
+  );
+  await assert.rejects(readFile(join(root, "artifacts", "development-agent", "manifest.json")), /ENOENT/);
+});
+
 test("development collection rejects absent privacy approval or malformed event order before publication", async (t) => {
   for (const problem of ["privacy", "sequence"]) {
     const root = await temporaryRepository(t);
     const sourceRevision = git(root, "rev-parse", "HEAD");
     const events = developmentEvents();
     if (problem === "sequence") events[3].sequence = 9;
+    const sourceBytes = Buffer.from(`${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
     await writeJson(root, "artifacts/tmp/release-session.json", {
       schemaVersion: 1,
       sourceRevision,
@@ -721,9 +793,10 @@ test("development collection rejects absent privacy approval or malformed event 
         status: problem === "privacy" ? "PENDING" : "PASS",
         reviewer: { kind: "participant", id: "owner-reviewer" },
         reviewedAt: "2026-08-30T12:02:00.000Z",
+        sourceSha256: sha256Bytes(sourceBytes),
       },
     });
-    await writeRelative(root, "artifacts/tmp/codex-export.jsonl", `${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
+    await writeRelative(root, "artifacts/tmp/codex-export.jsonl", sourceBytes);
     await assert.rejects(collectDevelopmentEvidence({
       root,
       session: "artifacts/tmp/release-session.json",
@@ -753,6 +826,7 @@ test("participant session and Codex-export inputs reject Windows cross-drive rep
       status: "PASS",
       reviewer: { kind: "participant", id: "owner-reviewer" },
       reviewedAt: "2026-08-30T12:02:00.000Z",
+      sourceSha256: hash,
     },
   });
   await assert.rejects(collectDevelopmentEvidence({
@@ -913,6 +987,7 @@ test("multi-file evidence publication leaves no active generation marker after a
     const root = await temporaryRepository(t);
     const sourceRevision = git(root, "rev-parse", "HEAD");
     const events = developmentEvents();
+    const sourceBytes = Buffer.from(`${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
     await writeJson(root, "artifacts/tmp/release-session.json", {
       schemaVersion: 1,
       sourceRevision,
@@ -920,9 +995,10 @@ test("multi-file evidence publication leaves no active generation marker after a
         status: "PASS",
         reviewer: { kind: "participant", id: "owner-reviewer" },
         reviewedAt: "2026-08-30T12:02:00.000Z",
+        sourceSha256: sha256Bytes(sourceBytes),
       },
     });
-    await writeRelative(root, "artifacts/tmp/codex-export.jsonl", `${events.map((event) => JSON.stringify(event)).join("\n")}\n`);
+    await writeRelative(root, "artifacts/tmp/codex-export.jsonl", sourceBytes);
     const options = {
       root,
       session: "artifacts/tmp/release-session.json",
