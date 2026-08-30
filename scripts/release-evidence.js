@@ -10,9 +10,12 @@ import {
   REQUIRED_RELEASE_COMMANDS,
   buildCategoryEvidence,
   buildCommandEvidence,
+  buildCommandSuite,
   buildDevelopmentManifest,
   buildHumanEvidence,
+  buildParticipantAttestation,
   buildReleaseEvidence,
+  buildReleaseSession,
   buildVideoEvidence,
   sha256Bytes,
 } from "../src/release/evidence.js";
@@ -212,12 +215,7 @@ export async function runCommandSuite(options = {}) {
       outputSha256: sha256Bytes(item.bytes),
     };
   });
-  const commandSuite = {
-    schemaVersion: 1,
-    artifactKind: "rubricdelta-release-command-suite",
-    revision,
-    commands: records,
-  };
+  const commandSuite = buildCommandSuite({ revision, commands: records });
   await publishGeneration(
     store,
     buffered.map((item) => ({ path: `artifacts/qa/commands/${item.required.id}.json`, bytes: item.bytes })),
@@ -310,126 +308,6 @@ function realTimestamp(value) {
   return value === normalized || value === normalized.replace(".000Z", "Z");
 }
 
-const RELEASE_SESSION_FIELDS = new Set([
-  "schemaVersion", "sourceRevision", "humanReview", "privacyReview", "categories",
-  "video", "eligibility", "rightsReview", "decision",
-]);
-
-function exactSessionObject(value, fields, kind) {
-  if (!value || typeof value !== "object" || Array.isArray(value)
-    || Object.getPrototypeOf(value) !== Object.prototype || Object.getOwnPropertySymbols(value).length > 0) {
-    throw new Error(`${kind} must be a plain schema-closed object`);
-  }
-  for (const key of Object.getOwnPropertyNames(value)) {
-    const descriptor = Object.getOwnPropertyDescriptor(value, key);
-    if (!descriptor?.enumerable || !Object.hasOwn(descriptor, "value") || !fields.has(key)) {
-      throw new Error(`${kind} has unknown field ${key}`);
-    }
-  }
-  return value;
-}
-
-function closedParticipant(value, kind) {
-  exactSessionObject(value, new Set(["kind", "id"]), kind);
-  return { kind: value.kind, id: value.id };
-}
-
-function closeReleaseSession(value) {
-  const session = exactSessionObject(value, RELEASE_SESSION_FIELDS, "Release session");
-  if (session.schemaVersion !== 1) throw new Error("Release session schemaVersion must be 1");
-  const closed = { schemaVersion: 1, sourceRevision: session.sourceRevision };
-
-  if (Object.hasOwn(session, "humanReview")) {
-    const review = exactSessionObject(session.humanReview, new Set(["runId", "serverRevision", "reviewer"]), "Release session humanReview");
-    closed.humanReview = {
-      runId: review.runId,
-      serverRevision: review.serverRevision,
-      reviewer: closedParticipant(review.reviewer, "Release session humanReview reviewer"),
-    };
-  }
-  if (Object.hasOwn(session, "privacyReview")) {
-    const review = exactSessionObject(session.privacyReview, new Set(["status", "reviewer", "reviewedAt", "sourceSha256"]), "Release session privacyReview");
-    closed.privacyReview = {
-      status: review.status,
-      reviewer: closedParticipant(review.reviewer, "Release session privacyReview reviewer"),
-      reviewedAt: review.reviewedAt,
-      sourceSha256: review.sourceSha256,
-    };
-  }
-  if (Object.hasOwn(session, "categories")) {
-    const categories = exactSessionObject(session.categories, new Set(QA_CATEGORIES), "Release session categories");
-    closed.categories = {};
-    for (const category of Object.keys(categories)) {
-      const input = exactSessionObject(categories[category], new Set(["status", "timestamp", "tool", "coverage"]), `Release session category ${category}`);
-      closed.categories[category] = {
-        status: input.status,
-        timestamp: input.timestamp,
-        tool: input.tool,
-        coverage: Array.isArray(input.coverage) ? [...input.coverage] : input.coverage,
-      };
-    }
-  }
-  if (Object.hasOwn(session, "video")) {
-    const video = exactSessionObject(session.video, new Set(["inspection", "upload", "playback"]), "Release session video");
-    const inspection = exactSessionObject(video.inspection, new Set([
-      "sha256", "durationSeconds", "width", "height", "codec", "videoSampleCount",
-    ]), "Release session video inspection");
-    const upload = exactSessionObject(video.upload, new Set(["status"]), "Release session video upload");
-    const playback = exactSessionObject(video.playback, new Set([
-      "status", "testedAt", "tool", "renderedFrameObserved",
-    ]), "Release session video playback");
-    closed.video = {
-      inspection: {
-        sha256: inspection.sha256,
-        durationSeconds: inspection.durationSeconds,
-        width: inspection.width,
-        height: inspection.height,
-        codec: inspection.codec,
-        videoSampleCount: inspection.videoSampleCount,
-      },
-      upload: { status: upload.status },
-      playback: {
-        status: playback.status,
-        testedAt: playback.testedAt,
-        tool: playback.tool,
-        renderedFrameObserved: playback.renderedFrameObserved,
-      },
-    };
-  }
-  if (Object.hasOwn(session, "eligibility")) {
-    const eligibility = exactSessionObject(session.eligibility, new Set([
-      "status", "ageAndEligibilityConfirmed", "individualEntryConfirmed",
-      "accurateRegistrationConfirmed", "payoutEligibilityUnderstood",
-    ]), "Release session eligibility");
-    closed.eligibility = {
-      status: eligibility.status,
-      ageAndEligibilityConfirmed: eligibility.ageAndEligibilityConfirmed,
-      individualEntryConfirmed: eligibility.individualEntryConfirmed,
-      accurateRegistrationConfirmed: eligibility.accurateRegistrationConfirmed,
-      payoutEligibilityUnderstood: eligibility.payoutEligibilityUnderstood,
-    };
-  }
-  if (Object.hasOwn(session, "rightsReview")) {
-    const rights = exactSessionObject(session.rightsReview, new Set([
-      "status", "originalityConfirmed", "licenseComplianceConfirmed", "dataRightsConfirmed",
-      "credentialsAndPrivateDataExcluded", "preExistingWork",
-    ]), "Release session rightsReview");
-    closed.rightsReview = {
-      status: rights.status,
-      originalityConfirmed: rights.originalityConfirmed,
-      licenseComplianceConfirmed: rights.licenseComplianceConfirmed,
-      dataRightsConfirmed: rights.dataRightsConfirmed,
-      credentialsAndPrivateDataExcluded: rights.credentialsAndPrivateDataExcluded,
-      preExistingWork: rights.preExistingWork,
-    };
-  }
-  if (Object.hasOwn(session, "decision")) {
-    const decision = exactSessionObject(session.decision, new Set(["value", "actor"]), "Release session decision");
-    closed.decision = { value: decision.value, actor: decision.actor };
-  }
-  return closed;
-}
-
 async function sourceRevisionFromSession(root, session) {
   if (!isGitObjectId(session?.sourceRevision)) throw new Error("Release session sourceRevision must be a concrete Git revision");
   const manifest = await readInputJson(root, "artifacts/evaluation/manifest.json", null, "evaluation manifest");
@@ -514,7 +392,7 @@ export async function collectHumanReview(options = {}) {
   const root = await realpath(resolve(options.root ?? resolve(import.meta.dirname, "..")));
   const store = artifactStoreFor(root, options);
   await invalidateGeneration(root, "artifacts/qa/human-review.json", "artifacts/qa/release.json");
-  const session = closeReleaseSession(await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session"));
+  const session = buildReleaseSession(await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session"));
   const revision = await sourceRevisionFromSession(root, session);
   const review = session?.humanReview;
   if (!review || typeof review !== "object" || Array.isArray(review)
@@ -605,7 +483,7 @@ export async function collectDevelopmentEvidence(options = {}) {
   const root = await realpath(resolve(options.root ?? resolve(import.meta.dirname, "..")));
   const store = artifactStoreFor(root, options);
   await invalidateGeneration(root, "artifacts/development-agent/manifest.json", "artifacts/qa/release.json");
-  const session = closeReleaseSession(await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session"));
+  const session = buildReleaseSession(await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session"));
   const revision = await sourceRevisionFromSession(root, session);
   if (session?.privacyReview?.status !== "PASS") throw new Error("Participant privacy review must be PASS before development evidence publication");
   const sourceBytes = await readBounded(root, options.source, "artifacts/tmp/codex-export.jsonl");
@@ -706,13 +584,14 @@ async function commandRecordsForComposition(root, revision) {
       outputSha256: sha256Bytes(bytes),
     });
   }
-  const suite = await readInputJson(root, "artifacts/qa/command-suite.json", null, "release command suite");
-  exactSessionObject(suite, new Set(["schemaVersion", "artifactKind", "revision", "commands"]), "Release command suite");
-  if (suite.schemaVersion !== 1 || suite.artifactKind !== "rubricdelta-release-command-suite"
-    || suite.revision !== revision || !sameJson(suite.commands, records)) {
+  const suiteBytes = await readBounded(root, "artifacts/qa/command-suite.json", null);
+  let suite;
+  try { suite = JSON.parse(decodeUtf8(suiteBytes, "release command suite")); } catch { throw new Error("Release command suite must be valid JSON"); }
+  const rebuiltSuite = buildCommandSuite(suite);
+  if (suite.revision !== revision || !sameJson(suite, rebuiltSuite) || !sameJson(suite.commands, records)) {
     throw new Error("Release command suite marker must bind one complete command generation");
   }
-  return records;
+  return { records, suiteBytes };
 }
 
 async function priorEvidenceForComposition(root, revision, session) {
@@ -756,7 +635,12 @@ async function priorEvidenceForComposition(root, revision, session) {
     || sha256Bytes(await readBounded(root, development.trajectoryPath, null)) !== development.trajectorySha256) {
     throw new Error("Development evidence must bind the privacy-reviewed release session and exact trajectory bytes");
   }
-  return { human, development };
+  return {
+    human,
+    development,
+    humanBytes: await readBounded(root, "artifacts/qa/human-review.json", null),
+    developmentBytes: await readBounded(root, "artifacts/development-agent/manifest.json", null),
+  };
 }
 
 function requireParticipantGates(session) {
@@ -794,22 +678,11 @@ function verifyParticipantVideoFacts(session, metadata) {
   if (!sameJson(facts, expected)) throw new Error("Participant-recorded video inspection facts must match the actual MP4 bytes");
 }
 
-function participantAttestation(session, revision) {
-  return {
-    schemaVersion: 1,
-    artifactKind: "rubricdelta-participant-attestation",
-    revision,
-    eligibility: structuredClone(session.eligibility),
-    rightsReview: structuredClone(session.rightsReview),
-    decision: { value: "approve release", actor: "participant" },
-  };
-}
-
 export async function composeRelease(options = {}) {
   const root = await realpath(resolve(options.root ?? resolve(import.meta.dirname, "..")));
   const store = artifactStoreFor(root, options);
   await invalidateGeneration(root, "artifacts/qa/release.json");
-  const session = closeReleaseSession(await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session"));
+  const session = buildReleaseSession(await readInputJson(root, options.session, "artifacts/tmp/release-session.json", "release session"));
   const revision = await sourceRevisionFromSession(root, session);
   requireParticipantGates(session);
   if (!session.categories || typeof session.categories !== "object" || Array.isArray(session.categories)
@@ -818,8 +691,8 @@ export async function composeRelease(options = {}) {
     throw new Error("Release session must contain exactly all eleven QA categories");
   }
 
-  const commands = await commandRecordsForComposition(root, revision);
-  await priorEvidenceForComposition(root, revision, session);
+  const { records: commands, suiteBytes } = await commandRecordsForComposition(root, revision);
+  const priorEvidence = await priorEvidenceForComposition(root, revision, session);
   const videoMetadata = await inspectReleaseVideo({ root, print() {} });
   if (videoMetadata.revision !== revision) throw new Error("Video inspection revision must match the release revision");
   verifyParticipantVideoFacts(session, videoMetadata);
@@ -867,20 +740,36 @@ export async function composeRelease(options = {}) {
       evidenceSha256: categoryRecords.video.evidenceSha256,
     },
   });
+  const videoBytes = Buffer.from(`${JSON.stringify(video, null, 2)}\n`);
+  const sessionBytes = Buffer.from(`${JSON.stringify(session, null, 2)}\n`);
+  const attestation = buildParticipantAttestation({
+    revision,
+    eligibility: session.eligibility,
+    rightsReview: session.rightsReview,
+    decision: session.decision,
+  });
+  const attestationBytes = Buffer.from(`${JSON.stringify(attestation, null, 2)}\n`);
   const release = buildReleaseEvidence({
     revision,
     categories: categoryRecords,
     commands,
+    artifacts: {
+      commandSuite: { path: "artifacts/qa/command-suite.json", sha256: sha256Bytes(suiteBytes) },
+      session: { path: "artifacts/qa/session.json", sha256: sha256Bytes(sessionBytes) },
+      participantAttestation: { path: "artifacts/qa/participant-attestation.json", sha256: sha256Bytes(attestationBytes) },
+      video: { path: "artifacts/qa/video.json", sha256: sha256Bytes(videoBytes) },
+      humanReview: { path: "artifacts/qa/human-review.json", sha256: sha256Bytes(priorEvidence.humanBytes) },
+      developmentAgent: { path: "artifacts/development-agent/manifest.json", sha256: sha256Bytes(priorEvidence.developmentBytes) },
+    },
     decision: session.decision,
   });
-  const attestation = participantAttestation(session, revision);
   const readme = `# RubricDelta final release QA\n\nAll eleven structured QA categories passed at source revision ${revision}. Browser and keyboard checks covered the complete fixed-benchmark workflow, visible focus, shortcuts, exports, and the Rule Seam. Accessibility checks covered semantic landmarks, labels, live status, reduced motion, and status text that does not rely on color. Responsive checks covered mobile viewport 375 x 812, tablet viewport 768 x 1024, and desktop viewport 1440 x 900 without hidden decision controls or horizontal overflow. Security, clean-checkout, human-review, development-agent, video, automated-command, and participant release gates are hash-bound in the adjacent JSON evidence.\n`;
 
   await publishGeneration(store, [
     ...categoryArtifacts.map((artifact) => ({ path: artifact.evidencePath, bytes: artifact.bytes })),
-    { path: "artifacts/qa/video.json", bytes: `${JSON.stringify(video, null, 2)}\n` },
-    { path: "artifacts/qa/participant-attestation.json", bytes: `${JSON.stringify(attestation, null, 2)}\n` },
-    { path: "artifacts/qa/session.json", bytes: `${JSON.stringify(session, null, 2)}\n` },
+    { path: "artifacts/qa/video.json", bytes: videoBytes },
+    { path: "artifacts/qa/participant-attestation.json", bytes: attestationBytes },
+    { path: "artifacts/qa/session.json", bytes: sessionBytes },
     { path: "artifacts/qa/README.md", bytes: readme },
   ], { path: "artifacts/qa/release.json", bytes: `${JSON.stringify(release, null, 2)}\n` });
   return release;

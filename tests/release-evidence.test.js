@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -25,6 +25,7 @@ import {
   runCommandSuite,
 } from "../scripts/release-evidence.js";
 import { inspectMp4 } from "../scripts/validate-submission.js";
+import { runValidation } from "../scripts/validate-submission.js";
 
 const revision = "a".repeat(40);
 const startedAt = "2026-08-30T12:00:00.000Z";
@@ -94,6 +95,12 @@ async function writeRelative(root, relativePath, value) {
 
 async function writeJson(root, relativePath, value) {
   await writeRelative(root, relativePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+async function writeBoundJson(root, relativePath, value) {
+  const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
+  await writeRelative(root, relativePath, bytes);
+  return sha256Bytes(bytes);
 }
 
 async function readJson(root, relativePath) {
@@ -363,6 +370,17 @@ function commandRecords() {
   }));
 }
 
+function artifactRecords() {
+  return {
+    commandSuite: { path: "artifacts/qa/command-suite.json", sha256: hash },
+    session: { path: "artifacts/qa/session.json", sha256: hash },
+    participantAttestation: { path: "artifacts/qa/participant-attestation.json", sha256: hash },
+    video: { path: "artifacts/qa/video.json", sha256: hash },
+    humanReview: { path: "artifacts/qa/human-review.json", sha256: hash },
+    developmentAgent: { path: "artifacts/development-agent/manifest.json", sha256: hash },
+  };
+}
+
 test("release constants preserve the allowlisted command order and complete category inventory", () => {
   assert.deepEqual(REQUIRED_RELEASE_COMMANDS, [
     { id: "npm-test", command: "npm test" },
@@ -533,6 +551,7 @@ test("release composition accepts exactly one complete participant-owned evidenc
     revision,
     categories: categoryRecords(),
     commands: commandRecords(),
+    artifacts: artifactRecords(),
     decision: { value: "approve release", actor: "participant" },
   });
   assert.equal(evidence.artifactKind, "rubricdelta-release-qa");
@@ -548,6 +567,7 @@ test("release composition accepts exactly one complete participant-owned evidenc
     revision,
     categories: duplicatePathCategories,
     commands: commandRecords(),
+    artifacts: artifactRecords(),
     decision: { value: "approve release", actor: "participant" },
   }), /duplicate|unique|path/i);
 });
@@ -889,6 +909,21 @@ test("release composition writes eleven unique categories and a fully bound fina
   assert.equal(new Set(Object.values(release.categories).map((item) => item.evidencePath)).size, 11);
   assert.equal(release.commands.length, 7);
   assert.deepEqual(release.decision, { value: "approve release", actor: "participant" });
+  const expectedEnvelopePaths = {
+    commandSuite: "artifacts/qa/command-suite.json",
+    session: "artifacts/qa/session.json",
+    participantAttestation: "artifacts/qa/participant-attestation.json",
+    video: "artifacts/qa/video.json",
+    humanReview: "artifacts/qa/human-review.json",
+    developmentAgent: "artifacts/development-agent/manifest.json",
+  };
+  assert.deepEqual(Object.keys(release.artifacts), Object.keys(expectedEnvelopePaths));
+  for (const [name, path] of Object.entries(expectedEnvelopePaths)) {
+    const bytes = await readFile(join(root, ...path.split("/")));
+    assert.deepEqual(release.artifacts[name], { path, sha256: sha256Bytes(bytes) });
+  }
+  const commandSuite = await readJson(root, "artifacts/qa/command-suite.json");
+  assert.deepEqual(commandSuite.commands, release.commands);
   const video = await readJson(root, "artifacts/qa/video.json");
   assert.equal(video.upload.status, "accepted");
   assert.equal(video.playback.renderedFrameObserved, true);
@@ -896,7 +931,64 @@ test("release composition writes eleven unique categories and a fully bound fina
   assert.equal(video.playback.evidenceSha256, release.categories.video.evidenceSha256);
   assert.deepEqual(await readJson(root, "artifacts/qa/release.json"), release);
   assert.deepEqual(await readJson(root, "artifacts/qa/session.json"), session);
+  assert.equal(
+    (await readJson(root, "artifacts/qa/participant-attestation.json")).eligibility.individualEntryConfirmed,
+    true,
+  );
   assert.match(await readFile(join(root, "artifacts", "qa", "README.md"), "utf8"), /browser.*keyboard.*accessib.*mobile.*desktop/is);
+});
+
+test("final-strict rejects producer-output envelope deletion, unknown fields, reordering, weak summaries, and participant substitution", async (t) => {
+  const cases = [
+    ["bound artifact deletion", async (root) => {
+      await unlink(join(root, "artifacts", "qa", "session.json"));
+    }],
+    ["category unknown field", async (root, release) => {
+      const category = await readJson(root, "artifacts/qa/categories/browser.json");
+      category.unexpectedClaim = "must not be accepted";
+      release.categories.browser.evidenceSha256 = await writeBoundJson(root, "artifacts/qa/categories/browser.json", category);
+    }],
+    ["command reorder", async (root, release) => {
+      release.commands.reverse();
+      const suite = await readJson(root, "artifacts/qa/command-suite.json");
+      suite.commands.reverse();
+      release.artifacts.commandSuite.sha256 = await writeBoundJson(root, "artifacts/qa/command-suite.json", suite);
+    }],
+    ["weak summary without hashes or byte counts", async (root, release) => {
+      const command = await readJson(root, release.commands[0].outputPath);
+      delete command.stdoutSha256;
+      delete command.stderrSha256;
+      delete command.stdoutBytes;
+      delete command.stderrBytes;
+      const commandHash = await writeBoundJson(root, release.commands[0].outputPath, command);
+      release.commands[0].outputSha256 = commandHash;
+      const suite = await readJson(root, "artifacts/qa/command-suite.json");
+      suite.commands[0].outputSha256 = commandHash;
+      release.artifacts.commandSuite.sha256 = await writeBoundJson(root, "artifacts/qa/command-suite.json", suite);
+    }],
+    ["participant attestation and session mismatch", async (root, release) => {
+      const attestation = await readJson(root, "artifacts/qa/participant-attestation.json");
+      attestation.rightsReview.preExistingWork = "A substituted but independently valid rights statement.";
+      release.artifacts.participantAttestation.sha256 = await writeBoundJson(
+        root,
+        "artifacts/qa/participant-attestation.json",
+        attestation,
+      );
+    }],
+  ];
+  for (const [name, mutate] of cases) {
+    await t.test(name, async (t) => {
+      const { root } = await completeReleaseFixture(t);
+      const release = await composeRelease({ root, session: "artifacts/tmp/release-session.json" });
+      await mutate(root, release);
+      await writeJson(root, "artifacts/qa/release.json", release);
+      const { validation } = runValidation({ mode: "final-strict", root });
+      assert.ok(
+        validation.errors.some((error) => error.startsWith("RELEASE ENVELOPE")),
+        validation.errors.join("\n"),
+      );
+    });
+  }
 });
 
 test("release composition rejects human evidence from a different selected run or server revision", async (t) => {

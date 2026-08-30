@@ -270,6 +270,150 @@ export function buildVideoEvidence(input) {
   };
 }
 
+function releaseDecision(value, kind = "release decision") {
+  exactObject(value, new Set(["value", "actor"]), kind);
+  if (value.value !== "approve release" || value.actor !== "participant") {
+    fail(kind, "participant-owned approve release decision is required");
+  }
+  return { value: "approve release", actor: "participant" };
+}
+
+function releaseEligibility(value) {
+  const kind = "release eligibility";
+  exactObject(value, new Set([
+    "status", "ageAndEligibilityConfirmed", "individualEntryConfirmed",
+    "accurateRegistrationConfirmed", "payoutEligibilityUnderstood",
+  ]), kind);
+  if (value.status !== "PASS" || value.ageAndEligibilityConfirmed !== true
+    || value.individualEntryConfirmed !== true || value.accurateRegistrationConfirmed !== true
+    || value.payoutEligibilityUnderstood !== true) {
+    fail(kind, "all participant eligibility and individual-entry confirmations must PASS");
+  }
+  return structuredClone(value);
+}
+
+function releaseRightsReview(value) {
+  const kind = "release rights review";
+  exactObject(value, new Set([
+    "status", "originalityConfirmed", "licenseComplianceConfirmed", "dataRightsConfirmed",
+    "credentialsAndPrivateDataExcluded", "preExistingWork",
+  ]), kind);
+  if (value.status !== "PASS" || value.originalityConfirmed !== true
+    || value.licenseComplianceConfirmed !== true || value.dataRightsConfirmed !== true
+    || value.credentialsAndPrivateDataExcluded !== true) {
+    fail(kind, "all participant originality, license, data-rights, and credential confirmations must PASS");
+  }
+  nonblank(value.preExistingWork, kind, "preExistingWork", { maximum: 10_000 });
+  return structuredClone(value);
+}
+
+export function buildReleaseSession(input) {
+  const kind = "release session";
+  exactObject(input, new Set([
+    "schemaVersion", "sourceRevision", "humanReview", "privacyReview", "categories",
+    "video", "eligibility", "rightsReview", "decision",
+  ]), kind);
+  if (input.schemaVersion !== 1) fail(kind, "schemaVersion must be 1");
+  revision(input.sourceRevision, kind);
+  const result = { schemaVersion: 1, sourceRevision: input.sourceRevision };
+
+  if (Object.hasOwn(input, "humanReview")) {
+    const reviewKind = "release session humanReview";
+    exactObject(input.humanReview, new Set(["runId", "serverRevision", "reviewer"]), reviewKind);
+    if (typeof input.humanReview.runId !== "string" || !IDENTIFIER.test(input.humanReview.runId)) fail(reviewKind, "runId is invalid");
+    if (typeof input.humanReview.serverRevision !== "string" || !/^rev-\d{6}$/.test(input.humanReview.serverRevision)) {
+      fail(reviewKind, "serverRevision is invalid");
+    }
+    result.humanReview = {
+      runId: input.humanReview.runId,
+      serverRevision: input.humanReview.serverRevision,
+      reviewer: participant(input.humanReview.reviewer, reviewKind),
+    };
+  }
+  if (Object.hasOwn(input, "privacyReview")) {
+    const reviewKind = "release session privacyReview";
+    exactObject(input.privacyReview, new Set(["status", "reviewer", "reviewedAt", "sourceSha256"]), reviewKind);
+    if (input.privacyReview.status !== "PASS") fail(reviewKind, "status must be PASS");
+    timestamp(input.privacyReview.reviewedAt, reviewKind, "reviewedAt");
+    sha256(input.privacyReview.sourceSha256, reviewKind, "sourceSha256");
+    result.privacyReview = {
+      status: "PASS",
+      reviewer: participant(input.privacyReview.reviewer, reviewKind),
+      reviewedAt: input.privacyReview.reviewedAt,
+      sourceSha256: input.privacyReview.sourceSha256,
+    };
+  }
+  if (Object.hasOwn(input, "categories")) {
+    exactObject(input.categories, new Set(QA_CATEGORIES), "release session categories");
+    result.categories = {};
+    for (const category of QA_CATEGORIES) {
+      if (!Object.hasOwn(input.categories, category)) fail(kind, `category ${category} is required when categories are supplied`);
+      const value = input.categories[category];
+      const categoryKind = `release session category ${category}`;
+      exactObject(value, new Set(["status", "timestamp", "tool", "coverage"]), categoryKind);
+      const built = buildCategoryEvidence({
+        revision: input.sourceRevision,
+        category,
+        status: value.status,
+        timestamp: value.timestamp,
+        tool: value.tool,
+        coverage: value.coverage,
+      });
+      result.categories[category] = {
+        status: built.status,
+        timestamp: built.timestamp,
+        tool: built.tool,
+        coverage: built.coverage,
+      };
+    }
+  }
+  if (Object.hasOwn(input, "video")) {
+    const videoKind = "release session video";
+    exactObject(input.video, new Set(["inspection", "upload", "playback"]), videoKind);
+    exactObject(input.video.inspection, new Set([
+      "sha256", "durationSeconds", "width", "height", "codec", "videoSampleCount",
+    ]), `${videoKind} inspection`);
+    exactObject(input.video.upload, new Set(["status"]), `${videoKind} upload`);
+    exactObject(input.video.playback, new Set([
+      "status", "testedAt", "tool", "renderedFrameObserved",
+    ]), `${videoKind} playback`);
+    const inspection = input.video.inspection;
+    sha256(inspection.sha256, videoKind, "inspection.sha256");
+    if (!Number.isFinite(inspection.durationSeconds) || inspection.durationSeconds <= 0 || inspection.durationSeconds > 300) {
+      fail(videoKind, "inspection.durationSeconds must be within 300 seconds");
+    }
+    if (!Number.isInteger(inspection.width) || inspection.width < 1
+      || !Number.isInteger(inspection.height) || inspection.height < 1) fail(videoKind, "inspection dimensions must be positive integers");
+    if (!["avc1", "avc3"].includes(inspection.codec)) fail(videoKind, "inspection codec must be AVC");
+    if (!Number.isInteger(inspection.videoSampleCount) || inspection.videoSampleCount < 1) fail(videoKind, "inspection sample count must be positive");
+    if (input.video.upload.status !== "accepted") fail(videoKind, "upload status must be accepted");
+    if (input.video.playback.status !== "PASS" || input.video.playback.renderedFrameObserved !== true) {
+      fail(videoKind, "playback must be PASS with a rendered frame observed");
+    }
+    timestamp(input.video.playback.testedAt, videoKind, "playback.testedAt");
+    nonblank(input.video.playback.tool, videoKind, "playback.tool", { minimum: 2, maximum: 200 });
+    result.video = structuredClone(input.video);
+  }
+  if (Object.hasOwn(input, "eligibility")) result.eligibility = releaseEligibility(input.eligibility);
+  if (Object.hasOwn(input, "rightsReview")) result.rightsReview = releaseRightsReview(input.rightsReview);
+  if (Object.hasOwn(input, "decision")) result.decision = releaseDecision(input.decision);
+  return result;
+}
+
+export function buildParticipantAttestation(input) {
+  const kind = "participant attestation";
+  exactObject(input, new Set(["revision", "eligibility", "rightsReview", "decision"]), kind);
+  revision(input.revision, kind);
+  return {
+    schemaVersion: 1,
+    artifactKind: "rubricdelta-participant-attestation",
+    revision: input.revision,
+    eligibility: releaseEligibility(input.eligibility),
+    rightsReview: releaseRightsReview(input.rightsReview),
+    decision: releaseDecision(input.decision),
+  };
+}
+
 function validateCategoryRecord(value, category, expectedRevision, paths) {
   const kind = "release category";
   exactObject(value, new Set(["revision", "status", "evidencePath", "evidenceSha256"]), kind);
@@ -300,14 +444,53 @@ function validateCommandRecord(value, required, expectedRevision, paths) {
   return structuredClone(value);
 }
 
+export function buildCommandSuite(input) {
+  const kind = "release command suite";
+  exactObject(input, new Set(["schemaVersion", "artifactKind", "revision", "commands"]), kind);
+  if (Object.hasOwn(input, "schemaVersion") && input.schemaVersion !== 1) fail(kind, "schemaVersion must be 1");
+  if (Object.hasOwn(input, "artifactKind") && input.artifactKind !== "rubricdelta-release-command-suite") {
+    fail(kind, "artifactKind is invalid");
+  }
+  revision(input.revision, kind);
+  if (!Array.isArray(input.commands) || input.commands.length !== REQUIRED_RELEASE_COMMANDS.length) {
+    fail(kind, "commands must contain exactly the seven required command records in order");
+  }
+  const paths = new Set();
+  const commands = REQUIRED_RELEASE_COMMANDS.map((required, index) => (
+    validateCommandRecord(input.commands[index], required, input.revision, paths)
+  ));
+  return {
+    schemaVersion: 1,
+    artifactKind: "rubricdelta-release-command-suite",
+    revision: input.revision,
+    commands,
+  };
+}
+
+const RELEASE_ARTIFACT_PATHS = Object.freeze({
+  commandSuite: "artifacts/qa/command-suite.json",
+  session: "artifacts/qa/session.json",
+  participantAttestation: "artifacts/qa/participant-attestation.json",
+  video: "artifacts/qa/video.json",
+  humanReview: "artifacts/qa/human-review.json",
+  developmentAgent: "artifacts/development-agent/manifest.json",
+});
+
+function releaseArtifact(value, name) {
+  const kind = "release artifact";
+  exactObject(value, new Set(["path", "sha256"]), kind);
+  canonicalPath(value.path, RELEASE_ARTIFACT_PATHS[name], kind, `${name}.path`);
+  sha256(value.sha256, kind, `${name}.sha256`);
+  return structuredClone(value);
+}
+
 export function buildReleaseEvidence(input) {
   const kind = "release evidence";
-  exactObject(input, new Set(["revision", "categories", "commands", "decision"]), kind);
+  exactObject(input, new Set(["schemaVersion", "artifactKind", "revision", "categories", "commands", "artifacts", "decision"]), kind);
+  if (Object.hasOwn(input, "schemaVersion") && input.schemaVersion !== 1) fail(kind, "schemaVersion must be 1");
+  if (Object.hasOwn(input, "artifactKind") && input.artifactKind !== "rubricdelta-release-qa") fail(kind, "artifactKind is invalid");
   revision(input.revision, kind);
-  exactObject(input.decision, new Set(["value", "actor"]), "release decision");
-  if (input.decision.value !== "approve release" || input.decision.actor !== "participant") {
-    fail(kind, "participant-owned approve release decision is required");
-  }
+  const decision = releaseDecision(input.decision);
   exactObject(input.categories, new Set(QA_CATEGORIES), "release categories");
   const categoryPaths = new Set();
   const categories = {};
@@ -318,23 +501,23 @@ export function buildReleaseEvidence(input) {
   if (!Array.isArray(input.commands) || input.commands.length !== REQUIRED_RELEASE_COMMANDS.length) {
     fail(kind, "commands must contain exactly the seven required command records");
   }
-  const byCommand = new Map();
-  for (const record of input.commands) {
-    if (!plain(record) || typeof record.command !== "string" || byCommand.has(record.command)) fail(kind, "commands contain a duplicate or invalid record");
-    byCommand.set(record.command, record);
-  }
   const commandPaths = new Set();
-  const commands = REQUIRED_RELEASE_COMMANDS.map((required) => {
-    const record = byCommand.get(required.command);
-    if (!record) fail(kind, `command ${required.command} is required`);
-    return validateCommandRecord(record, required, input.revision, commandPaths);
-  });
+  const commands = REQUIRED_RELEASE_COMMANDS.map((required, index) => (
+    validateCommandRecord(input.commands[index], required, input.revision, commandPaths)
+  ));
+  exactObject(input.artifacts, new Set(Object.keys(RELEASE_ARTIFACT_PATHS)), "release artifacts");
+  const artifacts = {};
+  for (const name of Object.keys(RELEASE_ARTIFACT_PATHS)) {
+    if (!Object.hasOwn(input.artifacts, name)) fail(kind, `artifact ${name} is required`);
+    artifacts[name] = releaseArtifact(input.artifacts[name], name);
+  }
   return {
     schemaVersion: 1,
     artifactKind: "rubricdelta-release-qa",
     revision: input.revision,
     categories,
     commands,
-    decision: { value: "approve release", actor: "participant" },
+    artifacts,
+    decision,
   };
 }

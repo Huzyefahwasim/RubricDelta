@@ -22,6 +22,19 @@ import { evaluatePredictions, loadBenchmark } from "../src/evaluation/index.js";
 import { canonicalTextSha256 } from "../src/evaluation/evidence-hash.js";
 import { containsCredentialLikeText } from "../src/domain/credentials.js";
 import {
+  QA_CATEGORIES,
+  REQUIRED_RELEASE_COMMANDS,
+  buildCategoryEvidence,
+  buildCommandEvidence,
+  buildCommandSuite,
+  buildDevelopmentManifest,
+  buildHumanEvidence,
+  buildParticipantAttestation,
+  buildReleaseEvidence,
+  buildReleaseSession,
+  buildVideoEvidence,
+} from "../src/release/evidence.js";
+import {
   isGitObjectId,
   parseGitIndexState,
   parseGitPathList,
@@ -1417,12 +1430,57 @@ function validateFinalText(validation, relativePath) {
   return validation.substantive(relativePath, { minCharacters: 100, requirements });
 }
 
-const QA_CATEGORIES = Object.freeze([
-  "automated", "browser", "keyboard", "accessibility", "responsive", "security",
-  "cleanCheckout", "humanReview", "video", "developmentAgent", "release",
-]);
 const DEVELOPMENT_AGENT_PATH = /^artifacts\/development-agent\/(?:[A-Za-z0-9][A-Za-z0-9._-]*\/)*[A-Za-z0-9][A-Za-z0-9._-]*\.jsonl$/;
 const RFC3339_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+
+function releaseEnvelopeFailure(validation, path, message) {
+  validation.fail("RELEASE ENVELOPE", path, message);
+  validation.fail("RELEASE QA", "artifacts/qa/release.json", message);
+}
+
+function releaseEnvelopeJson(validation, path, expectedHash, subject) {
+  const absolute = typeof path === "string" ? validation.required(path) : null;
+  if (!absolute) {
+    releaseEnvelopeFailure(validation, path ?? "artifacts/qa/release.json", `${subject} is required by the final release envelope`);
+    return null;
+  }
+  let bytes;
+  try {
+    bytes = readBounded(absolute, MAX_JSON_BYTES);
+  } catch (error) {
+    releaseEnvelopeFailure(validation, path, `${subject} cannot be read within the bounded JSON limit: ${error.message}`);
+    return null;
+  }
+  if (sha256(bytes) !== expectedHash) {
+    releaseEnvelopeFailure(validation, path, `${subject} bytes must match the SHA-256 pointer in release.json`);
+    return null;
+  }
+  try {
+    return JSON.parse(decodeUtf8(bytes));
+  } catch {
+    releaseEnvelopeFailure(validation, path, `${subject} must contain valid JSON`);
+    return null;
+  }
+}
+
+function commandEvidenceInput(evidence) {
+  return {
+    revision: evidence?.revision,
+    command: evidence?.command,
+    startedAt: evidence?.startedAt,
+    endedAt: evidence?.endedAt,
+    exitCode: evidence?.exitCode,
+    ...(Object.hasOwn(evidence ?? {}, "output")
+      ? { output: evidence.output }
+      : {
+          summary: evidence?.summary,
+          stdoutSha256: evidence?.stdoutSha256,
+          stderrSha256: evidence?.stderrSha256,
+          stdoutBytes: evidence?.stdoutBytes,
+          stderrBytes: evidence?.stderrBytes,
+        }),
+  };
+}
 
 function validateQaRelease(validation) {
   const start = validation.errors.length;
@@ -1436,37 +1494,160 @@ function validateQaRelease(validation) {
     validation.fail("RELEASE QA", "artifacts/qa/release.json", "structured PASS evidence is required");
     return null;
   }
-  if (release.schemaVersion !== 1 || release.artifactKind !== "rubricdelta-release-qa" || !isGitObjectId(release.revision)) validation.fail("RELEASE QA", "artifacts/qa/release.json", "schema and concrete 40- or 64-hex revision are required");
-  const categoryPaths = new Set();
+  const missingCategories = QA_CATEGORIES.filter((category) => !Object.hasOwn(release.categories ?? {}, category));
+  for (const category of missingCategories) {
+    validation.fail("RELEASE QA", "artifacts/qa/release.json", `${category} missing from structured categories`);
+  }
   for (const category of QA_CATEGORIES) {
-    const item = release.categories?.[category];
-    const evidencePath = item?.evidencePath;
-    if (typeof evidencePath === "string" && categoryPaths.has(evidencePath)) {
-      validation.fail("RELEASE QA", "artifacts/qa/release.json", `${category} must use a unique category-specific structured category evidence path`);
-      continue;
+    const status = release.categories?.[category]?.status;
+    if (status !== undefined && status !== "PASS") {
+      validation.fail("RELEASE QA", "artifacts/qa/release.json", `${category} must be PASS, never ${status}`);
     }
-    if (typeof evidencePath === "string") categoryPaths.add(evidencePath);
-    if (!item) validation.fail("RELEASE QA", "artifacts/qa/release.json", `${category} missing from structured categories`);
-    else if (item.status !== "PASS" || !validQaCategoryEvidence(validation, release, category, item)) validation.fail("RELEASE QA", "artifacts/qa/release.json", `${category} must be PASS with unique category-specific structured category evidence at the release revision, never PENDING or NOT RUN`);
   }
-  const requiredCommands = ["npm test", "npm run eval", "npm run replay:check", "npm run eval:replay", "npm run evidence", "npm run validate", "git diff --check"];
-  const commandRecords = Array.isArray(release.commands) ? release.commands : [];
-  const commandNames = commandRecords.map((record) => record?.command);
-  const commandIds = commandRecords.map((record) => record?.id);
-  const commandPaths = commandRecords.map((record) => record?.outputPath);
-  const exactCommandMultiset = commandRecords.length === requiredCommands.length
-    && new Set(commandNames).size === requiredCommands.length
-    && new Set(commandIds).size === requiredCommands.length
-    && new Set(commandPaths).size === requiredCommands.length
-    && requiredCommands.every((command) => commandNames.filter((value) => value === command).length === 1);
-  if (!exactCommandMultiset) validation.fail("RELEASE QA", "artifacts/qa/release.json", "commands must contain exactly one record per required command; duplicate command records and extra commands are forbidden");
-  for (const command of requiredCommands) {
-    const record = commandRecords.find((item) => item.command === command);
-    if (!record || record.status !== "PASS" || record.exitCode !== 0 || typeof record.startedAt !== "string" || typeof record.endedAt !== "string"
-      || !validQaCommandEvidence(validation, release, record)) validation.fail("RELEASE QA", "artifacts/qa/release.json", `missing unique recomputed hash-bound structured PASS command record for ${command}`);
+  const categoryPathList = Object.values(release.categories ?? {}).map((record) => record?.evidencePath);
+  const categoryPaths = new Set(categoryPathList);
+  if (categoryPaths.size !== categoryPathList.length) {
+    validation.fail("RELEASE QA", "artifacts/qa/release.json", "each structured category requires a unique category-specific evidence path");
   }
-  if (release.decision?.value !== "approve release" || release.decision?.actor !== "participant") validation.fail("RELEASE QA", "artifacts/qa/release.json", "participant-owned approve release decision is required");
-  validation.passIfClean(start, "structured release QA categories and commands PASS at one revision");
+  const diagnosticCommands = Array.isArray(release.commands) ? release.commands : [];
+  const diagnosticCommandNames = diagnosticCommands.map((record) => record?.command);
+  if (diagnosticCommands.length !== REQUIRED_RELEASE_COMMANDS.length
+    || new Set(diagnosticCommandNames).size !== REQUIRED_RELEASE_COMMANDS.length
+    || REQUIRED_RELEASE_COMMANDS.some(({ command }) => diagnosticCommandNames.filter((value) => value === command).length !== 1)) {
+    validation.fail("RELEASE QA", "artifacts/qa/release.json", "commands must contain exactly one record per required command; duplicate command records are forbidden");
+  }
+  let canonicalRelease;
+  try {
+    canonicalRelease = buildReleaseEvidence(release);
+    if (!sameJson(release, canonicalRelease)) throw new Error("release.json differs from the canonical release evidence schema");
+  } catch (error) {
+    releaseEnvelopeFailure(validation, "artifacts/qa/release.json", `release.json must be schema-closed, ordered, complete, participant-approved, and use unique category-specific structured evidence paths: ${error.message}`);
+    return release;
+  }
+
+  const categoryEvidence = {};
+  for (const category of QA_CATEGORIES) {
+    const record = release.categories[category];
+    const evidence = releaseEnvelopeJson(validation, record.evidencePath, record.evidenceSha256, `${category} category evidence`);
+    if (!evidence) continue;
+    try {
+      const rebuilt = buildCategoryEvidence({
+        revision: evidence.revision,
+        category: evidence.category,
+        timestamp: evidence.timestamp,
+        tool: evidence.tool,
+        coverage: evidence.coverage,
+        status: evidence.status,
+      });
+      if (!sameJson(evidence, rebuilt) || evidence.revision !== release.revision || evidence.category !== category) {
+        throw new Error("category evidence differs from its canonical revision/category record");
+      }
+      categoryEvidence[category] = evidence;
+    } catch (error) {
+      releaseEnvelopeFailure(validation, record.evidencePath, `${category} category evidence must be schema-closed and canonical: ${error.message}`);
+    }
+  }
+
+  for (let index = 0; index < REQUIRED_RELEASE_COMMANDS.length; index += 1) {
+    const required = REQUIRED_RELEASE_COMMANDS[index];
+    const record = release.commands[index];
+    const evidence = releaseEnvelopeJson(validation, record.outputPath, record.outputSha256, `${required.command} command evidence`);
+    if (!evidence) continue;
+    try {
+      const rebuilt = buildCommandEvidence(commandEvidenceInput(evidence));
+      if (!sameJson(evidence, rebuilt) || evidence.revision !== release.revision || evidence.command !== required.command
+        || evidence.startedAt !== record.startedAt || evidence.endedAt !== record.endedAt) {
+        throw new Error("command evidence differs from its canonical ordered release record");
+      }
+    } catch (error) {
+      releaseEnvelopeFailure(validation, record.outputPath, `${required.command} command evidence must be schema-closed and canonical, including summary hashes and byte counts: ${error.message}`);
+    }
+  }
+
+  const artifacts = {};
+  for (const [name, record] of Object.entries(release.artifacts)) {
+    artifacts[name] = releaseEnvelopeJson(validation, record.path, record.sha256, `${name} artifact`);
+  }
+  try {
+    if (artifacts.commandSuite) {
+      const suite = buildCommandSuite(artifacts.commandSuite);
+      if (!sameJson(suite, artifacts.commandSuite) || !sameJson(suite.commands, release.commands)) {
+        throw new Error("command-suite.json must exactly repeat the ordered seven release command records");
+      }
+    }
+    if (artifacts.session) {
+      const session = buildReleaseSession(artifacts.session);
+      const requiredSessionFields = ["humanReview", "privacyReview", "categories", "video", "eligibility", "rightsReview", "decision"];
+      if (!sameJson(session, artifacts.session) || session.sourceRevision !== release.revision
+        || requiredSessionFields.some((field) => !Object.hasOwn(session, field))) {
+        throw new Error("session.json must be canonical, complete, and bound to the release revision");
+      }
+      for (const category of QA_CATEGORIES) {
+        const expected = buildCategoryEvidence({ revision: release.revision, category, ...session.categories[category] });
+        if (!sameJson(expected, categoryEvidence[category])) throw new Error(`${category} category evidence must match session.json`);
+      }
+      if (artifacts.participantAttestation) {
+        const expected = buildParticipantAttestation({
+          revision: release.revision,
+          eligibility: session.eligibility,
+          rightsReview: session.rightsReview,
+          decision: session.decision,
+        });
+        if (!sameJson(expected, artifacts.participantAttestation)) throw new Error("participant-attestation.json must exactly match the participant session gates");
+      }
+      if (artifacts.video) {
+        const expected = buildVideoEvidence({
+          revision: release.revision,
+          ...session.video.inspection,
+          upload: session.video.upload,
+          playback: {
+            ...session.video.playback,
+            revision: release.revision,
+            evidencePath: release.categories.video.evidencePath,
+            evidenceSha256: release.categories.video.evidenceSha256,
+          },
+        });
+        if (!sameJson(expected, artifacts.video)) throw new Error("video.json must exactly match session inspection, upload, playback, and category evidence");
+      }
+      if (artifacts.humanReview) {
+        const human = buildHumanEvidence({
+          revision: artifacts.humanReview.revision,
+          runId: artifacts.humanReview.runId,
+          serverRevision: artifacts.humanReview.serverRevision,
+          reviewer: artifacts.humanReview.reviewer,
+          ledgerPath: artifacts.humanReview.ledgerPath,
+          ledgerSha256: artifacts.humanReview.ledgerSha256,
+          exportPath: artifacts.humanReview.exportPath,
+          exportSha256: artifacts.humanReview.exportSha256,
+          trajectoryPath: artifacts.humanReview.trajectoryPath,
+          trajectorySha256: artifacts.humanReview.trajectorySha256,
+        });
+        if (!sameJson(human, artifacts.humanReview) || human.revision !== release.revision
+          || human.runId !== session.humanReview.runId || human.serverRevision !== session.humanReview.serverRevision
+          || !sameJson(human.reviewer, session.humanReview.reviewer)) {
+          throw new Error("human-review.json must be canonical and match the selected participant session run");
+        }
+      }
+      if (artifacts.developmentAgent) {
+        const development = buildDevelopmentManifest({
+          revision: artifacts.developmentAgent.revision,
+          runId: artifacts.developmentAgent.runId,
+          eventCount: artifacts.developmentAgent.eventCount,
+          trajectoryPath: artifacts.developmentAgent.trajectoryPath,
+          trajectorySha256: artifacts.developmentAgent.trajectorySha256,
+          privacyReview: artifacts.developmentAgent.privacyReview,
+        });
+        if (!sameJson(development, artifacts.developmentAgent) || development.revision !== release.revision
+          || !sameJson(development.privacyReview, session.privacyReview)) {
+          throw new Error("development manifest must be canonical and match the exact privacy-reviewed participant session hash");
+        }
+      }
+      if (!sameJson(release.decision, session.decision)) throw new Error("release decision must exactly match session.json");
+    }
+  } catch (error) {
+    releaseEnvelopeFailure(validation, "artifacts/qa/release.json", `bound release artifacts must be canonical and cross-consistent: ${error.message}`);
+  }
+  validation.passIfClean(start, "schema-closed, hash-bound final release envelope is canonical and cross-consistent");
   return release;
 }
 
@@ -1733,60 +1914,6 @@ function boundQaEvidence(validation, path, expectedHash) {
   }
 }
 
-function validQaCategoryEvidence(validation, release, category, item) {
-  const expectedPath = `artifacts/qa/categories/${category}.json`;
-  if (item?.revision !== release.revision || item.evidencePath !== expectedPath) return false;
-  const bound = boundQaEvidence(validation, item.evidencePath, item.evidenceSha256);
-  if (!bound) return false;
-  let evidence;
-  let source;
-  try {
-    source = decodeUtf8(bound.bytes);
-    evidence = JSON.parse(source);
-  } catch {
-    return false;
-  }
-  const timestamp = Date.parse(evidence?.timestamp ?? "");
-  return evidence?.schemaVersion === 1
-    && evidence?.artifactKind === "rubricdelta-qa-category"
-    && evidence?.category === category
-    && evidence?.revision === release.revision
-    && evidence?.status === "PASS"
-    && RFC3339_TIMESTAMP.test(evidence?.timestamp ?? "")
-    && Number.isFinite(timestamp)
-    && typeof evidence?.tool === "string" && evidence.tool.trim().length >= 2 && evidence.tool.length <= 200
-    && Array.isArray(evidence?.coverage) && evidence.coverage.length > 0
-    && evidence.coverage.every((item) => typeof item === "string" && item.trim().length >= 4 && item.length <= 1_000)
-    && !/"status"\s*:\s*"(?:PENDING|NOT RUN|FAIL)"|\b(?:PENDING|NOT RUN)\b/i.test(source);
-}
-
-function validQaCommandEvidence(validation, release, record) {
-  if (record?.revision !== release.revision || !/^[a-z0-9][a-z0-9-]{1,80}$/.test(record?.id ?? "")
-    || record.outputPath !== `artifacts/qa/commands/${record.id}.json`) return false;
-  const bound = boundQaEvidence(validation, record.outputPath, record.outputSha256);
-  if (!bound) return false;
-  let evidence;
-  let source;
-  try {
-    source = decodeUtf8(bound.bytes);
-    evidence = JSON.parse(source);
-  } catch {
-    return false;
-  }
-  return evidence?.schemaVersion === 1
-    && evidence?.artifactKind === "rubricdelta-qa-command"
-    && evidence?.revision === release.revision
-    && evidence?.command === record.command
-    && evidence?.status === "PASS"
-    && evidence?.exitCode === 0
-    && evidence?.startedAt === record.startedAt
-    && evidence?.endedAt === record.endedAt
-    && RFC3339_TIMESTAMP.test(record.startedAt)
-    && RFC3339_TIMESTAMP.test(record.endedAt)
-    && Date.parse(record.endedAt) >= Date.parse(record.startedAt)
-    && ((typeof evidence?.output === "string" && evidence.output.trim() !== "") || (typeof evidence?.summary === "string" && evidence.summary.trim() !== ""))
-    && !/"status"\s*:\s*"(?:PENDING|NOT RUN|FAIL)"|\b(?:PENDING|NOT RUN)\b/i.test(source);
-}
 function parseCsvRecordIds(source) {
   const lines = source.replace(/\r\n?/g, "\n").trimEnd().split("\n");
   if (lines.length < 2) return [];
