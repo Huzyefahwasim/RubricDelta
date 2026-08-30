@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import {
   appendFileSync,
   cpSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -156,6 +157,15 @@ function initializeGitProvenance(project, { addQaAndVideoEvidence = false } = {}
     sourceState: "clean-source-managed-artifacts-dirty",
   };
   writeJson(project, manifestPath, manifest);
+
+  const operationalManifestPath = "artifacts/expected-replay-report/operational-replay/manifest.json";
+  if (existsSync(join(project, ...operationalManifestPath.split("/")))) {
+    const operationalManifest = JSON.parse(
+      readFileSync(join(project, ...operationalManifestPath.split("/")), "utf8"),
+    );
+    operationalManifest.git = manifest.git;
+    writeJson(project, operationalManifestPath, operationalManifest);
+  }
 
   if (addQaAndVideoEvidence) {
     writeJson(project, "artifacts/qa/release.json", {
