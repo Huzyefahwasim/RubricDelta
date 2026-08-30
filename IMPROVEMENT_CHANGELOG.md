@@ -130,3 +130,12 @@ Reviewer agreement cannot detect a shared misreading of the same guideline. Team
 - Failure analysis: Before the source freeze, the Task 8 manifest names an older source revision. Under Controller Ruling 3, the corresponding current-repository build assertion remains the sole allowed full-suite failure through Task 5. The release collector cannot record `npm test` first while that stale binding exists, so it fails before command execution with the exact remediation: run the unrecorded `npm run eval` bootstrap, then rerun `npm run release:commands`. Weakening the validator or adding an eighth recorded command would hide the contract error.
 - Decision: Keep the evidence producer and source/evidence split. Participant-controlled facts enter the release record only after the participant supplies them.
 - Evidence paths: `scripts/release-evidence.js`, `tests/release-evidence.test.js`, `docs/REPRODUCTION.md`, `docs/DEVELOPMENT_AGENT_DISCLOSURE.md`, and `artifacts/qa/release.json` when the release composer succeeds.
+
+## REL-010: Bind verifier abstention prompt to replay
+
+- Date: 2026-08-30
+- Trigger: Participant approval resolved R6, the final-strict independent-verifier abstention contract mismatch.
+- Change: Replaced the v1 final sentence from Use uncertain when public evidence cannot safely resolve the claim. to Use uncertain to abstain or escalate rather than invent evidence when public evidence cannot safely resolve the claim. Regenerated the fixture only through node scripts/capture-replay.js and replaced only the ten independent-verifier request hashes in REPLAY_REQUEST_HASHES.
+- Binding: prompt SHA-256 0c4e725c3152b7bf1e038d0557c9b681b520b91a0b5d350afc70ee0c092febc2; fixture SHA-256 4fd8a97493c534a2f1c5f3444cf70a4f0037ffb3292309785af5c8c73113a9bf (1180036 bytes); source SHA-256 remains 52bdd1845e10719356831545966b55ea9d25b3d77bc28bd3ce15063343402b16. Sequences 14,18,22,26,30,34,38,42,46,50 are the ten changed verifier request hashes.
+- Invariants: all 50 result objects and result hashes, source binding, benchmark, protocol v2, baseline prompt and algorithm, seed, review budget, 50 calls/50 attempts, unsubstituted replay, and deterministic baseline 0.80/advanced 0.90/delta 0.10 remain unchanged.
+- Classification: release-contract correction, not an ablation or measured quality improvement.
