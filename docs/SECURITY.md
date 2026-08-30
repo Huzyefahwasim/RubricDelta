@@ -64,6 +64,7 @@ The ledger proves that a decision event passed through the server gate. It does 
 - No final Codex Security repository scan result exists.
 - No authentication or reviewer-authorization system exists.
 - No encryption-at-rest or automated retention control exists for run artifacts.
+- The trusted single-user loopback server has no aggregate run or revision quota and performs no automatic in-process eviction. A same-host client can consume local memory and artifact-disk space by creating runs or decisions. Keep the server bound to `127.0.0.1`, restrict same-host access, monitor `artifacts/runs/`, stop it when unused, and remove run artifacts under the applicable retention policy. This is an accepted same-host availability limitation, not evidence of a remote route.
 - No endpoint writes approved corrections to an external platform.
 - No verified live OpenAI evaluation result exists.
 
