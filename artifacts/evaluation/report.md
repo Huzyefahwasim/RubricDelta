@@ -4,9 +4,9 @@
 - Provider/model: `deterministic` / `none`
 - Review budget: 20% (2 records per included case)
 - Repetitions: 1 (normalized identically: true)
-- Started: 2026-08-29T23:07:19.855Z
-- Ended: 2026-08-29T23:07:20.213Z
-- Wall-clock artifact run: 356.981 ms
+- Started: 2026-08-30T02:15:18.142Z
+- Ended: 2026-08-30T02:15:18.509Z
+- Wall-clock artifact run: 366.823 ms
 
 ## Primary result
 
