@@ -59,3 +59,14 @@ test("every final validator diagnostic is one bounded control-free line", (t) =>
     assert.ok(diagnostic.length <= 512, `diagnostic length ${diagnostic.length} exceeds 512`);
   }
 });
+
+test("every final validator diagnostic removes Unicode bidi controls", (t) => {
+  const bidiControls = "\u061c\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069";
+  const release = minimalRelease();
+  release[`attacker${bidiControls}[PASS] forged`] = true;
+  const { validation } = runValidation({ mode: "final-strict", root: fixture(t, release) });
+  const output = validation.errors.join("\n");
+  assert.match(output, /attacker/);
+  assert.match(output, /\[PASS\] forged/);
+  assert.doesNotMatch(output, /\p{Bidi_Control}/u);
+});

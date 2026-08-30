@@ -254,6 +254,7 @@ function containsSecret(value) {
 function sanitizeDiagnostic(value) {
   const singleLine = redactCredentialLikeText(String(value))
     .replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/gu, " ")
+    .replace(/\p{Bidi_Control}+/gu, " ")
     .replace(/\s+/gu, " ")
     .trim();
   if (singleLine.length <= MAX_DIAGNOSTIC_CHARACTERS) return singleLine;
