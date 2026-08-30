@@ -20,6 +20,14 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluatePredictions, loadBenchmark } from "../src/evaluation/index.js";
 import { canonicalTextSha256 } from "../src/evaluation/evidence-hash.js";
+import {
+  isGitObjectId,
+  parseGitIndexState,
+  parseGitPathList,
+  parseGitStatus,
+  parseRawCommitChanges,
+  portableGitPathSet,
+} from "./git-provenance.js";
 
 const scriptRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const MAX_JSON_BYTES = 16 * 1024 * 1024;
@@ -128,6 +136,14 @@ const MANAGED_EVIDENCE_ROOTS = Object.freeze([
   "artifacts/submission/",
   "artifacts/development-agent/",
 ]);
+const SAFE_GIT_FILE_MODES = new Set(["000000", "100644", "100755"]);
+const HISTORICAL_GENERATION_STATE = Object.freeze({
+  wholeWorkingTreeDirty: true,
+  sourceTrackedWorkingTreeDirty: false,
+  sourceUntrackedWorkingTreeDirty: false,
+  sourceWorkingTreeDirty: false,
+  managedArtifactDirty: true,
+});
 const SECRET_PATTERNS = Object.freeze([
   /\bsk-[A-Za-z0-9_-]{8,}\b/i,
   /\bBearer\s+[A-Za-z0-9._~+\/-]{12,}\b/i,
@@ -341,16 +357,101 @@ function runGit(root, args) {
 }
 
 function gitStatus(root) {
-  const result = runGit(root, ["status", "--porcelain=v1", "--untracked-files=all"]);
+  const result = runGit(root, [
+    "status",
+    "--porcelain=v1",
+    "-z",
+    "--untracked-files=all",
+    "--no-renames",
+  ]);
   if (result.status !== 0) return null;
-  return result.stdout.split(/\r?\n/).filter(Boolean).map((line) => ({
-    code: line.slice(0, 2),
-    path: posix(line.slice(3).replace(/^"|"$/g, "")),
-  }));
+  return parseGitStatus(result.stdout);
+}
+
+function gitIndexState(root) {
+  const result = runGit(root, ["ls-files", "--cached", "-v", "-z"]);
+  if (result.status !== 0) return null;
+  return parseGitIndexState(result.stdout);
 }
 
 function evidencePath(path) {
   return MANAGED_EVIDENCE_ROOTS.some((root) => path.startsWith(root));
+}
+
+function validateHistoricalGenerationState(validation, state) {
+  if (typeof state?.trackedWorkingTreeDirty !== "boolean") {
+    validation.fail(
+      "MISMATCH",
+      "manifest.git.trackedWorkingTreeDirty",
+      "must be boolean in the post-generation, pre-publication evidence snapshot",
+    );
+  }
+  for (const [field, expected] of Object.entries(HISTORICAL_GENERATION_STATE)) {
+    if (state?.[field] !== expected) {
+      validation.fail(
+        "MISMATCH",
+        `manifest.git.${field}`,
+        "must describe the post-generation, pre-publication evidence snapshot",
+      );
+    }
+  }
+  if (state?.sourceState !== "clean-source-managed-artifacts-dirty") {
+    validation.fail(
+      "MISMATCH",
+      "manifest.git.sourceState",
+      "must identify a clean source with managed generated evidence pending publication",
+    );
+  }
+  if (state?.packagingCommit !== null) {
+    validation.fail(
+      "MISMATCH",
+      "manifest.git.packagingCommit",
+      "is derived from verified source-to-HEAD history and must remain null in generated evidence",
+    );
+  }
+}
+
+function rawCommitChanges(root, commit) {
+  const result = runGit(root, [
+    "diff-tree",
+    "--no-commit-id",
+    "--raw",
+    "-r",
+    "-z",
+    "--no-renames",
+    "--no-abbrev",
+    commit,
+  ]);
+  if (result.status !== 0) return null;
+  return parseRawCommitChanges(result.stdout);
+}
+
+function rawTreeChanges(root, from, to) {
+  const result = runGit(root, [
+    "diff",
+    "--raw",
+    "-z",
+    "--no-renames",
+    "--no-abbrev",
+    from,
+    to,
+    "--",
+  ]);
+  if (result.status !== 0) return null;
+  return parseRawCommitChanges(result.stdout);
+}
+
+function gitTreePaths(root, revision) {
+  const result = runGit(root, [
+    "ls-tree",
+    "-r",
+    "--full-tree",
+    "--name-only",
+    "-z",
+    revision,
+  ]);
+  if (result.status !== 0) return null;
+  return parseGitPathList(result.stdout);
 }
 
 function validateGitProvenance(validation, state, { final = false } = {}) {
@@ -360,9 +461,29 @@ function validateGitProvenance(validation, state, { final = false } = {}) {
     validation.fail("GIT PROVENANCE", "repository", "a non-Git archive requires a complete independently hashed source inventory");
     return;
   }
+  const indexState = gitIndexState(validation.root);
+  if (!indexState) {
+    validation.fail("GIT PROVENANCE", "repository", "tracked index state could not be measured");
+    return;
+  }
+  if (indexState.hasNonDefaultFlags) {
+    validation.fail("HIDDEN INDEX STATE", "repository", "tracked files use nondefault index flags");
+    return;
+  }
   const status = gitStatus(validation.root);
   if (!status) {
     validation.fail("GIT PROVENANCE", "repository", "actual Git state could not be measured");
+    return;
+  }
+  if (!portableGitPathSet([
+    ...indexState.paths,
+    ...status.map(({ path }) => path),
+  ])) {
+    validation.fail(
+      "NONPORTABLE GIT PATHS",
+      "repository",
+      "tracked and untracked paths must have one portable identity",
+    );
     return;
   }
   const trackedDirty = status.some((item) => item.code !== "??");
@@ -378,12 +499,9 @@ function validateGitProvenance(validation, state, { final = false } = {}) {
     sourceWorkingTreeDirty: sourceEntries.length > 0,
     managedArtifactDirty: managedEntries.length > 0,
   };
-  for (const [field, value] of Object.entries(actual)) {
-    if (state?.[field] !== value) validation.fail("MISMATCH", `manifest.git.${field}`, "disclosure does not match measured Git state");
-  }
+  validateHistoricalGenerationState(validation, state);
   if (actual.sourceWorkingTreeDirty) validation.fail("DIRTY SOURCE", "repository", "tracked or untracked source changes are outside the evidence-only boundary");
-  if (final && wholeDirty) validation.fail("DIRTY FINAL TREE", "repository", "final validation requires a clean tracked and untracked tree");
-  if (state?.revision !== state?.baseRevision || !/^[a-f0-9]{40}$/.test(state?.revision ?? "")) {
+  if (state?.revision !== state?.baseRevision || !isGitObjectId(state?.revision)) {
     validation.fail("MISMATCH", "manifest.git.revision", "must name one disclosed clean source commit");
     return;
   }
@@ -392,24 +510,109 @@ function validateGitProvenance(validation, state, { final = false } = {}) {
     validation.fail("MISMATCH", "manifest.git.revision", "must resolve and be ancestral to the validated HEAD");
     return;
   }
+  const head = runGit(validation.root, ["rev-parse", "HEAD"]);
+  if (head.status !== 0) {
+    validation.fail("MISMATCH", "manifest.git.revision", "validated HEAD could not be resolved");
+    return;
+  }
   const descendants = runGit(validation.root, ["rev-list", "--reverse", `${state.revision}..HEAD`]);
   if (descendants.status !== 0) {
     validation.fail("MISMATCH", "manifest.git.revision", "could not enumerate source-to-HEAD commits");
     return;
   }
-  for (const commit of descendants.stdout.split(/\s+/).filter(Boolean)) {
+  const descendantCommits = descendants.stdout.split(/\s+/).filter(Boolean);
+  for (const revision of [state.revision, ...descendantCommits]) {
+    if (gitTreePaths(validation.root, revision) === null) {
+      validation.fail(
+        "MISMATCH",
+        "manifest.git.revision",
+        "source and descendant evidence trees must use portable Git paths",
+      );
+      return;
+    }
+  }
+  let publicationCommit = null;
+  for (const commit of descendantCommits) {
     const parents = runGit(validation.root, ["rev-list", "--parents", "-n", "1", commit]);
-    const changed = runGit(validation.root, ["diff-tree", "--no-commit-id", "--name-only", "-r", "-z", commit]);
-    if (parents.status !== 0 || parents.stdout.trim().split(/\s+/).length !== 2 || changed.status !== 0) {
+    const changes = rawCommitChanges(validation.root, commit);
+    if (parents.status !== 0 || parents.stdout.trim().split(/\s+/).length !== 2 || changes === null) {
       validation.fail("MISMATCH", "manifest.git.revision", "evidence packaging must be a linear verifiable commit sequence");
       return;
     }
-    const paths = changed.stdout.split("\0").filter(Boolean).map(posix);
+    const unsafe = changes.find(({ oldMode, newMode }) => (
+      !SAFE_GIT_FILE_MODES.has(oldMode) || !SAFE_GIT_FILE_MODES.has(newMode)
+    ));
+    if (unsafe) {
+      const mode = !SAFE_GIT_FILE_MODES.has(unsafe.oldMode) ? unsafe.oldMode : unsafe.newMode;
+      validation.fail(
+        "MISMATCH",
+        "manifest.git.revision",
+        `source-to-HEAD commits contain unsafe evidence mode ${mode}`,
+      );
+      return;
+    }
+    if (changes.some(({ status }) => !["A", "D", "M"].includes(status))) {
+      validation.fail("MISMATCH", "manifest.git.revision", "evidence packaging contains an unverifiable change type");
+      return;
+    }
+    const paths = changes.map(({ path }) => path);
     if (paths.some((path) => !evidencePath(path))) {
       validation.fail("MISMATCH", "manifest.git.revision", "source-to-HEAD commits contain non-evidence changes");
       return;
     }
+    if (!publicationCommit && paths.includes("artifacts/evaluation/manifest.json")) {
+      publicationCommit = commit;
+    }
   }
+  const exactGenerationHead = head.stdout.trim() === state.revision;
+  if (exactGenerationHead) {
+    for (const [field, value] of Object.entries(actual)) {
+      if (state?.[field] !== value) {
+        validation.fail("MISMATCH", `manifest.git.${field}`, "disclosure does not match measured generation-time Git state");
+      }
+    }
+  } else {
+    if (!publicationCommit) {
+      validation.fail(
+        "MISMATCH",
+        "manifest.git.revision",
+        "evidence-only descendants must publish artifacts/evaluation/manifest.json",
+      );
+    } else {
+      const publicationChanges = rawTreeChanges(
+        validation.root,
+        state.revision,
+        publicationCommit,
+      );
+      if (!publicationChanges
+        || publicationChanges.some(({ path }) => !evidencePath(path))) {
+        validation.fail(
+          "MISMATCH",
+          "manifest.git.revision",
+          "first publication snapshot could not be verified",
+        );
+      } else {
+        const expectedTrackedDirty = publicationChanges.some(
+          ({ oldMode }) => oldMode !== "000000",
+        );
+        if (state.trackedWorkingTreeDirty !== expectedTrackedDirty) {
+          validation.fail(
+            "MISMATCH",
+            "manifest.git.trackedWorkingTreeDirty",
+            "does not match the first publication snapshot",
+          );
+        }
+      }
+    }
+    if (wholeDirty) {
+      validation.fail(
+        "DIRTY PUBLISHED TREE",
+        "repository",
+        "an evidence-only descendant requires the current tracked and untracked tree to be clean",
+      );
+    }
+  }
+  if (final && wholeDirty) validation.fail("DIRTY FINAL TREE", "repository", "final validation requires a clean tracked and untracked tree");
   validation.passIfClean(start, "measured Git state matches a clean source and evidence-only ancestry");
 }
 
@@ -1234,7 +1437,7 @@ function validateQaRelease(validation) {
     validation.fail("RELEASE QA", "artifacts/qa/release.json", "structured PASS evidence is required");
     return null;
   }
-  if (release.schemaVersion !== 1 || release.artifactKind !== "rubricdelta-release-qa" || !/^[a-f0-9]{40}$/.test(release.revision ?? "")) validation.fail("RELEASE QA", "artifacts/qa/release.json", "schema and concrete 40-hex revision are required");
+  if (release.schemaVersion !== 1 || release.artifactKind !== "rubricdelta-release-qa" || !isGitObjectId(release.revision)) validation.fail("RELEASE QA", "artifacts/qa/release.json", "schema and concrete 40- or 64-hex revision are required");
   const categoryPaths = new Set();
   for (const category of QA_CATEGORIES) {
     const item = release.categories?.[category];

@@ -9,6 +9,8 @@
 
 The deterministic manifest records the Node version, platform, architecture, benchmark hash, Git state, run timing, and zero provider calls, attempts, tokens, latency, and cost. It hashes the raw prediction bytes. The benchmark hash canonicalizes UTF-8 text to LF, and `.gitattributes` keeps hash-bound benchmark and evidence files byte-stable across Windows and Unix checkouts.
 
+The manifest's Git booleans describe the post-generation, pre-publication state. A run from a clean source revision records clean source files and dirty managed evidence files. The validator derives `trackedWorkingTreeDirty` from the first descendant commit that publishes the evaluation manifest; later evidence commits do not change it. The value is false when every path in that first publication is new. After you commit the evidence, a clean clone retains the historical booleans. The validator measures the clone's current status on its own and rejects nondefault index flags or path identities that cannot round-trip across supported filesystems.
+
 ## Clean setup
 
 ```bash

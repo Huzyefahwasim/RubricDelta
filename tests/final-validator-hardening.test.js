@@ -275,6 +275,23 @@ test("final-strict requires every structured QA category to PASS at a concrete r
   assert.doesNotMatch(passLines(result), /release QA/i);
 });
 
+test("final QA schema accepts a 64-hex Git object ID before repository resolution", (t) => {
+  const project = fixture(t);
+  writeJson(project, "artifacts/qa/release.json", {
+    schemaVersion: 1,
+    artifactKind: "rubricdelta-release-qa",
+    revision: "a".repeat(64),
+    categories: {},
+  });
+
+  const result = run(project);
+  assert.notEqual(result.status, 0, output(result));
+  assert.doesNotMatch(
+    failLines(result),
+    /artifacts\/qa\/release\.json.*schema and concrete .*revision/i,
+  );
+});
+
 test("final-strict does not count a generated approve/reject/escalate/undo sequence as human proof", (t) => {
   const project = fixture(t);
   const reviewer = "hackathon-evidence-generator";
@@ -350,10 +367,12 @@ test("final-strict allows a clean source revision followed only by QA and video 
   initializeGitProvenance(project, { addQaAndVideoEvidence: true });
 
   const result = run(project);
+  const failures = failLines(result);
   assert.doesNotMatch(
-    failLines(result),
-    /manifest\.git\.revision|Git provenance|source-to-HEAD.*outside|source working tree.*dirty/i,
+    failures,
+    /manifest\.git|GIT PROVENANCE|DIRTY SOURCE|DIRTY FINAL TREE/i,
   );
+  assert.match(passLines(result), /measured Git state matches a clean source and evidence-only ancestry/i);
 });
 
 test("final-strict measures source dirtiness instead of trusting clean manifest booleans", (t) => {
@@ -365,7 +384,7 @@ test("final-strict measures source dirtiness instead of trusting clean manifest 
   assert.notEqual(result.status, 0, output(result));
   assert.match(
     failLines(result),
-    /(?:Git provenance|manifest\.git).*(?:dirty|uncommitted|working tree)|(?:dirty|uncommitted).*(?:Git provenance|manifest\.git)/i,
+    /DIRTY SOURCE: repository.*outside the evidence-only boundary/i,
   );
   assert.doesNotMatch(passLines(result), /Git provenance/i);
 });

@@ -98,6 +98,12 @@ The report must disclose token, call, runtime, and cost differences. Resource pa
 - Escalated records
 - Incomplete or failed cases
 
+## Git provenance phases
+
+The evaluator records `manifest.git` after it writes managed evaluation files. `revision` and `baseRevision` name the clean source commit at generation time. The dirty booleans record that historical post-generation, pre-publication state: source files are clean, and managed evidence files are dirty. The validator derives `trackedWorkingTreeDirty` from the first descendant commit that publishes `artifacts/evaluation/manifest.json`. It is true when that publication changes any path that existed at `revision`, and false when every published path is new. Later evidence commits do not redefine this value. `packagingCommit` remains null because the evaluator cannot name a future commit.
+
+The validator measures the current checkout as a separate state. At `HEAD === revision`, it compares the measured status with every recorded dirty boolean. At a later `HEAD`, it requires a clean tracked and untracked tree plus a linear evidence-only commit chain from `revision`. The chain must publish `artifacts/evaluation/manifest.json`, keep paths under managed evidence roots, and use regular-file modes. The validator checks the full current path set and every source or descendant tree for portable Git identities. It rejects forbidden or reserved path segments, non-NFC text, case-equivalent siblings, literal backslashes, and tracked entries with assume-unchanged, skip-worktree, or other nondefault flags. It also rejects merges, source paths, evidence-to-source moves, unsafe modes, and intermediate source changes even when a later commit restores the original bytes. Final validation keeps the clean-tree requirement.
+
 ## Integrity rules
 
 - Never tune against hidden or designated holdout cases.

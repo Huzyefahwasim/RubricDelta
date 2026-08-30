@@ -7,6 +7,7 @@ import { toPublicScenario } from "../src/domain/scenario.js";
 import { reviewBudgetForCase } from "../src/evaluation/benchmark.js";
 import { EVALUATION_PROTOCOL } from "../src/evaluation/protocol.js";
 import { canonicalTextSha256 } from "../src/evaluation/evidence-hash.js";
+import { isGitObjectId } from "./git-provenance.js";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const canonicalEvidenceRoot = resolve(repositoryRoot, "artifacts", "evaluation");
@@ -159,7 +160,7 @@ export function classifyGitState({
   if (sourceWorkingTreeDirty === true) sourceState = "source-working-tree-dirty";
   else if (sourceWorkingTreeDirty === false && wholeWorkingTreeDirty === false && managedArtifactDirty === false) sourceState = "clean-commit";
   else if (sourceWorkingTreeDirty === false && wholeWorkingTreeDirty === true && managedArtifactDirty === true) sourceState = "clean-source-managed-artifacts-dirty";
-  const revisionAvailable = typeof baseRevision === "string" && /^[a-f0-9]{40}$/.test(baseRevision);
+  const revisionAvailable = isGitObjectId(baseRevision);
   return {
     revision: revisionAvailable && sourceWorkingTreeDirty === false && sourceState !== "unknown" ? baseRevision : null,
     baseRevision,

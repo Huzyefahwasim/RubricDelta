@@ -53,6 +53,23 @@ test("managed output changes preserve a clean source revision while disclosing w
   assert.equal(state.sourceState, "clean-source-managed-artifacts-dirty");
 });
 
+test("Git SHA-256 source revisions remain available to the manifest producer", () => {
+  const sha256Revision = "b".repeat(64);
+  const state = classifyGitState({
+    baseRevision: sha256Revision,
+    branch: "feature/test",
+    trackedStatus: "",
+    wholeStatus: "?? artifacts/evaluation/manifest.json",
+    sourceTrackedStatus: "",
+    sourceUntrackedStatus: "",
+    managedStatus: "?? artifacts/evaluation/manifest.json",
+  });
+
+  assert.equal(state.revision, sha256Revision);
+  assert.equal(state.baseRevision, sha256Revision);
+  assert.equal(state.sourceState, "clean-source-managed-artifacts-dirty");
+});
+
 test("tracked or untracked source dirtiness withholds the source revision", () => {
   for (const input of [
     { sourceTrackedStatus: " M README.md", sourceUntrackedStatus: "" },
