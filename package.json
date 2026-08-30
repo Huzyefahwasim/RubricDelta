@@ -17,6 +17,11 @@
     "eval:replay": "node scripts/evaluate.js --provider replay --replay-fixture data/benchmark/replay/rubricdelta-deterministic-source.v1.json --mode both --repeats 1 --output-dir artifacts/runs/provider-replay",
     "replay:check": "node scripts/capture-replay.js --check",
     "evidence": "node scripts/generate-evidence.js",
+    "release:commands": "node scripts/release-evidence.js commands",
+    "release:human": "node scripts/release-evidence.js human --session artifacts/tmp/release-session.json",
+    "release:development": "node scripts/release-evidence.js development --session artifacts/tmp/release-session.json --source artifacts/tmp/codex-export.jsonl",
+    "release:video-check": "node scripts/release-evidence.js video-check",
+    "release:compose": "node scripts/release-evidence.js compose --session artifacts/tmp/release-session.json",
     "validate": "node scripts/validate-submission.js --mode build",
     "validate:final": "node scripts/validate-submission.js --mode final-strict"
   },

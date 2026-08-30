@@ -1332,7 +1332,7 @@ function validateAvcSamplePayloads(buffer, sampleRanges, lengthSize) {
   }
   return sawVisualCodingLayer;
 }
-function inspectMp4(buffer) {
+export function inspectMp4(buffer) {
   if (buffer.length > 512 * 1024 * 1024) throw new Error("video exceeds bounded validation size");
   const top = parseIsoBoxes(buffer);
   const ftyp = top.find((box) => box.type === "ftyp");
@@ -1702,12 +1702,19 @@ function validateGlobalReplayResponseIds(validation, baseline, advanced) {
   const expected = Array.from({ length: 50 }, (_, index) => `deterministic-capture-${String(index + 1).padStart(4, "0")}`);
   if (!sameJson(actual, expected)) validation.fail("REPLAY EVALUATION", "provider-result response IDs", "must consume exact global deterministic IDs 0001 through 0050 once in order");
 }
-try {
-  const options = parseArguments(process.argv.slice(2));
+export function main(argv = process.argv.slice(2)) {
+  const options = parseArguments(argv);
   printResult(options.mode, runValidation(options));
-} catch {
-  process.stderr.write("Validation failed: bounded fail-closed validator error\n");
-  process.exitCode = 1;
+}
+
+const directPath = process.argv[1] ? resolve(process.argv[1]) : null;
+if (directPath && directPath.toLowerCase() === fileURLToPath(import.meta.url).toLowerCase()) {
+  try {
+    main();
+  } catch {
+    process.stderr.write("Validation failed: bounded fail-closed validator error\n");
+    process.exitCode = 1;
+  }
 }
 
 function boundQaEvidence(validation, path, expectedHash) {
