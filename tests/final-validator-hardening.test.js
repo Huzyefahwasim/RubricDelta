@@ -87,6 +87,33 @@ function passLines(result) {
   return output(result).split(/\r?\n/).filter((line) => line.startsWith("[PASS]")).join("\n");
 }
 
+function writeGeneratedReviewerCheckpoint(rootPath) {
+  const reviewer = "hackathon-evidence-generator";
+  const decisions = [
+    { type: "human-decision", recordId: "fraud-08", decision: "approve" },
+    { type: "human-undo", recordId: "fraud-08", undoneSequence: 1 },
+    { type: "human-decision", recordId: "fraud-03", decision: "reject" },
+    { type: "human-decision", recordId: "fraud-05", decision: "escalate" },
+  ];
+  const lines = decisions.map((item, index) => JSON.stringify({
+    runId: "generated-proof",
+    scenarioId: "fraud-overrides-refunds",
+    sequence: index + 1,
+    timestamp: `2026-08-30T00:00:0${index}.000Z`,
+    agent: "human-reviewer",
+    phase: "human-checkpoint",
+    type: item.type,
+    payload: {
+      type: item.type === "human-undo" ? "undo" : "decision",
+      sequence: index + 1,
+      timestamp: `2026-08-30T00:00:0${index}.000Z`,
+      reviewer,
+      ...item,
+    },
+  }));
+  write(rootPath, "artifacts/representative-trajectories/human-checkpoint.jsonl", `${lines.join("\n")}\n`);
+}
+
 function fakeMvhdOnly() {
   const value = Buffer.alloc(28);
   value.write("mvhd", 0, "ascii");
@@ -243,6 +270,7 @@ test("final-strict rejects zero movie timing and videos over five minutes", (t) 
 
 test("final-strict rejects protocol-only QA, a generated reviewer, pending development evidence, and non-Git provenance", (t) => {
   const project = fixture(t);
+  writeGeneratedReviewerCheckpoint(project);
   const result = run(project);
   const failures = failLines(result);
   assert.notEqual(result.status, 0, output(result));
@@ -304,30 +332,7 @@ test("final QA schema accepts a 64-hex Git object ID before repository resolutio
 
 test("final-strict does not count a generated approve/reject/escalate/undo sequence as human proof", (t) => {
   const project = fixture(t);
-  const reviewer = "hackathon-evidence-generator";
-  const decisions = [
-    { type: "human-decision", recordId: "fraud-08", decision: "approve" },
-    { type: "human-undo", recordId: "fraud-08", undoneSequence: 1 },
-    { type: "human-decision", recordId: "fraud-03", decision: "reject" },
-    { type: "human-decision", recordId: "fraud-05", decision: "escalate" },
-  ];
-  const lines = decisions.map((item, index) => JSON.stringify({
-    runId: "generated-proof",
-    scenarioId: "fraud-overrides-refunds",
-    sequence: index + 1,
-    timestamp: `2026-08-30T00:00:0${index}.000Z`,
-    agent: "human-reviewer",
-    phase: "human-checkpoint",
-    type: item.type,
-    payload: {
-      type: item.type === "human-undo" ? "undo" : "decision",
-      sequence: index + 1,
-      timestamp: `2026-08-30T00:00:0${index}.000Z`,
-      reviewer,
-      ...item,
-    },
-  }));
-  write(project, "artifacts/representative-trajectories/human-checkpoint.jsonl", `${lines.join("\n")}\n`);
+  writeGeneratedReviewerCheckpoint(project);
 
   const result = run(project);
   assert.notEqual(result.status, 0, output(result));
