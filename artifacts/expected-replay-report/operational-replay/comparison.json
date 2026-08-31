@@ -1,0 +1,1642 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-provider-paired-evaluation",
+  "benchmarkId": "rubricdelta-support-guideline-drift-v1",
+  "evaluationProtocol": {
+    "id": "rubricdelta-evaluation-v2",
+    "version": 2,
+    "supersedes": "rubricdelta-evaluation-v1",
+    "effectiveDate": "2026-08-29",
+    "primaryMetric": "microAffectedRecallAtReviewBudget",
+    "reviewBudget": {
+      "fractionSource": "benchmark.reviewBudgetFraction",
+      "calculation": "max(1, floor(recordCount * fraction))",
+      "rounding": "floor",
+      "minimumSlotsForNonemptyCase": 1
+    }
+  },
+  "fairComparison": {
+    "provider": "replay",
+    "model": "deterministic-role-capture-v1",
+    "reviewBudgetFraction": 0.2,
+    "orderedCaseIds": [
+      "fraud-overrides-refunds",
+      "identity-check-login",
+      "deceased-account-owner",
+      "perishable-delivery-quality",
+      "legal-data-deletion",
+      "security-vulnerability",
+      "assistive-technology-blocker",
+      "bank-chargeback-filed",
+      "multi-customer-outage",
+      "regulated-text-translation"
+    ],
+    "repeats": 1
+  },
+  "repetitions": [
+    {
+      "repetition": 1,
+      "scores": {
+        "baseline": {
+          "benchmarkId": "rubricdelta-support-guideline-drift-v1",
+          "system": "rubricdelta-direct-provider-baseline",
+          "reviewBudgetFraction": 0.2,
+          "caseCount": 10,
+          "totals": {
+            "records": 100,
+            "affected": 20,
+            "reviewed": 20,
+            "budgetSlots": 20,
+            "truePositives": 16,
+            "falsePositives": 4,
+            "falseNegatives": 4
+          },
+          "primaryMetric": {
+            "name": "microAffectedRecallAtReviewBudget",
+            "value": 0.8,
+            "numerator": 16,
+            "denominator": 20
+          },
+          "metrics": {
+            "micro": {
+              "affectedRecallAtBudget": 0.8,
+              "precisionAtBudget": 0.8,
+              "f1AtBudget": 0.8
+            },
+            "macro": {
+              "affectedRecallAtBudget": 0.8,
+              "precisionAtBudget": 0.8,
+              "f1AtBudget": 0.8
+            }
+          },
+          "resourceUse": {
+            "runtimeMs": null,
+            "estimatedCostUsd": 0,
+            "resourceNotes": "One direct provider call per public case; failures remain explicit and receive no deterministic substitution."
+          },
+          "warnings": [],
+          "perCase": [
+            {
+              "caseId": "fraud-overrides-refunds",
+              "title": "Unauthorized purchase exception overrides refund routing",
+              "difficulty": "hard",
+              "changeType": "precedence_exception",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "fraud-03",
+                "fraud-05"
+              ],
+              "truePositiveIds": [
+                "fraud-03"
+              ],
+              "falsePositiveIds": [
+                "fraud-05"
+              ],
+              "falseNegativeIds": [
+                "fraud-08"
+              ],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 1,
+                "falsePositives": 1,
+                "falseNegatives": 1
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 0.5,
+                "precisionAtBudget": 0.5,
+                "f1AtBudget": 0.5,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "fraud-03",
+                  "text": "My card was stolen and the thief bought a camera. Refund that purchase.",
+                  "existingLabel": "Billing Refunds",
+                  "isAffected": true,
+                  "expectedLabel": "Fraud Review",
+                  "rationale": "The purchase followed a stolen card and the new exception overrides the requested refund."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "fraud-05",
+                  "text": "The replacement card for my stolen card has not arrived.",
+                  "existingLabel": "Card Delivery",
+                  "isAffected": false,
+                  "expectedLabel": null,
+                  "rationale": null
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "fraud-03",
+                  "text": "My card was stolen and the thief bought a camera. Refund that purchase.",
+                  "existingLabel": "Billing Refunds",
+                  "expectedLabel": "Fraud Review",
+                  "rationale": "The purchase followed a stolen card and the new exception overrides the requested refund."
+                },
+                {
+                  "recordId": "fraud-08",
+                  "text": "I never authorized this game purchase. Reverse it and secure my card.",
+                  "existingLabel": "Billing Refunds",
+                  "expectedLabel": "Fraud Review",
+                  "rationale": "The customer explicitly says the purchase was unauthorized, so Fraud Review now takes precedence."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "identity-check-login",
+              "title": "Identity-verification login blocks move to account security",
+              "difficulty": "medium",
+              "changeType": "new_exception",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "access-02",
+                "access-06"
+              ],
+              "truePositiveIds": [
+                "access-02",
+                "access-06"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "access-02",
+                  "text": "The selfie identity check keeps rejecting me, so I cannot sign in.",
+                  "existingLabel": "Technical Access",
+                  "isAffected": true,
+                  "expectedLabel": "Account Security",
+                  "rationale": "The failed selfie check is an identity-verification login block."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "access-06",
+                  "text": "My passport document check failed and now login is blocked.",
+                  "existingLabel": "Technical Access",
+                  "isAffected": true,
+                  "expectedLabel": "Account Security",
+                  "rationale": "The failed passport check is a document-verification login block."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "access-02",
+                  "text": "The selfie identity check keeps rejecting me, so I cannot sign in.",
+                  "existingLabel": "Technical Access",
+                  "expectedLabel": "Account Security",
+                  "rationale": "The failed selfie check is an identity-verification login block."
+                },
+                {
+                  "recordId": "access-06",
+                  "text": "My passport document check failed and now login is blocked.",
+                  "existingLabel": "Technical Access",
+                  "expectedLabel": "Account Security",
+                  "rationale": "The failed passport check is a document-verification login block."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "deceased-account-owner",
+              "title": "Deceased-owner requests receive a dedicated route",
+              "difficulty": "medium",
+              "changeType": "new_category",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "estate-02",
+                "estate-07"
+              ],
+              "truePositiveIds": [
+                "estate-02",
+                "estate-07"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "estate-02",
+                  "text": "I am executor for my late father's estate and need his account closed.",
+                  "existingLabel": "Retention",
+                  "isAffected": true,
+                  "expectedLabel": "Estate Support",
+                  "rationale": "The executor is closing an account belonging to a deceased owner."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "estate-07",
+                  "text": "My mother died; where do I send her death certificate to cancel service?",
+                  "existingLabel": "Retention",
+                  "isAffected": true,
+                  "expectedLabel": "Estate Support",
+                  "rationale": "The death certificate and deceased-owner cancellation require Estate Support."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "estate-02",
+                  "text": "I am executor for my late father's estate and need his account closed.",
+                  "existingLabel": "Retention",
+                  "expectedLabel": "Estate Support",
+                  "rationale": "The executor is closing an account belonging to a deceased owner."
+                },
+                {
+                  "recordId": "estate-07",
+                  "text": "My mother died; where do I send her death certificate to cancel service?",
+                  "existingLabel": "Retention",
+                  "expectedLabel": "Estate Support",
+                  "rationale": "The death certificate and deceased-owner cancellation require Estate Support."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "perishable-delivery-quality",
+              "title": "Spoiled perishables split from ordinary damaged returns",
+              "difficulty": "easy",
+              "changeType": "category_split",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "quality-04",
+                "quality-02"
+              ],
+              "truePositiveIds": [
+                "quality-04",
+                "quality-02"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "quality-04",
+                  "text": "The flowers arrived wilted and brown.",
+                  "existingLabel": "Damaged Returns",
+                  "isAffected": true,
+                  "expectedLabel": "Perishable Quality",
+                  "rationale": "Wilted flowers are explicitly covered by the new perishable category."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "quality-02",
+                  "text": "The frozen meal arrived warm and smells spoiled.",
+                  "existingLabel": "Damaged Returns",
+                  "isAffected": true,
+                  "expectedLabel": "Perishable Quality",
+                  "rationale": "A warm, spoiled frozen meal is a perishable-quality issue."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "quality-02",
+                  "text": "The frozen meal arrived warm and smells spoiled.",
+                  "existingLabel": "Damaged Returns",
+                  "expectedLabel": "Perishable Quality",
+                  "rationale": "A warm, spoiled frozen meal is a perishable-quality issue."
+                },
+                {
+                  "recordId": "quality-04",
+                  "text": "The flowers arrived wilted and brown.",
+                  "existingLabel": "Damaged Returns",
+                  "expectedLabel": "Perishable Quality",
+                  "rationale": "Wilted flowers are explicitly covered by the new perishable category."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "legal-data-deletion",
+              "title": "Statutory deletion requests split from normal account closure",
+              "difficulty": "medium",
+              "changeType": "compliance_exception",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "privacy-02",
+                "privacy-06"
+              ],
+              "truePositiveIds": [
+                "privacy-02",
+                "privacy-06"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "privacy-02",
+                  "text": "I invoke my GDPR right to erasure; delete all personal data you retain.",
+                  "existingLabel": "Account Settings",
+                  "isAffected": true,
+                  "expectedLabel": "Privacy Rights",
+                  "rationale": "The request explicitly invokes GDPR and deletion of retained personal data."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "privacy-06",
+                  "text": "Under CCPA, remove every copy of my personal information.",
+                  "existingLabel": "Account Settings",
+                  "isAffected": true,
+                  "expectedLabel": "Privacy Rights",
+                  "rationale": "The request explicitly invokes CCPA and comprehensive personal-data removal."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "privacy-02",
+                  "text": "I invoke my GDPR right to erasure; delete all personal data you retain.",
+                  "existingLabel": "Account Settings",
+                  "expectedLabel": "Privacy Rights",
+                  "rationale": "The request explicitly invokes GDPR and deletion of retained personal data."
+                },
+                {
+                  "recordId": "privacy-06",
+                  "text": "Under CCPA, remove every copy of my personal information.",
+                  "existingLabel": "Account Settings",
+                  "expectedLabel": "Privacy Rights",
+                  "rationale": "The request explicitly invokes CCPA and comprehensive personal-data removal."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "security-vulnerability",
+              "title": "Security vulnerabilities override ordinary bug routing",
+              "difficulty": "medium",
+              "changeType": "risk_escalation",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "security-02",
+                "security-01"
+              ],
+              "truePositiveIds": [
+                "security-02"
+              ],
+              "falsePositiveIds": [
+                "security-01"
+              ],
+              "falseNegativeIds": [
+                "security-04"
+              ],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 1,
+                "falsePositives": 1,
+                "falseNegatives": 1
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 0.5,
+                "precisionAtBudget": 0.5,
+                "f1AtBudget": 0.5,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "security-02",
+                  "text": "Changing the invoice ID in the URL lets me see another customer's invoice.",
+                  "existingLabel": "Technical Bugs",
+                  "isAffected": true,
+                  "expectedLabel": "Security Incident",
+                  "rationale": "Changing an identifier exposes another customer's data and indicates an authorization bypass."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "security-01",
+                  "text": "The app crashes when I open notification settings.",
+                  "existingLabel": "Technical Bugs",
+                  "isAffected": false,
+                  "expectedLabel": null,
+                  "rationale": null
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "security-02",
+                  "text": "Changing the invoice ID in the URL lets me see another customer's invoice.",
+                  "existingLabel": "Technical Bugs",
+                  "expectedLabel": "Security Incident",
+                  "rationale": "Changing an identifier exposes another customer's data and indicates an authorization bypass."
+                },
+                {
+                  "recordId": "security-04",
+                  "text": "A debug page displays a live production API secret.",
+                  "existingLabel": "Technical Bugs",
+                  "expectedLabel": "Security Incident",
+                  "rationale": "A live production secret is an exposed credential requiring security escalation."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "assistive-technology-blocker",
+              "title": "Assistive-technology blockers receive accessibility routing",
+              "difficulty": "medium",
+              "changeType": "new_category",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "a11y-04",
+                "a11y-02"
+              ],
+              "truePositiveIds": [
+                "a11y-04",
+                "a11y-02"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "a11y-04",
+                  "text": "I cannot reach the submit button using only the keyboard.",
+                  "existingLabel": "Product Bugs",
+                  "isAffected": true,
+                  "expectedLabel": "Accessibility",
+                  "rationale": "The missing keyboard path is an accessibility blocker."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "a11y-02",
+                  "text": "My screen reader announces every checkout button as unlabeled.",
+                  "existingLabel": "Product Bugs",
+                  "isAffected": true,
+                  "expectedLabel": "Accessibility",
+                  "rationale": "Unlabeled controls block screen-reader use."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "a11y-02",
+                  "text": "My screen reader announces every checkout button as unlabeled.",
+                  "existingLabel": "Product Bugs",
+                  "expectedLabel": "Accessibility",
+                  "rationale": "Unlabeled controls block screen-reader use."
+                },
+                {
+                  "recordId": "a11y-04",
+                  "text": "I cannot reach the submit button using only the keyboard.",
+                  "existingLabel": "Product Bugs",
+                  "expectedLabel": "Accessibility",
+                  "rationale": "The missing keyboard path is an accessibility blocker."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "bank-chargeback-filed",
+              "title": "Already-filed chargebacks split from billing investigation",
+              "difficulty": "medium",
+              "changeType": "workflow_state",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "dispute-07",
+                "dispute-02"
+              ],
+              "truePositiveIds": [
+                "dispute-07",
+                "dispute-02"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "dispute-07",
+                  "text": "I already filed a card dispute for transaction TX-91.",
+                  "existingLabel": "Billing Investigation",
+                  "isAffected": true,
+                  "expectedLabel": "Dispute Management",
+                  "rationale": "The customer explicitly says a card dispute has already been filed."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "dispute-02",
+                  "text": "My bank opened a chargeback yesterday; what evidence do you need?",
+                  "existingLabel": "Billing Investigation",
+                  "isAffected": true,
+                  "expectedLabel": "Dispute Management",
+                  "rationale": "The bank has already opened a chargeback."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "dispute-02",
+                  "text": "My bank opened a chargeback yesterday; what evidence do you need?",
+                  "existingLabel": "Billing Investigation",
+                  "expectedLabel": "Dispute Management",
+                  "rationale": "The bank has already opened a chargeback."
+                },
+                {
+                  "recordId": "dispute-07",
+                  "text": "I already filed a card dispute for transaction TX-91.",
+                  "existingLabel": "Billing Investigation",
+                  "expectedLabel": "Dispute Management",
+                  "rationale": "The customer explicitly says a card dispute has already been filed."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "multi-customer-outage",
+              "title": "Multi-customer impact escalates individual technical reports",
+              "difficulty": "hard",
+              "changeType": "scope_escalation",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "outage-02",
+                "outage-03"
+              ],
+              "truePositiveIds": [
+                "outage-02"
+              ],
+              "falsePositiveIds": [
+                "outage-03"
+              ],
+              "falseNegativeIds": [
+                "outage-05"
+              ],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 1,
+                "falsePositives": 1,
+                "falseNegatives": 1
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 0.5,
+                "precisionAtBudget": 0.5,
+                "f1AtBudget": 0.5,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "outage-02",
+                  "text": "Every agent in our 40-person support team lost access at once.",
+                  "existingLabel": "Technical Support",
+                  "isAffected": true,
+                  "expectedLabel": "Service Incident",
+                  "rationale": "The report states that an entire 40-person team is affected."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "outage-03",
+                  "text": "The status monitor fired an outage alert.",
+                  "existingLabel": "Service Incident",
+                  "isAffected": false,
+                  "expectedLabel": null,
+                  "rationale": null
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "outage-02",
+                  "text": "Every agent in our 40-person support team lost access at once.",
+                  "existingLabel": "Technical Support",
+                  "expectedLabel": "Service Incident",
+                  "rationale": "The report states that an entire 40-person team is affected."
+                },
+                {
+                  "recordId": "outage-05",
+                  "text": "All six of our regional branches are seeing gateway errors.",
+                  "existingLabel": "Technical Support",
+                  "expectedLabel": "Service Incident",
+                  "rationale": "The report identifies simultaneous impact across all regional branches."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "regulated-text-translation",
+              "title": "Regulated-text mistranslations receive compliance escalation",
+              "difficulty": "hard",
+              "changeType": "content_risk_exception",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "locale-02",
+                "locale-03"
+              ],
+              "truePositiveIds": [
+                "locale-02"
+              ],
+              "falsePositiveIds": [
+                "locale-03"
+              ],
+              "falseNegativeIds": [
+                "locale-04"
+              ],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 1,
+                "falsePositives": 1,
+                "falseNegatives": 1
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 0.5,
+                "precisionAtBudget": 0.5,
+                "f1AtBudget": 0.5,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "locale-02",
+                  "text": "The Spanish consent checkbox says I refuse when the English says I agree.",
+                  "existingLabel": "Localization Quality",
+                  "isAffected": true,
+                  "expectedLabel": "Compliance Localization",
+                  "rationale": "The mistranslation reverses consent language and therefore requires compliance review."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "locale-03",
+                  "text": "A help article has one untranslated heading.",
+                  "existingLabel": "Localization Quality",
+                  "isAffected": false,
+                  "expectedLabel": null,
+                  "rationale": null
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "locale-02",
+                  "text": "The Spanish consent checkbox says I refuse when the English says I agree.",
+                  "existingLabel": "Localization Quality",
+                  "expectedLabel": "Compliance Localization",
+                  "rationale": "The mistranslation reverses consent language and therefore requires compliance review."
+                },
+                {
+                  "recordId": "locale-04",
+                  "text": "The German checkout translates $10.00 as $100.00.",
+                  "existingLabel": "Localization Quality",
+                  "expectedLabel": "Compliance Localization",
+                  "rationale": "The mistranslated price is regulated transaction information."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            }
+          ]
+        },
+        "advanced": {
+          "benchmarkId": "rubricdelta-support-guideline-drift-v1",
+          "system": "rubricdelta-four-stage-provider-advanced",
+          "reviewBudgetFraction": 0.2,
+          "caseCount": 10,
+          "totals": {
+            "records": 100,
+            "affected": 20,
+            "reviewed": 20,
+            "budgetSlots": 20,
+            "truePositives": 18,
+            "falsePositives": 2,
+            "falseNegatives": 2
+          },
+          "primaryMetric": {
+            "name": "microAffectedRecallAtReviewBudget",
+            "value": 0.9,
+            "numerator": 18,
+            "denominator": 20
+          },
+          "metrics": {
+            "micro": {
+              "affectedRecallAtBudget": 0.9,
+              "precisionAtBudget": 0.9,
+              "f1AtBudget": 0.9
+            },
+            "macro": {
+              "affectedRecallAtBudget": 0.9,
+              "precisionAtBudget": 0.9,
+              "f1AtBudget": 0.9
+            }
+          },
+          "resourceUse": {
+            "runtimeMs": null,
+            "estimatedCostUsd": 0,
+            "resourceNotes": "Compiler, analyst, investigator, and blind batch verifier provider calls; failures remain explicit with no fallback."
+          },
+          "warnings": [],
+          "perCase": [
+            {
+              "caseId": "fraud-overrides-refunds",
+              "title": "Unauthorized purchase exception overrides refund routing",
+              "difficulty": "hard",
+              "changeType": "precedence_exception",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "fraud-08",
+                "fraud-03"
+              ],
+              "truePositiveIds": [
+                "fraud-08",
+                "fraud-03"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "fraud-08",
+                  "text": "I never authorized this game purchase. Reverse it and secure my card.",
+                  "existingLabel": "Billing Refunds",
+                  "isAffected": true,
+                  "expectedLabel": "Fraud Review",
+                  "rationale": "The customer explicitly says the purchase was unauthorized, so Fraud Review now takes precedence."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "fraud-03",
+                  "text": "My card was stolen and the thief bought a camera. Refund that purchase.",
+                  "existingLabel": "Billing Refunds",
+                  "isAffected": true,
+                  "expectedLabel": "Fraud Review",
+                  "rationale": "The purchase followed a stolen card and the new exception overrides the requested refund."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "fraud-03",
+                  "text": "My card was stolen and the thief bought a camera. Refund that purchase.",
+                  "existingLabel": "Billing Refunds",
+                  "expectedLabel": "Fraud Review",
+                  "rationale": "The purchase followed a stolen card and the new exception overrides the requested refund."
+                },
+                {
+                  "recordId": "fraud-08",
+                  "text": "I never authorized this game purchase. Reverse it and secure my card.",
+                  "existingLabel": "Billing Refunds",
+                  "expectedLabel": "Fraud Review",
+                  "rationale": "The customer explicitly says the purchase was unauthorized, so Fraud Review now takes precedence."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "identity-check-login",
+              "title": "Identity-verification login blocks move to account security",
+              "difficulty": "medium",
+              "changeType": "new_exception",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "access-02",
+                "access-06"
+              ],
+              "truePositiveIds": [
+                "access-02",
+                "access-06"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "access-02",
+                  "text": "The selfie identity check keeps rejecting me, so I cannot sign in.",
+                  "existingLabel": "Technical Access",
+                  "isAffected": true,
+                  "expectedLabel": "Account Security",
+                  "rationale": "The failed selfie check is an identity-verification login block."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "access-06",
+                  "text": "My passport document check failed and now login is blocked.",
+                  "existingLabel": "Technical Access",
+                  "isAffected": true,
+                  "expectedLabel": "Account Security",
+                  "rationale": "The failed passport check is a document-verification login block."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "access-02",
+                  "text": "The selfie identity check keeps rejecting me, so I cannot sign in.",
+                  "existingLabel": "Technical Access",
+                  "expectedLabel": "Account Security",
+                  "rationale": "The failed selfie check is an identity-verification login block."
+                },
+                {
+                  "recordId": "access-06",
+                  "text": "My passport document check failed and now login is blocked.",
+                  "existingLabel": "Technical Access",
+                  "expectedLabel": "Account Security",
+                  "rationale": "The failed passport check is a document-verification login block."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "deceased-account-owner",
+              "title": "Deceased-owner requests receive a dedicated route",
+              "difficulty": "medium",
+              "changeType": "new_category",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "estate-02",
+                "estate-07"
+              ],
+              "truePositiveIds": [
+                "estate-02",
+                "estate-07"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "estate-02",
+                  "text": "I am executor for my late father's estate and need his account closed.",
+                  "existingLabel": "Retention",
+                  "isAffected": true,
+                  "expectedLabel": "Estate Support",
+                  "rationale": "The executor is closing an account belonging to a deceased owner."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "estate-07",
+                  "text": "My mother died; where do I send her death certificate to cancel service?",
+                  "existingLabel": "Retention",
+                  "isAffected": true,
+                  "expectedLabel": "Estate Support",
+                  "rationale": "The death certificate and deceased-owner cancellation require Estate Support."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "estate-02",
+                  "text": "I am executor for my late father's estate and need his account closed.",
+                  "existingLabel": "Retention",
+                  "expectedLabel": "Estate Support",
+                  "rationale": "The executor is closing an account belonging to a deceased owner."
+                },
+                {
+                  "recordId": "estate-07",
+                  "text": "My mother died; where do I send her death certificate to cancel service?",
+                  "existingLabel": "Retention",
+                  "expectedLabel": "Estate Support",
+                  "rationale": "The death certificate and deceased-owner cancellation require Estate Support."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "perishable-delivery-quality",
+              "title": "Spoiled perishables split from ordinary damaged returns",
+              "difficulty": "easy",
+              "changeType": "category_split",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "quality-04",
+                "quality-02"
+              ],
+              "truePositiveIds": [
+                "quality-04",
+                "quality-02"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "quality-04",
+                  "text": "The flowers arrived wilted and brown.",
+                  "existingLabel": "Damaged Returns",
+                  "isAffected": true,
+                  "expectedLabel": "Perishable Quality",
+                  "rationale": "Wilted flowers are explicitly covered by the new perishable category."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "quality-02",
+                  "text": "The frozen meal arrived warm and smells spoiled.",
+                  "existingLabel": "Damaged Returns",
+                  "isAffected": true,
+                  "expectedLabel": "Perishable Quality",
+                  "rationale": "A warm, spoiled frozen meal is a perishable-quality issue."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "quality-02",
+                  "text": "The frozen meal arrived warm and smells spoiled.",
+                  "existingLabel": "Damaged Returns",
+                  "expectedLabel": "Perishable Quality",
+                  "rationale": "A warm, spoiled frozen meal is a perishable-quality issue."
+                },
+                {
+                  "recordId": "quality-04",
+                  "text": "The flowers arrived wilted and brown.",
+                  "existingLabel": "Damaged Returns",
+                  "expectedLabel": "Perishable Quality",
+                  "rationale": "Wilted flowers are explicitly covered by the new perishable category."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "legal-data-deletion",
+              "title": "Statutory deletion requests split from normal account closure",
+              "difficulty": "medium",
+              "changeType": "compliance_exception",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "privacy-02",
+                "privacy-06"
+              ],
+              "truePositiveIds": [
+                "privacy-02",
+                "privacy-06"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "privacy-02",
+                  "text": "I invoke my GDPR right to erasure; delete all personal data you retain.",
+                  "existingLabel": "Account Settings",
+                  "isAffected": true,
+                  "expectedLabel": "Privacy Rights",
+                  "rationale": "The request explicitly invokes GDPR and deletion of retained personal data."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "privacy-06",
+                  "text": "Under CCPA, remove every copy of my personal information.",
+                  "existingLabel": "Account Settings",
+                  "isAffected": true,
+                  "expectedLabel": "Privacy Rights",
+                  "rationale": "The request explicitly invokes CCPA and comprehensive personal-data removal."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "privacy-02",
+                  "text": "I invoke my GDPR right to erasure; delete all personal data you retain.",
+                  "existingLabel": "Account Settings",
+                  "expectedLabel": "Privacy Rights",
+                  "rationale": "The request explicitly invokes GDPR and deletion of retained personal data."
+                },
+                {
+                  "recordId": "privacy-06",
+                  "text": "Under CCPA, remove every copy of my personal information.",
+                  "existingLabel": "Account Settings",
+                  "expectedLabel": "Privacy Rights",
+                  "rationale": "The request explicitly invokes CCPA and comprehensive personal-data removal."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "security-vulnerability",
+              "title": "Security vulnerabilities override ordinary bug routing",
+              "difficulty": "medium",
+              "changeType": "risk_escalation",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "security-02",
+                "security-04"
+              ],
+              "truePositiveIds": [
+                "security-02",
+                "security-04"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "security-02",
+                  "text": "Changing the invoice ID in the URL lets me see another customer's invoice.",
+                  "existingLabel": "Technical Bugs",
+                  "isAffected": true,
+                  "expectedLabel": "Security Incident",
+                  "rationale": "Changing an identifier exposes another customer's data and indicates an authorization bypass."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "security-04",
+                  "text": "A debug page displays a live production API secret.",
+                  "existingLabel": "Technical Bugs",
+                  "isAffected": true,
+                  "expectedLabel": "Security Incident",
+                  "rationale": "A live production secret is an exposed credential requiring security escalation."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "security-02",
+                  "text": "Changing the invoice ID in the URL lets me see another customer's invoice.",
+                  "existingLabel": "Technical Bugs",
+                  "expectedLabel": "Security Incident",
+                  "rationale": "Changing an identifier exposes another customer's data and indicates an authorization bypass."
+                },
+                {
+                  "recordId": "security-04",
+                  "text": "A debug page displays a live production API secret.",
+                  "existingLabel": "Technical Bugs",
+                  "expectedLabel": "Security Incident",
+                  "rationale": "A live production secret is an exposed credential requiring security escalation."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "assistive-technology-blocker",
+              "title": "Assistive-technology blockers receive accessibility routing",
+              "difficulty": "medium",
+              "changeType": "new_category",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "a11y-03",
+                "a11y-07"
+              ],
+              "truePositiveIds": [],
+              "falsePositiveIds": [
+                "a11y-03",
+                "a11y-07"
+              ],
+              "falseNegativeIds": [
+                "a11y-02",
+                "a11y-04"
+              ],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 0,
+                "falsePositives": 2,
+                "falseNegatives": 2
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 0,
+                "precisionAtBudget": 0,
+                "f1AtBudget": 0,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "a11y-03",
+                  "text": "Please add a darker theme.",
+                  "existingLabel": "Product Feedback",
+                  "isAffected": false,
+                  "expectedLabel": null,
+                  "rationale": null
+                },
+                {
+                  "rank": 2,
+                  "recordId": "a11y-07",
+                  "text": "Could you offer more profile colors?",
+                  "existingLabel": "Product Feedback",
+                  "isAffected": false,
+                  "expectedLabel": null,
+                  "rationale": null
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "a11y-02",
+                  "text": "My screen reader announces every checkout button as unlabeled.",
+                  "existingLabel": "Product Bugs",
+                  "expectedLabel": "Accessibility",
+                  "rationale": "Unlabeled controls block screen-reader use."
+                },
+                {
+                  "recordId": "a11y-04",
+                  "text": "I cannot reach the submit button using only the keyboard.",
+                  "existingLabel": "Product Bugs",
+                  "expectedLabel": "Accessibility",
+                  "rationale": "The missing keyboard path is an accessibility blocker."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "bank-chargeback-filed",
+              "title": "Already-filed chargebacks split from billing investigation",
+              "difficulty": "medium",
+              "changeType": "workflow_state",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "dispute-02",
+                "dispute-07"
+              ],
+              "truePositiveIds": [
+                "dispute-02",
+                "dispute-07"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "dispute-02",
+                  "text": "My bank opened a chargeback yesterday; what evidence do you need?",
+                  "existingLabel": "Billing Investigation",
+                  "isAffected": true,
+                  "expectedLabel": "Dispute Management",
+                  "rationale": "The bank has already opened a chargeback."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "dispute-07",
+                  "text": "I already filed a card dispute for transaction TX-91.",
+                  "existingLabel": "Billing Investigation",
+                  "isAffected": true,
+                  "expectedLabel": "Dispute Management",
+                  "rationale": "The customer explicitly says a card dispute has already been filed."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "dispute-02",
+                  "text": "My bank opened a chargeback yesterday; what evidence do you need?",
+                  "existingLabel": "Billing Investigation",
+                  "expectedLabel": "Dispute Management",
+                  "rationale": "The bank has already opened a chargeback."
+                },
+                {
+                  "recordId": "dispute-07",
+                  "text": "I already filed a card dispute for transaction TX-91.",
+                  "existingLabel": "Billing Investigation",
+                  "expectedLabel": "Dispute Management",
+                  "rationale": "The customer explicitly says a card dispute has already been filed."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "multi-customer-outage",
+              "title": "Multi-customer impact escalates individual technical reports",
+              "difficulty": "hard",
+              "changeType": "scope_escalation",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "outage-02",
+                "outage-05"
+              ],
+              "truePositiveIds": [
+                "outage-02",
+                "outage-05"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "outage-02",
+                  "text": "Every agent in our 40-person support team lost access at once.",
+                  "existingLabel": "Technical Support",
+                  "isAffected": true,
+                  "expectedLabel": "Service Incident",
+                  "rationale": "The report states that an entire 40-person team is affected."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "outage-05",
+                  "text": "All six of our regional branches are seeing gateway errors.",
+                  "existingLabel": "Technical Support",
+                  "isAffected": true,
+                  "expectedLabel": "Service Incident",
+                  "rationale": "The report identifies simultaneous impact across all regional branches."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "outage-02",
+                  "text": "Every agent in our 40-person support team lost access at once.",
+                  "existingLabel": "Technical Support",
+                  "expectedLabel": "Service Incident",
+                  "rationale": "The report states that an entire 40-person team is affected."
+                },
+                {
+                  "recordId": "outage-05",
+                  "text": "All six of our regional branches are seeing gateway errors.",
+                  "existingLabel": "Technical Support",
+                  "expectedLabel": "Service Incident",
+                  "rationale": "The report identifies simultaneous impact across all regional branches."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            },
+            {
+              "caseId": "regulated-text-translation",
+              "title": "Regulated-text mistranslations receive compliance escalation",
+              "difficulty": "hard",
+              "changeType": "content_risk_exception",
+              "reviewBudget": 2,
+              "submittedRankingSize": 10,
+              "selectedRecordIds": [
+                "locale-04",
+                "locale-02"
+              ],
+              "truePositiveIds": [
+                "locale-04",
+                "locale-02"
+              ],
+              "falsePositiveIds": [],
+              "falseNegativeIds": [],
+              "counts": {
+                "affected": 2,
+                "reviewed": 2,
+                "budgetSlots": 2,
+                "truePositives": 2,
+                "falsePositives": 0,
+                "falseNegatives": 0
+              },
+              "metrics": {
+                "affectedRecallAtBudget": 1,
+                "precisionAtBudget": 1,
+                "f1AtBudget": 1,
+                "budgetUtilization": 1
+              },
+              "selectionDetails": [
+                {
+                  "rank": 1,
+                  "recordId": "locale-04",
+                  "text": "The German checkout translates $10.00 as $100.00.",
+                  "existingLabel": "Localization Quality",
+                  "isAffected": true,
+                  "expectedLabel": "Compliance Localization",
+                  "rationale": "The mistranslated price is regulated transaction information."
+                },
+                {
+                  "rank": 2,
+                  "recordId": "locale-02",
+                  "text": "The Spanish consent checkbox says I refuse when the English says I agree.",
+                  "existingLabel": "Localization Quality",
+                  "isAffected": true,
+                  "expectedLabel": "Compliance Localization",
+                  "rationale": "The mistranslation reverses consent language and therefore requires compliance review."
+                }
+              ],
+              "groundTruth": [
+                {
+                  "recordId": "locale-02",
+                  "text": "The Spanish consent checkbox says I refuse when the English says I agree.",
+                  "existingLabel": "Localization Quality",
+                  "expectedLabel": "Compliance Localization",
+                  "rationale": "The mistranslation reverses consent language and therefore requires compliance review."
+                },
+                {
+                  "recordId": "locale-04",
+                  "text": "The German checkout translates $10.00 as $100.00.",
+                  "existingLabel": "Localization Quality",
+                  "expectedLabel": "Compliance Localization",
+                  "rationale": "The mistranslated price is regulated transaction information."
+                }
+              ],
+              "resourceUse": {
+                "runtimeMs": null,
+                "estimatedCostUsd": 0
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "summary": {
+    "schemaVersion": 1,
+    "artifactKind": "rubricdelta-provider-evaluation-summary",
+    "benchmarkId": "rubricdelta-support-guideline-drift-v1",
+    "provider": "replay",
+    "model": "deterministic-role-capture-v1",
+    "repeats": 1,
+    "baseline": {
+      "primaryMetric": {
+        "mean": 0.8,
+        "min": 0.8,
+        "max": 0.8
+      },
+      "repetitions": [
+        {
+          "numerator": 16,
+          "denominator": 20,
+          "value": 0.8
+        }
+      ]
+    },
+    "advanced": {
+      "primaryMetric": {
+        "mean": 0.9,
+        "min": 0.9,
+        "max": 0.9
+      },
+      "repetitions": [
+        {
+          "numerator": 18,
+          "denominator": 20,
+          "value": 0.9
+        }
+      ]
+    },
+    "improvement": {
+      "absolute": 0.1,
+      "baseline": {
+        "mean": 0.8,
+        "min": 0.8,
+        "max": 0.8
+      },
+      "advanced": {
+        "mean": 0.9,
+        "min": 0.9,
+        "max": 0.9
+      }
+    }
+  },
+  "improvement": {
+    "absolute": 0.1,
+    "baseline": {
+      "mean": 0.8,
+      "min": 0.8,
+      "max": 0.8
+    },
+    "advanced": {
+      "mean": 0.9,
+      "min": 0.9,
+      "max": 0.9
+    }
+  }
+}

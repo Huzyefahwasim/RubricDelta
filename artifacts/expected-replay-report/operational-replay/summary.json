@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-provider-evaluation-summary",
+  "benchmarkId": "rubricdelta-support-guideline-drift-v1",
+  "provider": "replay",
+  "model": "deterministic-role-capture-v1",
+  "repeats": 1,
+  "baseline": {
+    "primaryMetric": {
+      "mean": 0.8,
+      "min": 0.8,
+      "max": 0.8
+    },
+    "repetitions": [
+      {
+        "numerator": 16,
+        "denominator": 20,
+        "value": 0.8
+      }
+    ]
+  },
+  "advanced": {
+    "primaryMetric": {
+      "mean": 0.9,
+      "min": 0.9,
+      "max": 0.9
+    },
+    "repetitions": [
+      {
+        "numerator": 18,
+        "denominator": 20,
+        "value": 0.9
+      }
+    ]
+  },
+  "improvement": {
+    "absolute": 0.1,
+    "baseline": {
+      "mean": 0.8,
+      "min": 0.8,
+      "max": 0.8
+    },
+    "advanced": {
+      "mean": 0.9,
+      "min": 0.9,
+      "max": 0.9
+    }
+  }
+}

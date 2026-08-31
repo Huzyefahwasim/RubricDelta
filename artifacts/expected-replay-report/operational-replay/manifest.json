@@ -1,0 +1,610 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-evaluation-manifest",
+  "evaluationProtocol": {
+    "id": "rubricdelta-evaluation-v2",
+    "version": 2,
+    "supersedes": "rubricdelta-evaluation-v1",
+    "effectiveDate": "2026-08-29",
+    "primaryMetric": "microAffectedRecallAtReviewBudget",
+    "reviewBudget": {
+      "fractionSource": "benchmark.reviewBudgetFraction",
+      "calculation": "max(1, floor(recordCount * fraction))",
+      "rounding": "floor",
+      "minimumSlotsForNonemptyCase": 1
+    }
+  },
+  "benchmark": {
+    "id": "rubricdelta-support-guideline-drift-v1",
+    "schemaVersion": "1.0.0",
+    "sha256": "10c72912ec68a0ea392cb840c68500474bd5f6f75cb71b9db7245a915e5039a6",
+    "sha256Canonicalization": "utf8-lf",
+    "license": "CC0-1.0",
+    "orderedCaseIds": [
+      "fraud-overrides-refunds",
+      "identity-check-login",
+      "deceased-account-owner",
+      "perishable-delivery-quality",
+      "legal-data-deletion",
+      "security-vulnerability",
+      "assistive-technology-blocker",
+      "bank-chargeback-filed",
+      "multi-customer-outage",
+      "regulated-text-translation"
+    ],
+    "orderedRecordIdsByCase": {
+      "fraud-overrides-refunds": [
+        "fraud-01",
+        "fraud-02",
+        "fraud-03",
+        "fraud-04",
+        "fraud-05",
+        "fraud-06",
+        "fraud-07",
+        "fraud-08",
+        "fraud-09",
+        "fraud-10"
+      ],
+      "identity-check-login": [
+        "access-01",
+        "access-02",
+        "access-03",
+        "access-04",
+        "access-05",
+        "access-06",
+        "access-07",
+        "access-08",
+        "access-09",
+        "access-10"
+      ],
+      "deceased-account-owner": [
+        "estate-01",
+        "estate-02",
+        "estate-03",
+        "estate-04",
+        "estate-05",
+        "estate-06",
+        "estate-07",
+        "estate-08",
+        "estate-09",
+        "estate-10"
+      ],
+      "perishable-delivery-quality": [
+        "quality-01",
+        "quality-02",
+        "quality-03",
+        "quality-04",
+        "quality-05",
+        "quality-06",
+        "quality-07",
+        "quality-08",
+        "quality-09",
+        "quality-10"
+      ],
+      "legal-data-deletion": [
+        "privacy-01",
+        "privacy-02",
+        "privacy-03",
+        "privacy-04",
+        "privacy-05",
+        "privacy-06",
+        "privacy-07",
+        "privacy-08",
+        "privacy-09",
+        "privacy-10"
+      ],
+      "security-vulnerability": [
+        "security-01",
+        "security-02",
+        "security-03",
+        "security-04",
+        "security-05",
+        "security-06",
+        "security-07",
+        "security-08",
+        "security-09",
+        "security-10"
+      ],
+      "assistive-technology-blocker": [
+        "a11y-01",
+        "a11y-02",
+        "a11y-03",
+        "a11y-04",
+        "a11y-05",
+        "a11y-06",
+        "a11y-07",
+        "a11y-08",
+        "a11y-09",
+        "a11y-10"
+      ],
+      "bank-chargeback-filed": [
+        "dispute-01",
+        "dispute-02",
+        "dispute-03",
+        "dispute-04",
+        "dispute-05",
+        "dispute-06",
+        "dispute-07",
+        "dispute-08",
+        "dispute-09",
+        "dispute-10"
+      ],
+      "multi-customer-outage": [
+        "outage-01",
+        "outage-02",
+        "outage-03",
+        "outage-04",
+        "outage-05",
+        "outage-06",
+        "outage-07",
+        "outage-08",
+        "outage-09",
+        "outage-10"
+      ],
+      "regulated-text-translation": [
+        "locale-01",
+        "locale-02",
+        "locale-03",
+        "locale-04",
+        "locale-05",
+        "locale-06",
+        "locale-07",
+        "locale-08",
+        "locale-09",
+        "locale-10"
+      ]
+    },
+    "caseCount": 10,
+    "recordCount": 100,
+    "affectedRecordCount": 20
+  },
+  "reviewBudget": {
+    "fraction": 0.2,
+    "calculation": "max(1, floor(recordCount * fraction))"
+  },
+  "runtimeEnvironment": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "architecture": "x64",
+    "runtimeDependencies": 0,
+    "networkRequired": false
+  },
+  "git": {
+    "revision": "cc50c6381b44cbdfaecda6cbcb9928a9c1c793c0",
+    "baseRevision": "cc50c6381b44cbdfaecda6cbcb9928a9c1c793c0",
+    "branch": "codex/task9-evidence-eol-refreeze",
+    "trackedWorkingTreeDirty": true,
+    "wholeWorkingTreeDirty": true,
+    "sourceTrackedWorkingTreeDirty": false,
+    "sourceUntrackedWorkingTreeDirty": false,
+    "sourceWorkingTreeDirty": false,
+    "managedArtifactDirty": true,
+    "packagingCommit": null,
+    "provenanceNote": "revision identifies the clean source commit; generated evidence is added by the subsequent packaging commit",
+    "sourceState": "clean-source-managed-artifacts-dirty"
+  },
+  "provider": {
+    "name": "replay",
+    "model": "deterministic-role-capture-v1",
+    "seed": 0,
+    "status": "operational"
+  },
+  "versions": {
+    "baselineAlgorithm": "direct-provider-baseline-v1",
+    "advancedAlgorithm": "four-stage-provider-advanced-v1",
+    "directBaselinePrompt": "direct-baseline.v1",
+    "roleInstructions": "provider-prompt-registry-v1"
+  },
+  "repeats": {
+    "requested": 1,
+    "normalizedIdentically": true
+  },
+  "resources": {
+    "providerCalls": {
+      "baseline": 10,
+      "advanced": 40,
+      "total": 50
+    },
+    "providerAttempts": {
+      "baseline": 10,
+      "advanced": 40,
+      "total": 50
+    },
+    "inputTokens": 0,
+    "outputTokens": 0,
+    "totalTokens": 0,
+    "latencyMs": 0,
+    "estimatedCostUsd": 0,
+    "perSystemRuntimeMs": {
+      "baseline": null,
+      "advanced": null
+    },
+    "runtimeClaim": "Provider telemetry is recomputed from durable result traces; unknown values remain null."
+  },
+  "replay": {
+    "binding": {
+      "benchmark": {
+        "id": "rubricdelta-support-guideline-drift-v1",
+        "orderedCaseIds": [
+          "fraud-overrides-refunds",
+          "identity-check-login",
+          "deceased-account-owner",
+          "perishable-delivery-quality",
+          "legal-data-deletion",
+          "security-vulnerability",
+          "assistive-technology-blocker",
+          "bank-chargeback-filed",
+          "multi-customer-outage",
+          "regulated-text-translation"
+        ],
+        "orderedRecordIdsByCase": {
+          "assistive-technology-blocker": [
+            "a11y-01",
+            "a11y-02",
+            "a11y-03",
+            "a11y-04",
+            "a11y-05",
+            "a11y-06",
+            "a11y-07",
+            "a11y-08",
+            "a11y-09",
+            "a11y-10"
+          ],
+          "bank-chargeback-filed": [
+            "dispute-01",
+            "dispute-02",
+            "dispute-03",
+            "dispute-04",
+            "dispute-05",
+            "dispute-06",
+            "dispute-07",
+            "dispute-08",
+            "dispute-09",
+            "dispute-10"
+          ],
+          "deceased-account-owner": [
+            "estate-01",
+            "estate-02",
+            "estate-03",
+            "estate-04",
+            "estate-05",
+            "estate-06",
+            "estate-07",
+            "estate-08",
+            "estate-09",
+            "estate-10"
+          ],
+          "fraud-overrides-refunds": [
+            "fraud-01",
+            "fraud-02",
+            "fraud-03",
+            "fraud-04",
+            "fraud-05",
+            "fraud-06",
+            "fraud-07",
+            "fraud-08",
+            "fraud-09",
+            "fraud-10"
+          ],
+          "identity-check-login": [
+            "access-01",
+            "access-02",
+            "access-03",
+            "access-04",
+            "access-05",
+            "access-06",
+            "access-07",
+            "access-08",
+            "access-09",
+            "access-10"
+          ],
+          "legal-data-deletion": [
+            "privacy-01",
+            "privacy-02",
+            "privacy-03",
+            "privacy-04",
+            "privacy-05",
+            "privacy-06",
+            "privacy-07",
+            "privacy-08",
+            "privacy-09",
+            "privacy-10"
+          ],
+          "multi-customer-outage": [
+            "outage-01",
+            "outage-02",
+            "outage-03",
+            "outage-04",
+            "outage-05",
+            "outage-06",
+            "outage-07",
+            "outage-08",
+            "outage-09",
+            "outage-10"
+          ],
+          "perishable-delivery-quality": [
+            "quality-01",
+            "quality-02",
+            "quality-03",
+            "quality-04",
+            "quality-05",
+            "quality-06",
+            "quality-07",
+            "quality-08",
+            "quality-09",
+            "quality-10"
+          ],
+          "regulated-text-translation": [
+            "locale-01",
+            "locale-02",
+            "locale-03",
+            "locale-04",
+            "locale-05",
+            "locale-06",
+            "locale-07",
+            "locale-08",
+            "locale-09",
+            "locale-10"
+          ],
+          "security-vulnerability": [
+            "security-01",
+            "security-02",
+            "security-03",
+            "security-04",
+            "security-05",
+            "security-06",
+            "security-07",
+            "security-08",
+            "security-09",
+            "security-10"
+          ]
+        },
+        "sha256": "10c72912ec68a0ea392cb840c68500474bd5f6f75cb71b9db7245a915e5039a6"
+      },
+      "mode": "both",
+      "model": "deterministic-role-capture-v1",
+      "prompts": {
+        "change-analyst": {
+          "filename": "change-analyst.v1.md",
+          "sha256": "7bbbb6103363b7c2c4d3d53f7592f307ff71aef860e9a1f696ecf5f8588a44e4",
+          "version": "v1"
+        },
+        "direct-baseline": {
+          "filename": "direct-baseline.v1.md",
+          "sha256": "2c0cce740c9cd5aea0bafedf2e3a4736d7e17dfd7328b98cffcb9b72a24ed3d6",
+          "version": "v1"
+        },
+        "impact-investigator": {
+          "filename": "impact-investigator.v1.md",
+          "sha256": "3d0420c689b61a51b90e512da007988a3d953963e4d2314ff6efe5530f8b3faf",
+          "version": "v1"
+        },
+        "independent-verifier": {
+          "filename": "independent-verifier.v1.md",
+          "sha256": "0c4e725c3152b7bf1e038d0557c9b681b520b91a0b5d350afc70ee0c092febc2",
+          "version": "v1"
+        },
+        "rule-compiler": {
+          "filename": "rule-compiler.v1.md",
+          "sha256": "361b4c76a137af1a8330228f055355ed3a2080862a27007caeef9b6c956ef0bf",
+          "version": "v1"
+        }
+      },
+      "protocol": {
+        "effectiveDate": "2026-08-29",
+        "id": "rubricdelta-evaluation-v2",
+        "primaryMetric": "microAffectedRecallAtReviewBudget",
+        "reviewBudget": {
+          "calculation": "max(1, floor(recordCount * fraction))",
+          "fractionSource": "benchmark.reviewBudgetFraction",
+          "minimumSlotsForNonemptyCase": 1,
+          "rounding": "floor"
+        },
+        "supersedes": "rubricdelta-evaluation-v1",
+        "version": 2
+      },
+      "repeats": 1,
+      "source": {
+        "files": [
+          {
+            "path": "scripts/capture-replay.js",
+            "sha256": "50a2e03de462811cd4b7bdbf39dbaa5b5b886e336c17d33316c22d855353cd2c"
+          },
+          {
+            "path": "src/agents/contracts.js",
+            "sha256": "3b11c62db98839a82958c4a7077ec8595f2c67fdaf3d72370ba39734b28beee4"
+          },
+          {
+            "path": "src/agents/impact-investigator.js",
+            "sha256": "41a49a83af6ab183c4882311ea82eda61403a75775dfb59f91d2ed908ead7172"
+          },
+          {
+            "path": "src/agents/policy-analyst.js",
+            "sha256": "4d9afe9c8a5955ad52aea1597d4938e39c66a0ce885291a6ac5418d1dcea0068"
+          },
+          {
+            "path": "src/agents/prompt-registry.js",
+            "sha256": "54312da79b13b6402637da4f4b65a24d4b077820708d1f4ea22236a509bbedf9"
+          },
+          {
+            "path": "src/agents/provider-schemas.js",
+            "sha256": "3649ba7651ebe46fb6efa7c0b2db60d22a09cdf46f8cadff05e02701687075d3"
+          },
+          {
+            "path": "src/agents/provider-trace.js",
+            "sha256": "0508860905bdb3f6f9f493e36cd01ee0f5aa57ffef5e4d9b1f4f2a455f8be0bb"
+          },
+          {
+            "path": "src/agents/provider-validation.js",
+            "sha256": "53f62c51373d1c2256c7750b3f8018aac225d16cc3e94c5bc09bccfe620f5405"
+          },
+          {
+            "path": "src/agents/provider-workflow.js",
+            "sha256": "5ad0f62fb6dcf1cbbe19f7a79bb6e77b0931e8deef3a0f0e04c9de1380fd3a09"
+          },
+          {
+            "path": "src/agents/verifier.js",
+            "sha256": "10b0c43ac43790349e520854d45d3c4e1738600a1d9d867ed5e450ad728253da"
+          },
+          {
+            "path": "src/domain/rules.js",
+            "sha256": "4fe434318df51f2350096f1fe5dbc4940124ec92c112ef5c03d2aebab84e6649"
+          },
+          {
+            "path": "src/domain/scenario.js",
+            "sha256": "20769bbfa313645949273e60416c64299944e00a70369d98b1a7b91b0db2f0d3"
+          },
+          {
+            "path": "src/domain/semantics.js",
+            "sha256": "e387995fa94907a211966673d5c025c2737da1567703da5a6a5a46c59581d783"
+          },
+          {
+            "path": "src/domain/text.js",
+            "sha256": "d90b420a4a1429e986e00468b668f484925ad441b69a23037f946546a2e10cd6"
+          },
+          {
+            "path": "src/domain/validation.js",
+            "sha256": "77ff7dd5b1f70f718e35fc7b3cba9ed8b4679888a5f18c460defef205884a09a"
+          },
+          {
+            "path": "src/evaluation/baseline.js",
+            "sha256": "3db2744d48efb76ae57976e41fcda14c4300283d95bc8ace842fcbaea499fcd5"
+          },
+          {
+            "path": "src/evaluation/benchmark.js",
+            "sha256": "c6dba5044764aa6b698c69faf3c1401dd115e0b576119e2d1d23b51974ec234a"
+          },
+          {
+            "path": "src/evaluation/evidence-hash.js",
+            "sha256": "67cc205088eb2efb5c65c293328a258e33dd07fadda5b34c58c641fddc4b787d"
+          },
+          {
+            "path": "src/evaluation/protocol.js",
+            "sha256": "516a4090f877808330c48988ebf238056e54ac4c723aa3c36f4793596c09da30"
+          },
+          {
+            "path": "src/evaluation/provider-predictions.js",
+            "sha256": "68c6056507107d82cf510c6f97bdb54174281f702a3063bf396d7e85dfb5c86c"
+          },
+          {
+            "path": "src/providers/contracts.js",
+            "sha256": "6e144efc0f1cd5fd6b94207586b606c758f4d1a40eb7839a7326076ea7537d6e"
+          }
+        ],
+        "kind": "deterministic-role-capture",
+        "sha256": "52bdd1845e10719356831545966b55ea9d25b3d77bc28bd3ce15063343402b16",
+        "sha256Canonicalization": "utf8-lf"
+      }
+    },
+    "source": {
+      "files": [
+        {
+          "path": "scripts/capture-replay.js",
+          "sha256": "50a2e03de462811cd4b7bdbf39dbaa5b5b886e336c17d33316c22d855353cd2c"
+        },
+        {
+          "path": "src/agents/contracts.js",
+          "sha256": "3b11c62db98839a82958c4a7077ec8595f2c67fdaf3d72370ba39734b28beee4"
+        },
+        {
+          "path": "src/agents/impact-investigator.js",
+          "sha256": "41a49a83af6ab183c4882311ea82eda61403a75775dfb59f91d2ed908ead7172"
+        },
+        {
+          "path": "src/agents/policy-analyst.js",
+          "sha256": "4d9afe9c8a5955ad52aea1597d4938e39c66a0ce885291a6ac5418d1dcea0068"
+        },
+        {
+          "path": "src/agents/prompt-registry.js",
+          "sha256": "54312da79b13b6402637da4f4b65a24d4b077820708d1f4ea22236a509bbedf9"
+        },
+        {
+          "path": "src/agents/provider-schemas.js",
+          "sha256": "3649ba7651ebe46fb6efa7c0b2db60d22a09cdf46f8cadff05e02701687075d3"
+        },
+        {
+          "path": "src/agents/provider-trace.js",
+          "sha256": "0508860905bdb3f6f9f493e36cd01ee0f5aa57ffef5e4d9b1f4f2a455f8be0bb"
+        },
+        {
+          "path": "src/agents/provider-validation.js",
+          "sha256": "53f62c51373d1c2256c7750b3f8018aac225d16cc3e94c5bc09bccfe620f5405"
+        },
+        {
+          "path": "src/agents/provider-workflow.js",
+          "sha256": "5ad0f62fb6dcf1cbbe19f7a79bb6e77b0931e8deef3a0f0e04c9de1380fd3a09"
+        },
+        {
+          "path": "src/agents/verifier.js",
+          "sha256": "10b0c43ac43790349e520854d45d3c4e1738600a1d9d867ed5e450ad728253da"
+        },
+        {
+          "path": "src/domain/rules.js",
+          "sha256": "4fe434318df51f2350096f1fe5dbc4940124ec92c112ef5c03d2aebab84e6649"
+        },
+        {
+          "path": "src/domain/scenario.js",
+          "sha256": "20769bbfa313645949273e60416c64299944e00a70369d98b1a7b91b0db2f0d3"
+        },
+        {
+          "path": "src/domain/semantics.js",
+          "sha256": "e387995fa94907a211966673d5c025c2737da1567703da5a6a5a46c59581d783"
+        },
+        {
+          "path": "src/domain/text.js",
+          "sha256": "d90b420a4a1429e986e00468b668f484925ad441b69a23037f946546a2e10cd6"
+        },
+        {
+          "path": "src/domain/validation.js",
+          "sha256": "77ff7dd5b1f70f718e35fc7b3cba9ed8b4679888a5f18c460defef205884a09a"
+        },
+        {
+          "path": "src/evaluation/baseline.js",
+          "sha256": "3db2744d48efb76ae57976e41fcda14c4300283d95bc8ace842fcbaea499fcd5"
+        },
+        {
+          "path": "src/evaluation/benchmark.js",
+          "sha256": "c6dba5044764aa6b698c69faf3c1401dd115e0b576119e2d1d23b51974ec234a"
+        },
+        {
+          "path": "src/evaluation/evidence-hash.js",
+          "sha256": "67cc205088eb2efb5c65c293328a258e33dd07fadda5b34c58c641fddc4b787d"
+        },
+        {
+          "path": "src/evaluation/protocol.js",
+          "sha256": "516a4090f877808330c48988ebf238056e54ac4c723aa3c36f4793596c09da30"
+        },
+        {
+          "path": "src/evaluation/provider-predictions.js",
+          "sha256": "68c6056507107d82cf510c6f97bdb54174281f702a3063bf396d7e85dfb5c86c"
+        },
+        {
+          "path": "src/providers/contracts.js",
+          "sha256": "6e144efc0f1cd5fd6b94207586b606c758f4d1a40eb7839a7326076ea7537d6e"
+        }
+      ],
+      "kind": "deterministic-role-capture",
+      "sha256": "52bdd1845e10719356831545966b55ea9d25b3d77bc28bd3ce15063343402b16",
+      "sha256Canonicalization": "utf8-lf"
+    },
+    "fixture": {
+      "sha256": "4fd8a97493c534a2f1c5f3444cf70a4f0037ffb3292309785af5c8c73113a9bf"
+    },
+    "status": "operational",
+    "operational": true,
+    "substituted": false,
+    "rawPredictionSha256ByRepetition": {
+      "1": {
+        "baseline": "6b46dce17f1c3455ee9c7581cb1048a73421cec1f39b065bd38e7a498a2fbbe2",
+        "advanced": "45bb3b6432936fb905a5322ea6016a065b4a332897b9c7e6b20ecdd0c8823167"
+      }
+    }
+  },
+  "execution": {
+    "status": "complete",
+    "phase": "complete",
+    "startedAt": "2026-08-31T03:35:32.576Z",
+    "endedAt": "2026-08-31T03:35:34.893Z",
+    "runtimeMs": 2315.176
+  }
+}
