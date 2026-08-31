@@ -1,6 +1,7 @@
 {
   "metadata": {
     "system": "added-guideline-term-overlap-baseline",
+    "claimSupportContract": "matched-terms-v1",
     "runtimeMs": null,
     "estimatedCostUsd": 0,
     "resourceNotes": "Deterministic local lexical baseline; runtime is intentionally not claimed.",
@@ -79,7 +80,19 @@
           "score": 0,
           "matchedTerms": []
         }
-      ]
+      ],
+      "resources": {
+        "providerCalls": 0,
+        "providerAttempts": 0,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "identity-check-login",
@@ -151,7 +164,19 @@
           "score": 0,
           "matchedTerms": []
         }
-      ]
+      ],
+      "resources": {
+        "providerCalls": 0,
+        "providerAttempts": 0,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "deceased-account-owner",
@@ -226,7 +251,19 @@
           "score": 0,
           "matchedTerms": []
         }
-      ]
+      ],
+      "resources": {
+        "providerCalls": 0,
+        "providerAttempts": 0,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "perishable-delivery-quality",
@@ -298,7 +335,19 @@
           "score": 0,
           "matchedTerms": []
         }
-      ]
+      ],
+      "resources": {
+        "providerCalls": 0,
+        "providerAttempts": 0,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "legal-data-deletion",
@@ -371,7 +420,19 @@
           "score": 0,
           "matchedTerms": []
         }
-      ]
+      ],
+      "resources": {
+        "providerCalls": 0,
+        "providerAttempts": 0,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "security-vulnerability",
@@ -440,7 +501,19 @@
           "score": 0,
           "matchedTerms": []
         }
-      ]
+      ],
+      "resources": {
+        "providerCalls": 0,
+        "providerAttempts": 0,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "assistive-technology-blocker",
@@ -512,7 +585,19 @@
           "score": 0,
           "matchedTerms": []
         }
-      ]
+      ],
+      "resources": {
+        "providerCalls": 0,
+        "providerAttempts": 0,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "bank-chargeback-filed",
@@ -585,7 +670,19 @@
           "score": 0,
           "matchedTerms": []
         }
-      ]
+      ],
+      "resources": {
+        "providerCalls": 0,
+        "providerAttempts": 0,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "multi-customer-outage",
@@ -658,7 +755,19 @@
           "score": 0,
           "matchedTerms": []
         }
-      ]
+      ],
+      "resources": {
+        "providerCalls": 0,
+        "providerAttempts": 0,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "regulated-text-translation",
@@ -731,7 +840,19 @@
           "score": 0,
           "matchedTerms": []
         }
-      ]
+      ],
+      "resources": {
+        "providerCalls": 0,
+        "providerAttempts": 0,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     }
   ]
 }

@@ -1,12 +1,15 @@
 {
   "metadata": {
     "system": "rubricdelta-four-stage-provider-advanced",
+    "claimSupportContract": "verifier-support-v1",
     "provider": "replay",
     "model": "deterministic-role-capture-v1",
     "repetition": 1,
     "runtimeMs": null,
     "estimatedCostUsd": 0,
     "resourceNotes": "Compiler, analyst, investigator, and blind batch verifier provider calls; failures remain explicit with no fallback.",
+    "resourceContract": "provider-result-trajectory-v1",
+    "resourceProvenance": "durable-provider-result-trajectories",
     "fairnessManifest": {
       "benchmarkId": "rubricdelta-support-guideline-drift-v1",
       "caseIds": [
@@ -156,7 +159,7 @@
         "outputTokens": 0,
         "totalTokens": 0
       },
-      "latencyMs": 0,
+      "providerLatencyMs": 0,
       "estimatedCostUsd": 0
     }
   },
@@ -4044,8 +4047,22 @@
         }
       ],
       "substituted": false,
+      "resourceContract": "provider-result-trajectory-v1",
+      "resourceProvenance": "durable-provider-result-trajectories",
       "runtimeMs": null,
-      "estimatedCostUsd": 0
+      "estimatedCostUsd": 0,
+      "resources": {
+        "providerCalls": 4,
+        "providerAttempts": 4,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "identity-check-login",
@@ -8011,8 +8028,22 @@
         }
       ],
       "substituted": false,
+      "resourceContract": "provider-result-trajectory-v1",
+      "resourceProvenance": "durable-provider-result-trajectories",
       "runtimeMs": null,
-      "estimatedCostUsd": 0
+      "estimatedCostUsd": 0,
+      "resources": {
+        "providerCalls": 4,
+        "providerAttempts": 4,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "deceased-account-owner",
@@ -11985,8 +12016,22 @@
         }
       ],
       "substituted": false,
+      "resourceContract": "provider-result-trajectory-v1",
+      "resourceProvenance": "durable-provider-result-trajectories",
       "runtimeMs": null,
-      "estimatedCostUsd": 0
+      "estimatedCostUsd": 0,
+      "resources": {
+        "providerCalls": 4,
+        "providerAttempts": 4,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "perishable-delivery-quality",
@@ -16080,8 +16125,22 @@
         }
       ],
       "substituted": false,
+      "resourceContract": "provider-result-trajectory-v1",
+      "resourceProvenance": "durable-provider-result-trajectories",
       "runtimeMs": null,
-      "estimatedCostUsd": 0
+      "estimatedCostUsd": 0,
+      "resources": {
+        "providerCalls": 4,
+        "providerAttempts": 4,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "legal-data-deletion",
@@ -19974,8 +20033,22 @@
         }
       ],
       "substituted": false,
+      "resourceContract": "provider-result-trajectory-v1",
+      "resourceProvenance": "durable-provider-result-trajectories",
       "runtimeMs": null,
-      "estimatedCostUsd": 0
+      "estimatedCostUsd": 0,
+      "resources": {
+        "providerCalls": 4,
+        "providerAttempts": 4,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "security-vulnerability",
@@ -24140,8 +24213,22 @@
         }
       ],
       "substituted": false,
+      "resourceContract": "provider-result-trajectory-v1",
+      "resourceProvenance": "durable-provider-result-trajectories",
       "runtimeMs": null,
-      "estimatedCostUsd": 0
+      "estimatedCostUsd": 0,
+      "resources": {
+        "providerCalls": 4,
+        "providerAttempts": 4,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "assistive-technology-blocker",
@@ -27668,8 +27755,22 @@
         }
       ],
       "substituted": false,
+      "resourceContract": "provider-result-trajectory-v1",
+      "resourceProvenance": "durable-provider-result-trajectories",
       "runtimeMs": null,
-      "estimatedCostUsd": 0
+      "estimatedCostUsd": 0,
+      "resources": {
+        "providerCalls": 4,
+        "providerAttempts": 4,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "bank-chargeback-filed",
@@ -31679,8 +31780,22 @@
         }
       ],
       "substituted": false,
+      "resourceContract": "provider-result-trajectory-v1",
+      "resourceProvenance": "durable-provider-result-trajectories",
       "runtimeMs": null,
-      "estimatedCostUsd": 0
+      "estimatedCostUsd": 0,
+      "resources": {
+        "providerCalls": 4,
+        "providerAttempts": 4,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "multi-customer-outage",
@@ -35653,8 +35768,22 @@
         }
       ],
       "substituted": false,
+      "resourceContract": "provider-result-trajectory-v1",
+      "resourceProvenance": "durable-provider-result-trajectories",
       "runtimeMs": null,
-      "estimatedCostUsd": 0
+      "estimatedCostUsd": 0,
+      "resources": {
+        "providerCalls": 4,
+        "providerAttempts": 4,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     },
     {
       "caseId": "regulated-text-translation",
@@ -39645,8 +39774,22 @@
         }
       ],
       "substituted": false,
+      "resourceContract": "provider-result-trajectory-v1",
+      "resourceProvenance": "durable-provider-result-trajectories",
       "runtimeMs": null,
-      "estimatedCostUsd": 0
+      "estimatedCostUsd": 0,
+      "resources": {
+        "providerCalls": 4,
+        "providerAttempts": 4,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0
+        },
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0
+      }
     }
   ]
 }

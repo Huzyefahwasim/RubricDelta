@@ -2,31 +2,66 @@
   "schemaVersion": 1,
   "artifactKind": "rubricdelta-evaluation-manifest",
   "evaluationProtocol": {
-    "id": "rubricdelta-evaluation-v2",
-    "version": 2,
-    "supersedes": "rubricdelta-evaluation-v1",
-    "effectiveDate": "2026-08-29",
+    "id": "rubricdelta-evaluation-v3",
+    "version": 3,
+    "supersedes": "rubricdelta-evaluation-v2",
+    "effectiveDate": "2026-08-31",
     "primaryMetric": "microAffectedRecallAtReviewBudget",
     "reviewBudget": {
       "fractionSource": "benchmark.reviewBudgetFraction",
       "calculation": "max(1, floor(recordCount * fraction))",
       "rounding": "floor",
       "minimumSlotsForNonemptyCase": 1
+    },
+    "secondaryDiagnostics": {
+      "rounding": "rates and reciprocal-rank values are rounded to six decimal places",
+      "reciprocalRankFirstAffected": {
+        "perCase": "1 / rank of the first affected record in the complete submitted ranking; 0 when absent",
+        "aggregate": "arithmetic mean across every benchmark case (MRR)"
+      },
+      "unsupportedClaimRate": {
+        "denominator": "selected reviewed claims",
+        "baselineSupport": "nonempty matchedTerms under matched-terms-v1",
+        "advancedSupport": "support verdict, complete evidence, precedence checked, aligned record evidence, and changed-rule citation under verifier-support-v1",
+        "missingOrMalformedEvidence": "unsupported",
+        "zeroDenominator": 0,
+        "comparison": "system-native structural diagnostic; not comparable across support contracts"
+      },
+      "escalationRate": {
+        "numerator": "selected reviewed advanced claims with verifier.verdict=\"uncertain\"",
+        "denominator": "selected reviewed claims",
+        "zeroDenominator": 0,
+        "applicability": "verifier-support-v1 only; other contracts report applicable=false"
+      },
+      "resources": {
+        "fields": [
+          "providerCalls",
+          "providerAttempts",
+          "inputTokens",
+          "outputTokens",
+          "totalTokens",
+          "providerLatencyMs",
+          "runtimeMs",
+          "estimatedCostUsd"
+        ],
+        "unknown": null,
+        "aggregate": "sum only when every included per-case value is known; otherwise null"
+      }
     }
   },
   "git": {
-    "revision": "cc50c6381b44cbdfaecda6cbcb9928a9c1c793c0",
-    "baseRevision": "cc50c6381b44cbdfaecda6cbcb9928a9c1c793c0",
+    "revision": null,
+    "baseRevision": "353f5c6f725b6a5745393a3f260dc012954ce2b7",
     "branch": "codex/task9-evidence-eol-refreeze",
     "trackedWorkingTreeDirty": true,
     "wholeWorkingTreeDirty": true,
-    "sourceTrackedWorkingTreeDirty": false,
+    "sourceTrackedWorkingTreeDirty": true,
     "sourceUntrackedWorkingTreeDirty": false,
-    "sourceWorkingTreeDirty": false,
+    "sourceWorkingTreeDirty": true,
     "managedArtifactDirty": true,
     "packagingCommit": null,
     "provenanceNote": "revision identifies the clean source commit; generated evidence is added by the subsequent packaging commit",
-    "sourceState": "clean-source-managed-artifacts-dirty"
+    "sourceState": "source-working-tree-dirty"
   },
   "benchmark": {
     "id": "rubricdelta-support-guideline-drift-v1",
@@ -226,7 +261,7 @@
     "inputTokens": 0,
     "outputTokens": 0,
     "totalTokens": 0,
-    "latencyMs": 0,
+    "providerLatencyMs": 0,
     "estimatedCostUsd": 0,
     "perSystemRuntimeMs": {
       "baseline": null,
@@ -235,8 +270,8 @@
     "runtimeClaim": "overall artifact wall time measured; per-system runtime comparison not claimed"
   },
   "artifacts": {
-    "baselinePredictionsSha256": "6ae9e127e492d36bcafcebdd6de7dcf0b299369b69d8848dad56215c253ed68e",
-    "advancedPredictionsSha256": "944ea22b66ec5068dfe246a32026525381a1f2a9b100b6299845b48c391dffd0"
+    "baselinePredictionsSha256": "5cd4c7b081e48771b9ea35bed354a6dfbc332757621ca21664105ddc44a05190",
+    "advancedPredictionsSha256": "afb707408435ad6312c00c8e82f13c21ea02c6829e3d5917da8ee45e3c1f0e05"
   },
   "replay": {
     "status": "not-selected",
@@ -245,8 +280,8 @@
   },
   "execution": {
     "status": "complete",
-    "startedAt": "2026-08-31T03:35:28.343Z",
-    "endedAt": "2026-08-31T03:35:28.723Z",
-    "runtimeMs": 378.642
+    "startedAt": "2026-08-31T10:21:55.567Z",
+    "endedAt": "2026-08-31T10:21:55.896Z",
+    "runtimeMs": 327.299
   }
 }

@@ -17,6 +17,461 @@
         "denominator": 20,
         "value": 0.8
       }
+    ],
+    "secondaryMetrics": {
+      "meanReciprocalRankFirstAffected": {
+        "mean": 1,
+        "min": 1,
+        "max": 1
+      },
+      "structuralUnsupportedClaimRate": {
+        "mean": 0.05,
+        "min": 0.05,
+        "max": 0.05
+      },
+      "escalationRate": {
+        "mean": 0,
+        "min": 0,
+        "max": 0
+      },
+      "escalationApplicable": false,
+      "escalationMechanism": "not-applicable",
+      "comparableAcrossSystems": false
+    },
+    "resourcesByRepetition": [
+      {
+        "repetition": 1,
+        "providerCalls": 10,
+        "providerAttempts": 10,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0,
+        "resourceNotes": "One direct provider call per public case; failures remain explicit and receive no deterministic substitution."
+      }
+    ],
+    "diagnosticsByRepetition": [
+      {
+        "repetition": 1,
+        "unsupportedClaims": [
+          {
+            "caseId": "security-vulnerability",
+            "recordId": "security-01"
+          }
+        ],
+        "escalations": [],
+        "incompleteCaseIds": [],
+        "failedCaseIds": [],
+        "incompleteRecords": [],
+        "failedRecords": []
+      }
+    ],
+    "perCaseByRepetition": [
+      {
+        "repetition": 1,
+        "cases": [
+          {
+            "caseId": "fraud-overrides-refunds",
+            "metrics": {
+              "affectedRecallAtBudget": 0.5,
+              "precisionAtBudget": 0.5,
+              "f1AtBudget": 0.5,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "matched-terms-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": false,
+                "mechanism": "not-applicable"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 1,
+              "providerAttempts": 1,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [
+              "fraud-08"
+            ],
+            "falsePositiveIds": [
+              "fraud-05"
+            ]
+          },
+          {
+            "caseId": "identity-check-login",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "matched-terms-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": false,
+                "mechanism": "not-applicable"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 1,
+              "providerAttempts": 1,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "deceased-account-owner",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "matched-terms-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": false,
+                "mechanism": "not-applicable"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 1,
+              "providerAttempts": 1,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "perishable-delivery-quality",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "matched-terms-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": false,
+                "mechanism": "not-applicable"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 1,
+              "providerAttempts": 1,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "legal-data-deletion",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "matched-terms-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": false,
+                "mechanism": "not-applicable"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 1,
+              "providerAttempts": 1,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "security-vulnerability",
+            "metrics": {
+              "affectedRecallAtBudget": 0.5,
+              "precisionAtBudget": 0.5,
+              "f1AtBudget": 0.5,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0.5,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "matched-terms-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": false,
+                "mechanism": "not-applicable"
+              },
+              "unsupportedClaimIds": [
+                "security-01"
+              ],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 1,
+              "providerAttempts": 1,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [
+              "security-04"
+            ],
+            "falsePositiveIds": [
+              "security-01"
+            ]
+          },
+          {
+            "caseId": "assistive-technology-blocker",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "matched-terms-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": false,
+                "mechanism": "not-applicable"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 1,
+              "providerAttempts": 1,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "bank-chargeback-filed",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "matched-terms-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": false,
+                "mechanism": "not-applicable"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 1,
+              "providerAttempts": 1,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "multi-customer-outage",
+            "metrics": {
+              "affectedRecallAtBudget": 0.5,
+              "precisionAtBudget": 0.5,
+              "f1AtBudget": 0.5,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "matched-terms-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": false,
+                "mechanism": "not-applicable"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 1,
+              "providerAttempts": 1,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [
+              "outage-05"
+            ],
+            "falsePositiveIds": [
+              "outage-03"
+            ]
+          },
+          {
+            "caseId": "regulated-text-translation",
+            "metrics": {
+              "affectedRecallAtBudget": 0.5,
+              "precisionAtBudget": 0.5,
+              "f1AtBudget": 0.5,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "matched-terms-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": false,
+                "mechanism": "not-applicable"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 1,
+              "providerAttempts": 1,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [
+              "locale-04"
+            ],
+            "falsePositiveIds": [
+              "locale-03"
+            ]
+          }
+        ]
+      }
     ]
   },
   "advanced": {
@@ -30,6 +485,479 @@
         "numerator": 18,
         "denominator": 20,
         "value": 0.9
+      }
+    ],
+    "secondaryMetrics": {
+      "meanReciprocalRankFirstAffected": {
+        "mean": 0.92,
+        "min": 0.92,
+        "max": 0.92
+      },
+      "structuralUnsupportedClaimRate": {
+        "mean": 0.2,
+        "min": 0.2,
+        "max": 0.2
+      },
+      "escalationRate": {
+        "mean": 0.1,
+        "min": 0.1,
+        "max": 0.1
+      },
+      "escalationApplicable": true,
+      "escalationMechanism": "verifier-uncertain",
+      "comparableAcrossSystems": false
+    },
+    "resourcesByRepetition": [
+      {
+        "repetition": 1,
+        "providerCalls": 40,
+        "providerAttempts": 40,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "providerLatencyMs": 0,
+        "runtimeMs": null,
+        "estimatedCostUsd": 0,
+        "resourceNotes": "Compiler, analyst, investigator, and blind batch verifier provider calls; failures remain explicit with no fallback."
+      }
+    ],
+    "diagnosticsByRepetition": [
+      {
+        "repetition": 1,
+        "unsupportedClaims": [
+          {
+            "caseId": "assistive-technology-blocker",
+            "recordId": "a11y-03"
+          },
+          {
+            "caseId": "assistive-technology-blocker",
+            "recordId": "a11y-07"
+          },
+          {
+            "caseId": "bank-chargeback-filed",
+            "recordId": "dispute-02"
+          },
+          {
+            "caseId": "bank-chargeback-filed",
+            "recordId": "dispute-07"
+          }
+        ],
+        "escalations": [
+          {
+            "caseId": "assistive-technology-blocker",
+            "recordId": "a11y-03"
+          },
+          {
+            "caseId": "assistive-technology-blocker",
+            "recordId": "a11y-07"
+          }
+        ],
+        "incompleteCaseIds": [],
+        "failedCaseIds": [],
+        "incompleteRecords": [],
+        "failedRecords": []
+      }
+    ],
+    "perCaseByRepetition": [
+      {
+        "repetition": 1,
+        "cases": [
+          {
+            "caseId": "fraud-overrides-refunds",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "verifier-support-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": true,
+                "mechanism": "verifier-uncertain"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 4,
+              "providerAttempts": 4,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "identity-check-login",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "verifier-support-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": true,
+                "mechanism": "verifier-uncertain"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 4,
+              "providerAttempts": 4,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "deceased-account-owner",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "verifier-support-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": true,
+                "mechanism": "verifier-uncertain"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 4,
+              "providerAttempts": 4,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "perishable-delivery-quality",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "verifier-support-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": true,
+                "mechanism": "verifier-uncertain"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 4,
+              "providerAttempts": 4,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "legal-data-deletion",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "verifier-support-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": true,
+                "mechanism": "verifier-uncertain"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 4,
+              "providerAttempts": 4,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "security-vulnerability",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "verifier-support-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": true,
+                "mechanism": "verifier-uncertain"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 4,
+              "providerAttempts": 4,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "assistive-technology-blocker",
+            "metrics": {
+              "affectedRecallAtBudget": 0,
+              "precisionAtBudget": 0,
+              "f1AtBudget": 0,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 0.2,
+              "unsupportedClaimRate": 1,
+              "escalationRate": 1
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "verifier-support-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": true,
+                "mechanism": "verifier-uncertain"
+              },
+              "unsupportedClaimIds": [
+                "a11y-03",
+                "a11y-07"
+              ],
+              "escalatedRecordIds": [
+                "a11y-03",
+                "a11y-07"
+              ],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 4,
+              "providerAttempts": 4,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [
+              "a11y-02",
+              "a11y-04"
+            ],
+            "falsePositiveIds": [
+              "a11y-03",
+              "a11y-07"
+            ]
+          },
+          {
+            "caseId": "bank-chargeback-filed",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 1,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "verifier-support-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": true,
+                "mechanism": "verifier-uncertain"
+              },
+              "unsupportedClaimIds": [
+                "dispute-02",
+                "dispute-07"
+              ],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 4,
+              "providerAttempts": 4,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "multi-customer-outage",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "verifier-support-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": true,
+                "mechanism": "verifier-uncertain"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 4,
+              "providerAttempts": 4,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          },
+          {
+            "caseId": "regulated-text-translation",
+            "metrics": {
+              "affectedRecallAtBudget": 1,
+              "precisionAtBudget": 1,
+              "f1AtBudget": 1,
+              "budgetUtilization": 1,
+              "reciprocalRankFirstAffected": 1,
+              "unsupportedClaimRate": 0,
+              "escalationRate": 0
+            },
+            "diagnostics": {
+              "status": "complete",
+              "failureCode": null,
+              "claimSupportContract": "verifier-support-v1",
+              "structuralSupportComparableAcrossSystems": false,
+              "escalation": {
+                "applicable": true,
+                "mechanism": "verifier-uncertain"
+              },
+              "unsupportedClaimIds": [],
+              "escalatedRecordIds": [],
+              "incompleteRecordIds": [],
+              "failedRecordIds": []
+            },
+            "resourceUse": {
+              "providerCalls": 4,
+              "providerAttempts": 4,
+              "inputTokens": 0,
+              "outputTokens": 0,
+              "totalTokens": 0,
+              "providerLatencyMs": 0,
+              "runtimeMs": null,
+              "estimatedCostUsd": 0
+            },
+            "missedAffectedRecordIds": [],
+            "falsePositiveIds": []
+          }
+        ]
       }
     ]
   },

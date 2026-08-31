@@ -17,7 +17,9 @@
       "budgetSlots": 20,
       "truePositives": 16,
       "falsePositives": 4,
-      "falseNegatives": 4
+      "falseNegatives": 4,
+      "unsupportedClaims": 1,
+      "escalations": 0
     },
     "primaryMetric": {
       "name": "microAffectedRecallAtReviewBudget",
@@ -37,7 +39,41 @@
         "f1AtBudget": 0.8
       }
     },
+    "secondaryMetrics": {
+      "meanReciprocalRankFirstAffected": 1,
+      "unsupportedClaimRate": {
+        "value": 0.05,
+        "numerator": 1,
+        "denominator": 20
+      },
+      "escalationRate": {
+        "value": 0,
+        "numerator": 0,
+        "denominator": 20,
+        "applicable": false,
+        "mechanism": "not-applicable"
+      }
+    },
+    "diagnostics": {
+      "unsupportedClaims": [
+        {
+          "caseId": "security-vulnerability",
+          "recordId": "security-01"
+        }
+      ],
+      "escalations": [],
+      "incompleteCaseIds": [],
+      "failedCaseIds": [],
+      "incompleteRecords": [],
+      "failedRecords": []
+    },
     "resourceUse": {
+      "providerCalls": 0,
+      "providerAttempts": 0,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "providerLatencyMs": 0,
       "runtimeMs": null,
       "estimatedCostUsd": 0,
       "resourceNotes": "Deterministic local lexical baseline; runtime is intentionally not claimed."
@@ -70,13 +106,32 @@
           "budgetSlots": 2,
           "truePositives": 1,
           "falsePositives": 1,
-          "falseNegatives": 1
+          "falseNegatives": 1,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 0.5,
           "precisionAtBudget": 0.5,
           "f1AtBudget": 0.5,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "matched-terms-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": false,
+            "mechanism": "not-applicable"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -115,8 +170,14 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
-          "estimatedCostUsd": null
+          "estimatedCostUsd": 0
         }
       },
       {
@@ -142,13 +203,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "matched-terms-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": false,
+            "mechanism": "not-applicable"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -187,8 +267,14 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
-          "estimatedCostUsd": null
+          "estimatedCostUsd": 0
         }
       },
       {
@@ -214,13 +300,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "matched-terms-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": false,
+            "mechanism": "not-applicable"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -259,8 +364,14 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
-          "estimatedCostUsd": null
+          "estimatedCostUsd": 0
         }
       },
       {
@@ -286,13 +397,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "matched-terms-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": false,
+            "mechanism": "not-applicable"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -331,8 +461,14 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
-          "estimatedCostUsd": null
+          "estimatedCostUsd": 0
         }
       },
       {
@@ -358,13 +494,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "matched-terms-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": false,
+            "mechanism": "not-applicable"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -403,8 +558,14 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
-          "estimatedCostUsd": null
+          "estimatedCostUsd": 0
         }
       },
       {
@@ -433,13 +594,34 @@
           "budgetSlots": 2,
           "truePositives": 1,
           "falsePositives": 1,
-          "falseNegatives": 1
+          "falseNegatives": 1,
+          "unsupportedClaims": 1,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 0.5,
           "precisionAtBudget": 0.5,
           "f1AtBudget": 0.5,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0.5,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "matched-terms-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": false,
+            "mechanism": "not-applicable"
+          },
+          "unsupportedClaimIds": [
+            "security-01"
+          ],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -478,8 +660,14 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
-          "estimatedCostUsd": null
+          "estimatedCostUsd": 0
         }
       },
       {
@@ -505,13 +693,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "matched-terms-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": false,
+            "mechanism": "not-applicable"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -550,8 +757,14 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
-          "estimatedCostUsd": null
+          "estimatedCostUsd": 0
         }
       },
       {
@@ -577,13 +790,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "matched-terms-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": false,
+            "mechanism": "not-applicable"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -622,8 +854,14 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
-          "estimatedCostUsd": null
+          "estimatedCostUsd": 0
         }
       },
       {
@@ -652,13 +890,32 @@
           "budgetSlots": 2,
           "truePositives": 1,
           "falsePositives": 1,
-          "falseNegatives": 1
+          "falseNegatives": 1,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 0.5,
           "precisionAtBudget": 0.5,
           "f1AtBudget": 0.5,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "matched-terms-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": false,
+            "mechanism": "not-applicable"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -697,8 +954,14 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
-          "estimatedCostUsd": null
+          "estimatedCostUsd": 0
         }
       },
       {
@@ -727,13 +990,32 @@
           "budgetSlots": 2,
           "truePositives": 1,
           "falsePositives": 1,
-          "falseNegatives": 1
+          "falseNegatives": 1,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 0.5,
           "precisionAtBudget": 0.5,
           "f1AtBudget": 0.5,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "matched-terms-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": false,
+            "mechanism": "not-applicable"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -772,8 +1054,14 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
-          "estimatedCostUsd": null
+          "estimatedCostUsd": 0
         }
       }
     ]
@@ -790,7 +1078,9 @@
       "budgetSlots": 20,
       "truePositives": 18,
       "falsePositives": 2,
-      "falseNegatives": 2
+      "falseNegatives": 2,
+      "unsupportedClaims": 4,
+      "escalations": 2
     },
     "primaryMetric": {
       "name": "microAffectedRecallAtReviewBudget",
@@ -810,7 +1100,62 @@
         "f1AtBudget": 0.9
       }
     },
+    "secondaryMetrics": {
+      "meanReciprocalRankFirstAffected": 0.92,
+      "unsupportedClaimRate": {
+        "value": 0.2,
+        "numerator": 4,
+        "denominator": 20
+      },
+      "escalationRate": {
+        "value": 0.1,
+        "numerator": 2,
+        "denominator": 20,
+        "applicable": true,
+        "mechanism": "verifier-uncertain"
+      }
+    },
+    "diagnostics": {
+      "unsupportedClaims": [
+        {
+          "caseId": "assistive-technology-blocker",
+          "recordId": "a11y-03"
+        },
+        {
+          "caseId": "assistive-technology-blocker",
+          "recordId": "a11y-07"
+        },
+        {
+          "caseId": "bank-chargeback-filed",
+          "recordId": "dispute-02"
+        },
+        {
+          "caseId": "bank-chargeback-filed",
+          "recordId": "dispute-07"
+        }
+      ],
+      "escalations": [
+        {
+          "caseId": "assistive-technology-blocker",
+          "recordId": "a11y-03"
+        },
+        {
+          "caseId": "assistive-technology-blocker",
+          "recordId": "a11y-07"
+        }
+      ],
+      "incompleteCaseIds": [],
+      "failedCaseIds": [],
+      "incompleteRecords": [],
+      "failedRecords": []
+    },
     "resourceUse": {
+      "providerCalls": 0,
+      "providerAttempts": 0,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "providerLatencyMs": 0,
       "runtimeMs": null,
       "estimatedCostUsd": 0,
       "resourceNotes": "Deterministic offline rule compilation, change analysis, impact ranking, and blind verification."
@@ -840,13 +1185,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "verifier-support-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": true,
+            "mechanism": "verifier-uncertain"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -885,6 +1249,12 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
           "estimatedCostUsd": 0
         }
@@ -912,13 +1282,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "verifier-support-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": true,
+            "mechanism": "verifier-uncertain"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -957,6 +1346,12 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
           "estimatedCostUsd": 0
         }
@@ -984,13 +1379,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "verifier-support-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": true,
+            "mechanism": "verifier-uncertain"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -1029,6 +1443,12 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
           "estimatedCostUsd": 0
         }
@@ -1056,13 +1476,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "verifier-support-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": true,
+            "mechanism": "verifier-uncertain"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -1101,6 +1540,12 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
           "estimatedCostUsd": 0
         }
@@ -1128,13 +1573,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "verifier-support-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": true,
+            "mechanism": "verifier-uncertain"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -1173,6 +1637,12 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
           "estimatedCostUsd": 0
         }
@@ -1200,13 +1670,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "verifier-support-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": true,
+            "mechanism": "verifier-uncertain"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -1245,6 +1734,12 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
           "estimatedCostUsd": 0
         }
@@ -1275,13 +1770,38 @@
           "budgetSlots": 2,
           "truePositives": 0,
           "falsePositives": 2,
-          "falseNegatives": 2
+          "falseNegatives": 2,
+          "unsupportedClaims": 2,
+          "escalations": 2
         },
         "metrics": {
           "affectedRecallAtBudget": 0,
           "precisionAtBudget": 0,
           "f1AtBudget": 0,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 0.2,
+          "unsupportedClaimRate": 1,
+          "escalationRate": 1
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "verifier-support-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": true,
+            "mechanism": "verifier-uncertain"
+          },
+          "unsupportedClaimIds": [
+            "a11y-03",
+            "a11y-07"
+          ],
+          "escalatedRecordIds": [
+            "a11y-03",
+            "a11y-07"
+          ],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -1320,6 +1840,12 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
           "estimatedCostUsd": 0
         }
@@ -1347,13 +1873,35 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 2,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 1,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "verifier-support-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": true,
+            "mechanism": "verifier-uncertain"
+          },
+          "unsupportedClaimIds": [
+            "dispute-02",
+            "dispute-07"
+          ],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -1392,6 +1940,12 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
           "estimatedCostUsd": 0
         }
@@ -1419,13 +1973,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "verifier-support-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": true,
+            "mechanism": "verifier-uncertain"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -1464,6 +2037,12 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
           "estimatedCostUsd": 0
         }
@@ -1491,13 +2070,32 @@
           "budgetSlots": 2,
           "truePositives": 2,
           "falsePositives": 0,
-          "falseNegatives": 0
+          "falseNegatives": 0,
+          "unsupportedClaims": 0,
+          "escalations": 0
         },
         "metrics": {
           "affectedRecallAtBudget": 1,
           "precisionAtBudget": 1,
           "f1AtBudget": 1,
-          "budgetUtilization": 1
+          "budgetUtilization": 1,
+          "reciprocalRankFirstAffected": 1,
+          "unsupportedClaimRate": 0,
+          "escalationRate": 0
+        },
+        "diagnostics": {
+          "status": "complete",
+          "failureCode": null,
+          "claimSupportContract": "verifier-support-v1",
+          "structuralSupportComparableAcrossSystems": false,
+          "escalation": {
+            "applicable": true,
+            "mechanism": "verifier-uncertain"
+          },
+          "unsupportedClaimIds": [],
+          "escalatedRecordIds": [],
+          "incompleteRecordIds": [],
+          "failedRecordIds": []
         },
         "selectionDetails": [
           {
@@ -1536,6 +2134,12 @@
           }
         ],
         "resourceUse": {
+          "providerCalls": 0,
+          "providerAttempts": 0,
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "totalTokens": 0,
+          "providerLatencyMs": 0,
           "runtimeMs": null,
           "estimatedCostUsd": 0
         }
@@ -1558,7 +2162,7 @@
     "relative": 0.125
   },
   "artifacts": {
-    "baselinePredictionsSha256": "6ae9e127e492d36bcafcebdd6de7dcf0b299369b69d8848dad56215c253ed68e",
-    "advancedPredictionsSha256": "944ea22b66ec5068dfe246a32026525381a1f2a9b100b6299845b48c391dffd0"
+    "baselinePredictionsSha256": "5cd4c7b081e48771b9ea35bed354a6dfbc332757621ca21664105ddc44a05190",
+    "advancedPredictionsSha256": "afb707408435ad6312c00c8e82f13c21ea02c6829e3d5917da8ee45e3c1f0e05"
   }
 }
