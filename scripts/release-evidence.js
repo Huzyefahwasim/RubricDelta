@@ -105,7 +105,7 @@ async function verifyDeterministicEvidence(root, revision) {
     || resources.inputTokens !== 0
     || resources.outputTokens !== 0
     || resources.totalTokens !== 0
-    || resources.latencyMs !== 0
+    || resources.providerLatencyMs !== 0
     || resources.estimatedCostUsd !== 0
     || !fixedMetric(comparison?.baseline?.primaryMetric, 16, 0.8)
     || !fixedMetric(comparison?.advanced?.primaryMetric, 18, 0.9)

@@ -675,7 +675,7 @@ function validateEvaluation(validation) {
     if (!sameJson(manifest.resources?.providerCalls, { baseline: 0, advanced: 0, total: 0 })
       || !sameJson(manifest.resources?.providerAttempts, { baseline: 0, advanced: 0, total: 0 })
       || manifest.resources?.inputTokens !== 0 || manifest.resources?.outputTokens !== 0
-      || manifest.resources?.totalTokens !== 0 || manifest.resources?.latencyMs !== 0 || manifest.resources?.estimatedCostUsd !== 0) {
+      || manifest.resources?.totalTokens !== 0 || manifest.resources?.providerLatencyMs !== 0 || manifest.resources?.estimatedCostUsd !== 0) {
       validation.fail("MISMATCH", "manifest.resources", "deterministic evidence must report exact zero provider calls, attempts, input/output/total tokens, latency, and estimated cost");
     }
     if (manifest.execution?.status !== "complete") validation.fail("MISMATCH", "manifest.execution.status", "committed evidence must be complete");
@@ -1053,11 +1053,11 @@ function validateReplayOutput(validation, outputRoot, fixtureInfo, benchmark, {
   }
   if (!manifest || !summary || !comparison || !baseline || !advanced) return null;
   if (!sameJson(manifest.evaluationProtocol, EVALUATION_PROTOCOL)
-    || !sameJson(manifest.provider, { name: "replay", model: MODEL, seed: 0, status: "operational" })
+    || !sameJson(manifest.provider, { name: "replay", model: MODEL, seed: null, status: "operational" })
     || !sameJson(manifest.resources?.providerCalls, { baseline: 10, advanced: 40, total: 50 })
     || !sameJson(manifest.resources?.providerAttempts, { baseline: 10, advanced: 40, total: 50 })
     || manifest.resources?.inputTokens !== 0 || manifest.resources?.outputTokens !== 0 || manifest.resources?.totalTokens !== 0
-    || manifest.resources?.latencyMs !== 0 || manifest.resources?.estimatedCostUsd !== 0) validation.fail(failureKind, artifactPath("manifest.json"), "provider, protocol, and resource claims are not exact");
+    || manifest.resources?.providerLatencyMs !== 0 || manifest.resources?.estimatedCostUsd !== 0) validation.fail(failureKind, artifactPath("manifest.json"), "provider, protocol, and resource claims are not exact");
   if (!validReplayRuntimeEnvironment(manifest.runtimeEnvironment)) {
     validation.fail(failureKind, artifactPath("manifest.json"), "runtime environment must be an exact dependency-free offline Node 24+ contract");
   }

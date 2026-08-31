@@ -202,6 +202,8 @@ test("validator contains the complete accepted Task 8 test matrix and isolated r
   ]) assert.match(source, contract);
   assert.equal(EVALUATION_PROTOCOL.id, "rubricdelta-evaluation-v3");
   assert.doesNotMatch(source, /rubricdelta-evaluation-v2/);
+  assert.match(source, /name: "replay", model: MODEL, seed: null, status: "operational"/);
+  assert.match(source, /manifest\.resources\?\.providerLatencyMs !== 0/);
 });
 
 test("build runs an accepted hardening test that the old two-file gate omitted", (t) => {

@@ -311,7 +311,7 @@ function manifest({ benchmark, benchmarkSource, provider, model, repeats, execut
       inputTokens: 0,
       outputTokens: 0,
       totalTokens: 0,
-      latencyMs: 0,
+      providerLatencyMs: 0,
       estimatedCostUsd: 0,
       perSystemRuntimeMs: { baseline: null, advanced: null },
       runtimeClaim: "overall artifact wall time measured; per-system runtime comparison not claimed",

@@ -63,7 +63,7 @@ async function temporaryRepository(t) {
     benchmark: { id: "rubricdelta-support-guideline-drift-v1" },
     provider: { name: "deterministic", model: null, seed: 0 },
     reviewBudget: { fraction: 0.2, slotsByCase: Object.fromEntries(Array.from({ length: 10 }, (_, index) => [`case-${index + 1}`, 2])) },
-    resources: { providerCalls: { total: 0 }, providerAttempts: { total: 0 }, inputTokens: 0, outputTokens: 0, totalTokens: 0, latencyMs: 0, estimatedCostUsd: 0 },
+    resources: { providerCalls: { total: 0 }, providerAttempts: { total: 0 }, inputTokens: 0, outputTokens: 0, totalTokens: 0, providerLatencyMs: 0, estimatedCostUsd: 0 },
   }, null, 2)}\n`);
   await writeFile(join(root, "artifacts", "evaluation", "comparison.json"), `${JSON.stringify({
     baseline: { primaryMetric: { numerator: 16, denominator: 20, value: 0.8 } },

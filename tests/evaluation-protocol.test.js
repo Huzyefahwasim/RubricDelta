@@ -84,8 +84,12 @@ test("deterministic manifests embed an exact protocol clone and matching budget 
   assert.notEqual(result.manifest.evaluationProtocol, EVALUATION_PROTOCOL);
   assert.notEqual(result.manifest.evaluationProtocol.reviewBudget, EVALUATION_PROTOCOL.reviewBudget);
   assert.equal(result.manifest.reviewBudget.calculation, expectedProtocol.reviewBudget.calculation);
+  assert.equal(result.manifest.resources.providerLatencyMs, 0);
+  assert.equal(Object.hasOwn(result.manifest.resources, "latencyMs"), false);
   const persisted = JSON.parse(readFileSync(join(outputDir, "manifest.json"), "utf8"));
   assert.deepEqual(persisted.evaluationProtocol, expectedProtocol);
+  assert.equal(persisted.resources.providerLatencyMs, 0);
+  assert.equal(Object.hasOwn(persisted.resources, "latencyMs"), false);
   assert.equal(result.comparison.baseline.primaryMetric.value, 0.8);
   assert.equal(result.comparison.advanced.primaryMetric.value, 0.9);
 });
