@@ -4,7 +4,7 @@
 
 **Goal:** Put the completed RubricDelta application on `main`, verify it at one frozen source revision, and close every release check that does not require a participant-owned attestation or video.
 
-**Architecture:** Preserve the completed dependency-free Node.js application and its protocol-v2 evaluation contract. Integrate the existing linear branch, make only narrowly verified corrections, then use the repository's deterministic evaluator, exact replay, validator, browser workflow, security scan, and fail-closed release collector to generate revision-bound evidence.
+**Architecture:** Preserve the completed dependency-free Node.js application and its historical protocol-v2 evidence. The post-review current contract is protocol v3, which retains the benchmark, primary metric, floor budget, rankings, deterministic seed, and `0.80` / `0.90` results while adding defined diagnostics. Integrate the existing linear branch, make only narrowly verified corrections, then use the repository's deterministic evaluator, exact replay, validator, browser workflow, security scan, and fail-closed release collector to generate revision-bound evidence.
 
 **Tech Stack:** Node.js 24+, ECMAScript modules, built-in `node:test`, built-in HTTP and filesystem APIs, browser-native HTML/CSS/JavaScript, optional OpenAI Responses API behind explicit CLI selection.
 
@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Finish within the participant's five-hour release window.
-- Do not change benchmark cases, ground truth, protocol v2, metrics, review budget, baseline algorithm, deterministic ranking, prompts, replay inventory, or seed.
+- Do not change benchmark cases, ground truth, primary metric, review budget, baseline algorithm, deterministic ranking, prompts, replay inventory, or seed. Preserve protocol v2 as history; generate new evidence under current protocol v3.
 - Keep the offline path dependency-free at runtime and network-free.
 - Preserve untracked QA screenshots until they are deliberately incorporated or returned.
 - Add a failing regression test before any production-code fix.
@@ -58,12 +58,12 @@ Expected: screenshots remain untracked and unchanged.
 ### Task 2: Correct the Historical Protocol Wording
 
 **Files:**
-- Modify: `docs/EVALUATION_PROTOCOL_V2.md:42`
+- Historical Task 2 file: `docs/EVALUATION_PROTOCOL_V2.md:42`; do not modify it after v3 supersedes it.
 - Test: `tests/evaluation-protocol.test.js`
 - Test: `tests/task9-release-docs.test.js`
 
 **Interfaces:**
-- Consumes: the canonical protocol-v2 manifest and current evaluation documentation.
+- Historical Task 2 consumed: the canonical protocol-v2 manifest and then-current evaluation documentation. Current release work consumes protocol v3.
 - Produces: judge-facing prose that agrees with the committed machine-readable evidence.
 
 - [ ] **Step 1: Capture the stale assertion**
@@ -74,7 +74,7 @@ Expected: one match on the stale final paragraph.
 
 - [ ] **Step 2: Replace the stale paragraph**
 
-Use this exact meaning: the canonical deterministic manifest now records protocol v2, and the final release bootstrap will regenerate that evidence for the frozen source revision. Do not alter any metric or artifact.
+Historical Task 2 meaning: the canonical deterministic manifest recorded protocol v2, and the final release bootstrap would regenerate that evidence for the frozen source revision. Current release work regenerates protocol-v3 evidence. Do not alter any metric or artifact.
 
 - [ ] **Step 3: Verify the stale claim is gone**
 
@@ -92,7 +92,7 @@ Expected: all tests pass.
 
 ```text
 git add docs/EVALUATION_PROTOCOL_V2.md
-git commit -m "docs: align protocol v2 evidence wording"
+git commit -m "docs: align historical protocol v2 evidence wording"
 ```
 
 ---

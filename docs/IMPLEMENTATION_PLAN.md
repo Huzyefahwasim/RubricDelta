@@ -34,13 +34,13 @@ The product prioritizes a review queue. It does not relabel a full dataset or wr
 
 - [x] Freeze ten benchmark cases with 100 records and 20 affected records.
 - [x] Add explicit ground truth and benchmark validation.
-- [x] Implement the 20% floor-based review-budget calculation under evaluation protocol v2.
+- [x] Implement the 20% floor-based review-budget calculation, retained by current evaluation protocol v3.
 - [x] Implement recall, precision, F1, false-positive count, and per-case reporting.
 - [x] Implement the deterministic lexical baseline.
 - [x] Record a complete historical deterministic comparison with raw predictions and per-case results.
-- [ ] Regenerate final protocol-v2 artifacts from the final clean source revision.
+- [ ] Regenerate final protocol-v3 deterministic and replay artifacts from the final clean source revision.
 
-Exit evidence: the repository records baseline `16/20 = 0.80` and advanced `18/20 = 0.90` on the frozen benchmark. The final manifest must identify protocol v2.
+Exit evidence: the repository records baseline `16/20 = 0.80` and advanced `18/20 = 0.90` on the frozen benchmark. The final manifest must identify current protocol v3; the recorded v2 evidence remains historical.
 
 ### Phase 2: Deterministic agent pipeline
 
@@ -122,13 +122,15 @@ Exit gate: `npm run validate:final` must pass its automated contracts. The relea
 - [ ] Rebuild and validate the complete final release envelope through shared schema-closed canonical builders, including command summaries, suite, categories, session, participant attestation, human, development, video, revision, and release decision.
 - [ ] Make judge reproduction commands executable for the canonical remote and both clean checkouts, and keep security and participant claims revision-scoped and evidence-backed.
 
-Task 5 does not change benchmark cases, ground truth, protocol v2, metrics, providers, deterministic rankings, or the seven recorded commands. R6 is a participant-approved release-contract correction: it updates the independent-verifier v1 final sentence and exact replay fixture/request-hash bindings while preserving the result inventory, source binding, benchmark, protocol, baseline prompt and algorithm, seed, review budget, and deterministic rankings. The addendum becomes complete only after focused release/validator tests, replay verification, the full suite, and a disposable clean-clone bootstrap check.
+Task 5 did not change benchmark cases, ground truth, protocol-v2 history, metrics, providers, deterministic rankings, or the seven recorded commands. R6 is a participant-approved release-contract correction: it updates the independent-verifier v1 final sentence and exact replay fixture/request-hash bindings while preserving the result inventory, source binding, benchmark, protocol, baseline prompt and algorithm, seed, review budget, and deterministic rankings. The addendum becomes complete only after focused release/validator tests, replay verification, the full suite, and a disposable clean-clone bootstrap check.
 
 Verification distinguishes the main source checkout's expected R3 stale manifest failure, where managed evaluation evidence is deliberately left untouched, from a disposable clean clone. In the clone, the unrecorded `npm run eval` bootstrap refreshes managed evidence and the same suite must pass without an R3 failure.
 
 #### Evaluation contract v3 decision
 
 Independent whole-repository review found that the secondary diagnostics already declared in `docs/EVALUATION.md` were not defined precisely or emitted completely. Because the first full protocol-v2 run froze the metric contract, this correction will publish `rubricdelta-evaluation-v3` rather than silently changing v2 history. Protocol v3 supersedes v2 for newly generated evidence while preserving the v2 primary metric, floor-based 20% review budget, benchmark cases and ground truth, deterministic baseline algorithm and prompt, deterministic/replay seed, provider comparison rules, rankings, and recorded `0.80` baseline / `0.90` advanced scores. The only evaluation additions are explicitly defined secondary diagnostics and honest resource/failure disclosure; predictors remain blind to ground truth.
+
+The release gate now treats v3 as current. A final clean-source bootstrap must regenerate deterministic and replay evidence plus replay protocol bindings before the release validator can accept them. This source-only correction changes no ranking, primary metric, review budget, benchmark case, ground-truth record, prompt, or frozen `0.80` / `0.90` score.
 
 ## Decision log
 

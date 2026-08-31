@@ -14,7 +14,7 @@ All names, messages, policies, and labels are synthetic.
 
 ## Evaluation contract
 
-RubricDelta scores this fixture under [`rubricdelta-evaluation-v2`](../../docs/EVALUATION_PROTOCOL_V2.md). The protocol gives each nonempty case `max(1, floor(recordCount * fraction))` review slots.
+RubricDelta scores new evidence for this fixture under [`rubricdelta-evaluation-v3`](../../docs/EVALUATION_PROTOCOL_V3.md). Protocol v2 remains historical. The current protocol gives each nonempty case `max(1, floor(recordCount * fraction))` review slots.
 
 - Each case contains 10 records and 2 affected records.
 - The 20% review budget gives each case 2 review slots.

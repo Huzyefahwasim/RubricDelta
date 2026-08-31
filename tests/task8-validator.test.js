@@ -14,6 +14,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
+import { EVALUATION_PROTOCOL } from "../src/evaluation/protocol.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const validator = join(root, "scripts", "validate-submission.js");
@@ -184,7 +185,7 @@ test("validator contains the complete accepted Task 8 test matrix and isolated r
   for (const contract of [
     /replay:check/,
     /eval:replay/,
-    /rubricdelta-evaluation-v2/,
+    /EVALUATION_PROTOCOL.*protocol\.js|protocol\.js.*EVALUATION_PROTOCOL/is,
     /rubricdelta-provider-trace-v1/,
     /deterministic-role-capture-v1/,
     /prompt.*sha256|sha256.*prompt/is,
@@ -199,6 +200,8 @@ test("validator contains the complete accepted Task 8 test matrix and isolated r
     /rawPredictionSha256ByRepetition/,
     /(?:mkdtempSync|tmpdir|--output-dir)/,
   ]) assert.match(source, contract);
+  assert.equal(EVALUATION_PROTOCOL.id, "rubricdelta-evaluation-v3");
+  assert.doesNotMatch(source, /rubricdelta-evaluation-v2/);
 });
 
 test("build runs an accepted hardening test that the old two-file gate omitted", (t) => {

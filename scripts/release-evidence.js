@@ -5,6 +5,7 @@ import { lstat, readFile, realpath, unlink } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createArtifactStore } from "../src/artifacts/store.js";
+import { EVALUATION_PROTOCOL } from "../src/evaluation/protocol.js";
 import {
   QA_CATEGORIES,
   REQUIRED_RELEASE_COMMANDS,
@@ -91,7 +92,7 @@ async function verifyDeterministicEvidence(root, revision) {
   }
   if (manifest?.schemaVersion !== 1
     || manifest?.artifactKind !== "rubricdelta-evaluation-manifest"
-    || manifest?.evaluationProtocol?.id !== "rubricdelta-evaluation-v2"
+    || manifest?.evaluationProtocol?.id !== EVALUATION_PROTOCOL.id
     || manifest?.benchmark?.id !== "rubricdelta-support-guideline-drift-v1"
     || manifest?.provider?.name !== "deterministic"
     || manifest?.provider?.model !== null

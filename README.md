@@ -79,7 +79,7 @@ The participant supplies the human-review session, development-trajectory privac
 
 The deterministic offline evaluation improved affected-record recall at a fixed 20% review budget from 16/20 (0.80) to 18/20 (0.90) on a frozen 100-record synthetic benchmark.
 
-Both systems use benchmark `rubricdelta-support-guideline-drift-v1`, protocol `rubricdelta-evaluation-v2`, the same ten cases, the same record order, seed 0, and two review slots per case. The result measures the complete deterministic system bundle against the lexical baseline. It does not isolate one stage or measure a live OpenAI model.
+Both systems use benchmark `rubricdelta-support-guideline-drift-v1`, current protocol `rubricdelta-evaluation-v3`, the same ten cases, the same record order, deterministic seed 0, and two review slots per case. Protocol v2 remains the historical contract for its recorded run. The result measures the complete deterministic system bundle against the lexical baseline. It does not isolate one stage or measure a live OpenAI model.
 
 The combined deterministic command writes under `artifacts/evaluation/`:
 

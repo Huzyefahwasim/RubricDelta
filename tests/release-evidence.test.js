@@ -58,7 +58,7 @@ async function temporaryRepository(t) {
   await writeFile(join(root, "artifacts", "evaluation", "manifest.json"), `${JSON.stringify({
     schemaVersion: 1,
     artifactKind: "rubricdelta-evaluation-manifest",
-    evaluationProtocol: { id: "rubricdelta-evaluation-v2" },
+    evaluationProtocol: { id: "rubricdelta-evaluation-v3" },
     git: { revision },
     benchmark: { id: "rubricdelta-support-guideline-drift-v1" },
     provider: { name: "deterministic", model: null, seed: 0 },

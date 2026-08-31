@@ -20,6 +20,7 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluatePredictions, loadBenchmark } from "../src/evaluation/index.js";
 import { canonicalTextSha256 } from "../src/evaluation/evidence-hash.js";
+import { EVALUATION_PROTOCOL } from "../src/evaluation/protocol.js";
 import {
   containsCredentialLikeText,
   redactCredentialLikeText,
@@ -66,19 +67,7 @@ const TASK9_DEFERRED_PATHS = Object.freeze([
   "artifacts/qa/README.md",
   "artifacts/submission/demo.mp4",
 ]);
-const EVALUATION_PROTOCOL = Object.freeze({
-  id: "rubricdelta-evaluation-v2",
-  version: 2,
-  supersedes: "rubricdelta-evaluation-v1",
-  effectiveDate: "2026-08-29",
-  primaryMetric: "microAffectedRecallAtReviewBudget",
-  reviewBudget: {
-    fractionSource: "benchmark.reviewBudgetFraction",
-    calculation: "max(1, floor(recordCount * fraction))",
-    rounding: "floor",
-    minimumSlotsForNonemptyCase: 1,
-  },
-});
+const EVALUATION_PROTOCOL_LABEL = `protocol-v${EVALUATION_PROTOCOL.version}`;
 const PROMPTS = Object.freeze({
   "change-analyst": "change-analyst.v1.md",
   "direct-baseline": "direct-baseline.v1.md",
@@ -677,8 +666,8 @@ function validateEvaluation(validation) {
     const benchmarkSource = canonicalLf(decodeUtf8(readBounded(benchmarkPath)));
     const caseIds = benchmark.cases.map((item) => item.id);
     const recordIds = Object.fromEntries(benchmark.cases.map((item) => [item.id, item.records.map((record) => record.id)]));
-    if (!sameJson(manifest.evaluationProtocol, EVALUATION_PROTOCOL)) validation.fail("STALE PROTOCOL", "manifest.evaluationProtocol", "regenerate exact evaluation protocol v2 evidence");
-    if (manifest.reviewBudget?.calculation !== EVALUATION_PROTOCOL.reviewBudget.calculation) validation.fail("MISMATCH", "manifest.reviewBudget.calculation", "must use protocol-v2 floor budgeting");
+    if (!sameJson(manifest.evaluationProtocol, EVALUATION_PROTOCOL)) validation.fail("STALE PROTOCOL", "manifest.evaluationProtocol", `regenerate exact evaluation ${EVALUATION_PROTOCOL_LABEL} evidence`);
+    if (manifest.reviewBudget?.calculation !== EVALUATION_PROTOCOL.reviewBudget.calculation) validation.fail("MISMATCH", "manifest.reviewBudget.calculation", `must use ${EVALUATION_PROTOCOL_LABEL} floor budgeting`);
     if (manifest.benchmark?.id !== benchmark.benchmarkId || manifest.benchmark?.sha256 !== canonicalTextSha256(benchmarkSource)
       || manifest.benchmark?.sha256Canonicalization !== "utf8-lf" || !sameJson(manifest.benchmark?.orderedCaseIds, caseIds)
       || !sameJson(manifest.benchmark?.orderedRecordIdsByCase, recordIds)) validation.fail("MISMATCH", "manifest.benchmark", "must bind the current frozen benchmark and exact order");
@@ -714,7 +703,7 @@ function validateEvaluation(validation) {
     const agents = new Set(events.map((event) => event.agent));
     for (const role of ROLE_SET) if (!agents.has(role)) validation.fail("MISSING ROLE", relativePath, role);
   }
-  validation.passIfClean(start, "protocol-v2 deterministic evidence, paired 0.80/0.90 results, and complete trajectories");
+  validation.passIfClean(start, `${EVALUATION_PROTOCOL_LABEL} deterministic evidence, paired 0.80/0.90 results, and complete trajectories`);
   return benchmark;
 }
 
@@ -866,7 +855,7 @@ function validateReplayFixtureSemantic(validation, benchmark) {
   const expectedRecords = Object.fromEntries(benchmark.cases.map((item) => [item.id, item.records.map((record) => record.id)]));
   const expectedBenchmark = { id: benchmark.benchmarkId, sha256: canonicalTextSha256(benchmarkSource), orderedCaseIds: expectedCases, orderedRecordIdsByCase: expectedRecords };
   if (!sameJson(binding?.benchmark, expectedBenchmark)) fail("benchmark hash and ordered case/record binding mismatch");
-  if (!sameJson(binding?.protocol, EVALUATION_PROTOCOL)) fail("protocol-v2 binding mismatch");
+  if (!sameJson(binding?.protocol, EVALUATION_PROTOCOL)) fail(`${EVALUATION_PROTOCOL_LABEL} binding mismatch`);
   if (binding?.model !== MODEL || binding?.mode !== "both" || binding?.repeats !== 1) fail("model, mode, and repeat binding mismatch");
   const expectedPrompts = promptBinding(validation);
   if (!sameJson(binding?.prompts, expectedPrompts)) fail("prompt registry/hash binding mismatch");

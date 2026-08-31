@@ -49,7 +49,7 @@ npm run eval:advanced
 npm run eval
 ```
 
-The commands write under `artifacts/evaluation/`. The combined command runs both systems against benchmark `rubricdelta-support-guideline-drift-v1` under protocol `rubricdelta-evaluation-v2`. Each system receives the same ten cases, record order, deterministic provider, null model, seed 0, and 20% review budget.
+The commands write under `artifacts/evaluation/`. The combined command runs both systems against benchmark `rubricdelta-support-guideline-drift-v1` under current protocol `rubricdelta-evaluation-v3`. Each system receives the same ten cases, record order, deterministic provider, null model, seed 0, and 20% review budget. Protocol v2 remains historical; regenerate deterministic and replay artifacts from a clean source revision before release validation.
 
 Expected primary result:
 

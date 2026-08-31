@@ -14,7 +14,7 @@ Existing untracked QA screenshots are participant data. They must be preserved u
 
 ## Frozen behavior
 
-This pass does not change benchmark cases, ground truth, protocol `rubricdelta-evaluation-v2`, metric formulas, review-budget calculation, baseline algorithm, deterministic ranking, provider prompts, replay inventory, or seed. The canonical measured comparison remains baseline `16/20 = 0.80` versus advanced `18/20 = 0.90` at the same 20 percent review budget unless a fresh run proves otherwise.
+This historical Task 2 pass did not change benchmark cases, ground truth, protocol `rubricdelta-evaluation-v2`, metric formulas, review-budget calculation, baseline algorithm, deterministic ranking, provider prompts, replay inventory, or seed. Post-review, `rubricdelta-evaluation-v3` is current for new evidence and preserves those frozen inputs and the canonical baseline `16/20 = 0.80` versus advanced `18/20 = 0.90` comparison at the same 20 percent review budget. A clean bootstrap must regenerate v3 deterministic and replay evidence before release.
 
 Any defect that would require changing this contract stops the release pass and requires a versioned protocol decision. Ordinary integration or portability defects receive a failing regression test before the smallest production fix.
 
