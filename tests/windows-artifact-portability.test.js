@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { appendFileSync, cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -108,6 +108,36 @@ function validate(clone) {
 function manifest(clone) {
   return JSON.parse(readFileSync(join(clone, "artifacts", "evaluation", "manifest.json"), "utf8"));
 }
+
+test("hash-bound generated evidence text survives a core.autocrlf=true checkout byte-for-byte", (t) => {
+  const temporary = mkdtempSync(join(tmpdir(), "rubricdelta-generated-evidence-eol-"));
+  const seed = join(temporary, "seed");
+  const clone = join(temporary, "clone");
+  const fixtures = [
+    ["artifacts/qa/command-suite.json", "{\n  \"status\": \"PASS\"\n}\n"],
+    ["artifacts/qa/human/ledger.jsonl", "{\"sequence\":1}\n"],
+    ["artifacts/qa/human/export.csv", "recordId,status\nfraud-08,approved\n"],
+    ["artifacts/submission/README.md", "# Release evidence\n"],
+  ];
+  t.after(() => rmSync(temporary, { recursive: true, force: true }));
+  mkdirSync(seed, { recursive: true });
+  cpSync(join(root, ".gitattributes"), join(seed, ".gitattributes"));
+  for (const [path, content] of fixtures) {
+    const target = join(seed, ...path.split("/"));
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, content, "utf8");
+  }
+  git(seed, ["init", "-b", "main"]);
+  git(seed, ["config", "user.name", "RubricDelta Test"]);
+  git(seed, ["config", "user.email", "test@rubricdelta.invalid"]);
+  git(seed, ["config", "core.autocrlf", "true"]);
+  git(seed, ["add", "."]);
+  git(seed, ["commit", "-m", "generated evidence portability fixture"]);
+  git(temporary, ["-c", "core.autocrlf=true", "clone", "--no-hardlinks", seed, clone]);
+  for (const [path, content] of fixtures) {
+    assert.deepEqual(readFileSync(join(clone, ...path.split("/"))), Buffer.from(content), path);
+  }
+});
 
 test("hash-bound benchmark and evidence bytes remain LF in a core.autocrlf=true clone", (t) => {
   const clone = autocrlfClone(t);
