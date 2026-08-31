@@ -28,11 +28,20 @@ export function createAdvancedPredictions(benchmark, options = {}) {
       trajectory: result.trace,
       runtimeMs: null,
       estimatedCostUsd: 0,
+      resources: {
+        providerCalls: 0,
+        providerAttempts: 0,
+        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        providerLatencyMs: 0,
+        runtimeMs: null,
+        estimatedCostUsd: 0,
+      },
     };
   });
   return {
     metadata: {
       system: "rubricdelta-four-stage-deterministic",
+      claimSupportContract: "verifier-support-v1",
       runtimeMs: null,
       estimatedCostUsd: 0,
       resourceNotes: "Deterministic offline rule compilation, change analysis, impact ranking, and blind verification.",

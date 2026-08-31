@@ -353,9 +353,31 @@ function createSummary(repetitions, systems, providerName, model) {
   };
   for (const system of systems) {
     const values = repetitions.map((item) => item.scores[system].primaryMetric.value);
+    const scores = repetitions.map((item) => item.scores[system]);
     value[system] = {
       primaryMetric: meanRange(values),
       repetitions: repetitions.map((item) => metric(item.scores[system])),
+      secondaryMetrics: {
+        meanReciprocalRankFirstAffected: meanRange(scores.map((item) => item.secondaryMetrics.meanReciprocalRankFirstAffected)),
+        structuralUnsupportedClaimRate: meanRange(scores.map((item) => item.secondaryMetrics.unsupportedClaimRate.value)),
+        escalationRate: meanRange(scores.map((item) => item.secondaryMetrics.escalationRate.value)),
+        escalationApplicable: scores.every((item) => item.secondaryMetrics.escalationRate.applicable),
+        escalationMechanism: scores[0].secondaryMetrics.escalationRate.mechanism,
+        comparableAcrossSystems: false,
+      },
+      resourcesByRepetition: scores.map((item, index) => ({ repetition: index + 1, ...structuredClone(item.resourceUse) })),
+      diagnosticsByRepetition: scores.map((item, index) => ({ repetition: index + 1, ...structuredClone(item.diagnostics) })),
+      perCaseByRepetition: scores.map((item, index) => ({
+        repetition: index + 1,
+        cases: item.perCase.map((caseResult) => ({
+          caseId: caseResult.caseId,
+          metrics: structuredClone(caseResult.metrics),
+          diagnostics: structuredClone(caseResult.diagnostics),
+          resourceUse: structuredClone(caseResult.resourceUse),
+          missedAffectedRecordIds: [...caseResult.falseNegativeIds],
+          falsePositiveIds: [...caseResult.falsePositiveIds],
+        })),
+      })),
     };
   }
   if (systems.includes("baseline") && systems.includes("advanced")) {
@@ -457,10 +479,13 @@ function createManifest({
   const suppliedReplay = providerName === "replay" ? safeReplayMetadata(replay) : {};
   const base = manifestBase(benchmark, benchmarkSource);
   base.runtimeEnvironment.networkRequired = providerName === "openai";
+  const replayBound = providerName === "replay"
+    && ["binding", "source", "fixture"].every((field) => Object.hasOwn(suppliedReplay, field));
+  const seed = ["deterministic", "capture"].includes(providerName) || replayBound ? 0 : null;
   return {
     ...base,
     git,
-    provider: { name: providerName, model, seed: 0, status: "operational" },
+    provider: { name: providerName, model, seed, status: "operational" },
     versions: {
       baselineAlgorithm: "direct-provider-baseline-v1",
       advancedAlgorithm: "four-stage-provider-advanced-v1",
@@ -497,6 +522,34 @@ function report(manifest, summary) {
     const value = summary[system].primaryMetric;
     lines.push("- " + system + ": mean " + value.mean.toFixed(2)
       + " (min " + value.min.toFixed(2) + ", max " + value.max.toFixed(2) + ")");
+  }
+  lines.push("", "## Secondary diagnostics", "");
+  for (const system of ["baseline", "advanced"]) {
+    if (!summary[system]) continue;
+    const secondary = summary[system].secondaryMetrics;
+    lines.push("- " + system + " MRR: " + secondary.meanReciprocalRankFirstAffected.mean.toFixed(6));
+    lines.push("- " + system + " structural unsupported-claim rate: " + secondary.structuralUnsupportedClaimRate.mean.toFixed(6));
+    lines.push("- " + system + " escalation rate: " + secondary.escalationRate.mean.toFixed(6)
+      + " (applicable: " + secondary.escalationApplicable + "; mechanism: " + secondary.escalationMechanism + ")");
+  }
+  lines.push("", "Structural support uses each system's native evidence contract and is not comparable across systems.", "", "## Per-case and resource disclosure", "");
+  for (const system of ["baseline", "advanced"]) {
+    if (!summary[system]) continue;
+    const first = summary[system].perCaseByRepetition[0];
+    const diagnostics = summary[system].diagnosticsByRepetition[0];
+    const resources = summary[system].resourcesByRepetition[0];
+    lines.push("- " + system + " incomplete cases: " + (diagnostics.incompleteCaseIds.join(", ") || "none")
+      + "; failed cases: " + (diagnostics.failedCaseIds.join(", ") || "none"));
+    lines.push("- " + system + " resources: calls=" + resources.providerCalls + ", attempts=" + resources.providerAttempts
+      + ", input/output/total tokens=" + resources.inputTokens + "/" + resources.outputTokens + "/" + resources.totalTokens
+      + ", provider latency ms=" + resources.providerLatencyMs + ", runtime ms=" + resources.runtimeMs
+      + ", estimated cost USD=" + resources.estimatedCostUsd);
+    for (const item of first.cases) {
+      lines.push("  - " + item.caseId + ": MRR=" + item.metrics.reciprocalRankFirstAffected.toFixed(6)
+        + ", unsupported=" + item.metrics.unsupportedClaimRate.toFixed(6)
+        + ", escalation=" + item.metrics.escalationRate.toFixed(6)
+        + ", status=" + item.diagnostics.status);
+    }
   }
   lines.push(
     "",
@@ -693,6 +746,7 @@ export async function createProviderEvaluationArtifacts({
     fairComparison: {
       provider: paired.name,
       model,
+      seed: manifest.provider.seed,
       reviewBudgetFraction: benchmark.reviewBudgetFraction,
       orderedCaseIds: benchmark.cases.map((item) => item.id),
       repeats,

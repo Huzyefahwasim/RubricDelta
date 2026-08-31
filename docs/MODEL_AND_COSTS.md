@@ -35,7 +35,7 @@ The committed fixture at `data/benchmark/replay/rubricdelta-deterministic-source
 The OpenAI path requires all of the following:
 
 - an explicit `openai` provider flag;
-- `OPENAI_API_KEY` on the server;
+- `OPENAI_API_KEY` in the explicit evaluation CLI process environment;
 - an explicit pinned model ID.
 
 An environment key alone cannot change the offline default. Provider errors fail the affected case and never substitute a deterministic ranking.

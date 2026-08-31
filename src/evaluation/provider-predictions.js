@@ -96,6 +96,7 @@ function failedCase(caseId, error) {
     const trace = errorData(error, "trace", []);
     if (Array.isArray(trace)) trajectory = cloneJson(trace);
   } catch { trajectory = []; }
+  const resources = resourcesFromTrajectory(trajectory);
   return {
     caseId,
     status: "failed",
@@ -105,11 +106,20 @@ function failedCase(caseId, error) {
     failure: { code: safeCode(errorData(error, "code", null)) },
     substituted: false,
     runtimeMs: null,
-    estimatedCostUsd: null,
+    estimatedCostUsd: resources.estimatedCostUsd,
+    resources: {
+      providerCalls: resources.providerCalls,
+      providerAttempts: resources.providerAttempts,
+      usage: resources.usage,
+      providerLatencyMs: resources.providerLatencyMs,
+      runtimeMs: null,
+      estimatedCostUsd: resources.estimatedCostUsd,
+    },
   };
 }
 
 function completeCase(caseId, rankingEvidence, trace, estimatedCostUsd = null) {
+  const resources = resourcesFromTrajectory(trace);
   return {
     caseId,
     status: "complete",
@@ -119,47 +129,75 @@ function completeCase(caseId, rankingEvidence, trace, estimatedCostUsd = null) {
     substituted: false,
     runtimeMs: null,
     estimatedCostUsd,
+    resources: {
+      providerCalls: resources.providerCalls,
+      providerAttempts: resources.providerAttempts,
+      usage: resources.usage,
+      providerLatencyMs: resources.providerLatencyMs,
+      runtimeMs: null,
+      estimatedCostUsd: resources.estimatedCostUsd,
+    },
   };
 }
 
-function aggregateResources(cases) {
+function resourcesFromTrajectory(trajectory) {
   const resources = {
     providerCalls: 0,
     providerAttempts: 0,
     usage: { ...ZERO_USAGE },
-    latencyMs: 0,
+    providerLatencyMs: 0,
     estimatedCostUsd: 0,
   };
   let usageKnown = true;
   let latencyKnown = true;
   let costKnown = true;
-  for (const item of cases) {
-    const results = item.trajectory.filter((event) => event.type === "provider-result");
-    resources.providerCalls += results.length;
-    for (const event of results) {
+  const results = trajectory.filter((event) => event.type === "provider-result");
+  resources.providerCalls += results.length;
+  for (const event of results) {
       resources.providerAttempts += event.retry.transportAttempts;
       if (event.usage) {
         resources.usage.inputTokens += event.usage.inputTokens;
         resources.usage.outputTokens += event.usage.outputTokens;
         resources.usage.totalTokens += event.usage.totalTokens;
       } else usageKnown = false;
-      if (Number.isFinite(event.latencyMs)) resources.latencyMs += event.latencyMs;
+      if (Number.isFinite(event.latencyMs)) resources.providerLatencyMs += event.latencyMs;
       else latencyKnown = false;
       const cost = event.payload?.estimatedCostUsd;
       if (Number.isFinite(cost) && cost >= 0) resources.estimatedCostUsd += cost;
       else costKnown = false;
-    }
   }
   if (!usageKnown) resources.usage = null;
-  if (!latencyKnown) resources.latencyMs = null;
+  if (!latencyKnown) resources.providerLatencyMs = null;
   if (!costKnown) resources.estimatedCostUsd = null;
   return resources;
 }
 
-function predictionMetadata({ system, resourceNotes, benchmark, provider, model, repetition, cases }) {
+function aggregateResources(cases) {
+  const perCase = cases.map((item) => item.resources);
+  const sum = (key) => perCase.some((item) => item[key] === null)
+    ? null
+    : perCase.reduce((total, item) => total + item[key], 0);
+  const usage = perCase.some((item) => item.usage === null)
+    ? null
+    : perCase.reduce((total, item) => ({
+      inputTokens: total.inputTokens + item.usage.inputTokens,
+      outputTokens: total.outputTokens + item.usage.outputTokens,
+      totalTokens: total.totalTokens + item.usage.totalTokens,
+    }), { ...ZERO_USAGE });
+  return {
+    providerCalls: sum("providerCalls"),
+    providerAttempts: sum("providerAttempts"),
+    usage,
+    providerLatencyMs: sum("providerLatencyMs"),
+    estimatedCostUsd: sum("estimatedCostUsd"),
+  };
+}
+
+function predictionMetadata({ system, claimSupportContract, resourceNotes, benchmark, provider, model, repetition, cases }) {
   const resources = aggregateResources(cases);
   return {
     system,
+    claimSupportContract,
     provider: provider.name,
     model,
     repetition,
@@ -192,6 +230,7 @@ export async function createProviderBaselinePredictions(benchmarkValue, options 
   return {
     metadata: predictionMetadata({
       system: "rubricdelta-direct-provider-baseline",
+      claimSupportContract: "matched-terms-v1",
       resourceNotes: "One direct provider call per public case; failures remain explicit and receive no deterministic substitution.",
       benchmark,
       provider: settings.provider,
@@ -224,6 +263,7 @@ export async function createProviderAdvancedPredictions(benchmarkValue, options 
   return {
     metadata: predictionMetadata({
       system: "rubricdelta-four-stage-provider-advanced",
+      claimSupportContract: "verifier-support-v1",
       resourceNotes: "Compiler, analyst, investigator, and blind batch verifier provider calls; failures remain explicit with no fallback.",
       benchmark,
       provider: settings.provider,

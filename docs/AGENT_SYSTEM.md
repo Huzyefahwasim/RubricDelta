@@ -86,9 +86,11 @@ Store newline-delimited JSON. Each event contains:
 - retry or feedback reason;
 - duration and usage;
 - redaction state;
-- linked human decision where applicable.
+- nullable linked human decision where applicable.
 
-Submission trajectories must include at least one successful case, one verifier challenge, one retry, one escalation, and one human approval.
+Deterministic traces use schema `rubricdelta-deterministic-trace-v2`. Each event carries a stable operation ID; a scenario reference; old/new guideline-version references when a stage receives them; record, rule, and delta references when present; a structured result where applicable; retry and feedback fields; finite duration or `null`; exact-zero offline usage; redaction state; and nullable human linkage.
+
+The browser server owns human decision and undo events in its append-only ledger. Those events bind their `evidenceVersion` to the reviewed evidence. Deterministic trace linkage does not replace the server-owned ledger. Submission trajectories must include at least one successful case, one verifier challenge, one retry, one escalation, and one human approval.
 
 ## Development-agent disclosure
 

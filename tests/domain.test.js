@@ -36,7 +36,24 @@ test("trace events are copied, JSONL is line-delimited, and nested secrets redac
 test("trace recorder owns sequencing and run metadata", () => {
   const trace = createTraceRecorder({ runId: "run-1", scenarioId: "case-1", now: () => "now" });
   const event = trace.record({ agent: "a", phase: "p", type: "result", payload: {}, runId: "forged", scenarioId: "other", sequence: 99, timestamp: "old" });
-  assert.deepEqual(event, { runId: "run-1", scenarioId: "case-1", sequence: 1, timestamp: "now", agent: "a", phase: "p", type: "result", payload: {} });
+  assert.equal(event.schemaVersion, "rubricdelta-deterministic-trace-v2");
+  assert.deepEqual(event.operation, { id: "a.p", eventType: "result", instruction: null, tool: null });
+  assert.deepEqual(event.inputRefs, [{ kind: "scenario", id: "case-1" }]);
+  assert.deepEqual(event.result, {});
+  assert.equal(event.retryReason, null);
+  assert.equal(event.feedbackReason, null);
+  assert.equal(event.durationMs, null);
+  assert.deepEqual(event.usage, { inputTokens: 0, outputTokens: 0, totalTokens: 0, providerCalls: 0, providerAttempts: 0 });
+  assert.deepEqual(event.redaction, { applied: false, fields: [] });
+  assert.equal(event.humanDecision, null);
+  assert.equal(event.runId, "run-1");
+  assert.equal(event.scenarioId, "case-1");
+  assert.equal(event.sequence, 1);
+  assert.equal(event.timestamp, "now");
+  assert.equal(event.agent, "a");
+  assert.equal(event.phase, "p");
+  assert.equal(event.type, "result");
+  assert.deepEqual(event.payload, {});
 });
 test("trace recorder rejects malformed event shapes before persistence", () => {
   const trace = createTraceRecorder({ runId: "run-1", scenarioId: "case-1" });

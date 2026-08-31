@@ -38,6 +38,7 @@ export function createBaselinePredictions(benchmark) {
   return {
     metadata: {
       system: "added-guideline-term-overlap-baseline",
+      claimSupportContract: "matched-terms-v1",
       runtimeMs: null,
       estimatedCostUsd: 0,
       resourceNotes: "Deterministic local lexical baseline; runtime is intentionally not claimed.",
@@ -48,6 +49,14 @@ export function createBaselinePredictions(benchmark) {
         caseId: testCase.id,
         rankedRecordIds: ranking.map((item) => item.recordId),
         rankingEvidence: ranking,
+        resources: {
+          providerCalls: 0,
+          providerAttempts: 0,
+          usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+          providerLatencyMs: 0,
+          runtimeMs: null,
+          estimatedCostUsd: 0,
+        },
       };
     }),
   };

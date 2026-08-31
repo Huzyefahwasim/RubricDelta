@@ -1,6 +1,6 @@
 # Evaluation Contract
 
-**Protocol:** [`rubricdelta-evaluation-v2`](EVALUATION_PROTOCOL_V2.md), effective 2026-08-29. The manifest stores the complete machine-readable contract.
+**Current protocol:** [`rubricdelta-evaluation-v3`](EVALUATION_PROTOCOL_V3.md), effective 2026-08-31. [Protocol v2](EVALUATION_PROTOCOL_V2.md) remains the historical contract for its recorded run. The manifest stores the complete machine-readable contract.
 
 ## User question
 
@@ -20,16 +20,9 @@ recall@20% = affected records in selected / all affected records
 
 The aggregate score uses micro-averaging across the complete benchmark. The report also includes every case score.
 
-## Secondary metrics
+## Secondary diagnostics and resources
 
-- Precision at the review budget
-- F1 at the review budget
-- Mean reciprocal rank of the first affected record
-- Unsupported-claim rate
-- Escalation rate
-- Runtime per case
-- Input, output, and total tokens
-- Estimated cost per case when a priced provider runs
+V3 defines per-case reciprocal rank, aggregate MRR, structural unsupported-claim rate, and escalation rate in [the protocol](EVALUATION_PROTOCOL_V3.md). Support contracts are system-native and are not comparable across systems. Each report also retains per-case failures, completeness, calls, attempts, tokens, provider latency, runtime, and estimated cost.
 
 ## Benchmark composition
 
@@ -62,12 +55,12 @@ Each paired run must use:
 
 - the same benchmark version;
 - the same provider and model;
-- the same seed where supported;
+- the same seed value recorded in each provider manifest;
 - the same context documents and records;
 - the same 20% review budget;
 - the same metric implementation.
 
-The report must disclose token, call, runtime, and cost differences. Resource parity and resource efficiency are separate claims.
+The report must disclose per-case and aggregate token, call, provider-latency, runtime, cost, failure, and completeness differences. Resource parity and resource efficiency are separate claims.
 
 ## Run protocol
 

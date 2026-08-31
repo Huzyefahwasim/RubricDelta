@@ -126,6 +126,10 @@ Task 5 does not change benchmark cases, ground truth, protocol v2, metrics, prov
 
 Verification distinguishes the main source checkout's expected R3 stale manifest failure, where managed evaluation evidence is deliberately left untouched, from a disposable clean clone. In the clone, the unrecorded `npm run eval` bootstrap refreshes managed evidence and the same suite must pass without an R3 failure.
 
+#### Evaluation contract v3 decision
+
+Independent whole-repository review found that the secondary diagnostics already declared in `docs/EVALUATION.md` were not defined precisely or emitted completely. Because the first full protocol-v2 run froze the metric contract, this correction will publish `rubricdelta-evaluation-v3` rather than silently changing v2 history. Protocol v3 supersedes v2 for newly generated evidence while preserving the v2 primary metric, floor-based 20% review budget, benchmark cases and ground truth, deterministic baseline algorithm and prompt, deterministic/replay seed, provider comparison rules, rankings, and recorded `0.80` baseline / `0.90` advanced scores. The only evaluation additions are explicitly defined secondary diagnostics and honest resource/failure disclosure; predictors remain blind to ground truth.
+
 ## Decision log
 
 | Date | Decision | Reason |
@@ -138,6 +142,7 @@ Verification distinguishes the main source checkout's expected R3 stale manifest
 | 2026-08-30 | Bootstrap frozen evaluation evidence before recording the release suite | A fresh source revision cannot satisfy the manifest-to-HEAD preflight until the unrecorded deterministic evaluation refreshes managed evidence; the recorded suite remains exactly seven commands |
 | 2026-08-31 | Publish operational replay beside, not inside, the deterministic reference | `reference-comparison.json` remains the non-operational deterministic score reference. `eval:replay` owns a separate canonical `operational-replay/` bundle. Score values remain canonical in comparison/report artifacts rather than being duplicated into the provenance manifest. |
 | 2026-08-31 | Compare normalized operational manifests, not a selected field subset | The isolated replay is the authority for immutable manifest content. Validation permits different Git state, execution timing, and host identity only after those dynamic fields satisfy their own strict schemas. |
+| 2026-08-31 | Version the evaluation contract to v3 for defined secondary diagnostics | Independent review found declared diagnostics without exact formulas or complete output. A versioned successor preserves every frozen v2 ranking input, algorithm, seed, budget, primary score, and benchmark value while adding scoring-only diagnostics and honest resource/failure fields. |
 
 ## Risks
 

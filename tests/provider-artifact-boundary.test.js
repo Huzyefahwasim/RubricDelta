@@ -254,8 +254,13 @@ test("caller replay metadata cannot override trusted provider provenance", async
 test("runtime manifest discloses network requirement truthfully by provider", async (t) => {
   const replay = await runArtifact(t, { providerName: "replay" });
   assert.equal(replay.manifest.runtimeEnvironment.networkRequired, false);
+  assert.equal(replay.manifest.provider.seed, null);
+  const capture = await runArtifact(t, { providerName: "capture" });
+  assert.equal(capture.manifest.provider.seed, 0);
   const openai = await runArtifact(t, { providerName: "openai" });
   assert.equal(openai.manifest.runtimeEnvironment.networkRequired, true);
+  assert.equal(openai.manifest.provider.seed, null);
+  assert.equal(openai.comparison.fairComparison.seed, null);
 });
 
 test("provider output root rejects a pre-existing link or junction before writes", async (t) => {
