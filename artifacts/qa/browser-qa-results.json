@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-engineering-browser-qa",
+  "revision": "ce43ca3f53e03861be11356b2f5fca5230c32f41",
+  "verifiedAt": "2026-08-31T10:40:24Z",
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "architecture": "x64",
+    "browser": "Google Chrome 151.0.7922.174 (headless, CDP-driven)"
+  },
+  "scope": "Engineering browser, keyboard, accessibility, and responsive QA. This is not participant human-review evidence and does not record a release decision.",
+  "reviewerAttribution": "automated-qa-keyboard-check",
+  "base": "http://127.0.0.1:4173",
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900,
+      "mobile": false
+    },
+    {
+      "name": "tablet",
+      "width": 768,
+      "height": 1024,
+      "mobile": false
+    },
+    {
+      "name": "mobile",
+      "width": 375,
+      "height": 812,
+      "mobile": true
+    }
+  ],
+  "screenshots": [
+    "desktop-1440x900-intake.png",
+    "desktop-1440x900-deltas.png",
+    "desktop-1440x900-impact.png",
+    "desktop-1440x900-evaluation.png",
+    "desktop-1440x900-trajectory.png",
+    "tablet-768x1024-intake.png",
+    "tablet-768x1024-deltas.png",
+    "tablet-768x1024-impact.png",
+    "tablet-768x1024-evaluation.png",
+    "tablet-768x1024-trajectory.png",
+    "mobile-375x812-intake.png",
+    "mobile-375x812-deltas.png",
+    "mobile-375x812-impact.png",
+    "mobile-375x812-evaluation.png",
+    "mobile-375x812-trajectory.png"
+  ],
+  "findings": [
+    {
+      "id": "workbench-loads-benchmark-example",
+      "pass": true,
+      "detail": "run coordinate: RUN / run-b040d996-3035-46fb-b0b0-f4af5100fd81"
+    },
+    {
+      "id": "single-h1",
+      "pass": true,
+      "detail": "h1 count 1"
+    },
+    {
+      "id": "skip-link-present",
+      "pass": true,
+      "detail": "a.skip-link -> #main"
+    },
+    {
+      "id": "semantic-landmarks",
+      "pass": true,
+      "detail": "main=1 header=1 nav=1 tablist=1"
+    },
+    {
+      "id": "aria-live-regions",
+      "pass": true,
+      "detail": "2 live region(s)"
+    },
+    {
+      "id": "all-controls-labelled",
+      "pass": true,
+      "detail": "0 unlabelled"
+    },
+    {
+      "id": "accessible-data-tables",
+      "pass": true,
+      "detail": "1 table(s)"
+    },
+    {
+      "id": "visible-keyboard-focus",
+      "pass": true,
+      "detail": ":focus-visible -> outline: 3px solid var(--focus); outline-offset: 3px;"
+    },
+    {
+      "id": "reduced-motion-styles",
+      "pass": true,
+      "detail": "prefers-reduced-motion media query present"
+    },
+    {
+      "id": "keyboard-J-advances-queue",
+      "pass": true,
+      "detail": "fraud-08 / server state: pending -> fraud-03 / server state: pending"
+    },
+    {
+      "id": "keyboard-K-returns-in-queue",
+      "pass": true,
+      "detail": "fraud-03 / server state: pending -> fraud-08 / server state: pending"
+    },
+    {
+      "id": "keyboard-A-approves",
+      "pass": true,
+      "detail": "approve recorded for fraud-08. Authoritative server state: approved."
+    },
+    {
+      "id": "keyboard-E-escalates",
+      "pass": true,
+      "detail": "escalate recorded for fraud-03. Authoritative server state: escalated."
+    },
+    {
+      "id": "keyboard-R-rejects",
+      "pass": true,
+      "detail": "reject recorded for fraud-05. Authoritative server state: rejected."
+    },
+    {
+      "id": "undo-control-keyboard-reachable",
+      "pass": true,
+      "detail": "focused #undo, enabled"
+    },
+    {
+      "id": "undo-in-tab-order-when-enabled",
+      "pass": true,
+      "detail": "undo reachable by Tab while a decision exists"
+    },
+    {
+      "id": "keyboard-undo-activates",
+      "pass": true,
+      "detail": "Undo recorded for fraud-05. Authoritative server state: pending."
+    },
+    {
+      "id": "trajectory-append-only",
+      "pass": true,
+      "detail": "events 45 -> 46 (undo appends, never removes)"
+    },
+    {
+      "id": "trajectory-records-human-events",
+      "pass": true,
+      "detail": "human-checkpoint events present in inspector"
+    },
+    {
+      "id": "shortcuts-suppressed-in-text-entry",
+      "pass": true,
+      "detail": "A/R inside #reviewer did not fire a decision"
+    },
+    {
+      "id": "no-horizontal-overflow-desktop-intake",
+      "pass": true,
+      "detail": "1425 <= 1425"
+    },
+    {
+      "id": "no-horizontal-overflow-desktop-deltas",
+      "pass": true,
+      "detail": "1425 <= 1425"
+    },
+    {
+      "id": "no-horizontal-overflow-desktop-impact",
+      "pass": true,
+      "detail": "1425 <= 1425"
+    },
+    {
+      "id": "no-horizontal-overflow-desktop-evaluation",
+      "pass": true,
+      "detail": "1425 <= 1425"
+    },
+    {
+      "id": "no-horizontal-overflow-desktop-trajectory",
+      "pass": true,
+      "detail": "1425 <= 1425"
+    },
+    {
+      "id": "decision-controls-visible-desktop",
+      "pass": true,
+      "detail": "approve:ok reject:ok escalate:ok undo:ok"
+    },
+    {
+      "id": "no-horizontal-overflow-tablet-intake",
+      "pass": true,
+      "detail": "753 <= 753"
+    },
+    {
+      "id": "no-horizontal-overflow-tablet-deltas",
+      "pass": true,
+      "detail": "753 <= 753"
+    },
+    {
+      "id": "no-horizontal-overflow-tablet-impact",
+      "pass": true,
+      "detail": "753 <= 753"
+    },
+    {
+      "id": "no-horizontal-overflow-tablet-evaluation",
+      "pass": true,
+      "detail": "753 <= 753"
+    },
+    {
+      "id": "no-horizontal-overflow-tablet-trajectory",
+      "pass": true,
+      "detail": "753 <= 753"
+    },
+    {
+      "id": "decision-controls-visible-tablet",
+      "pass": true,
+      "detail": "approve:ok reject:ok escalate:ok undo:ok"
+    },
+    {
+      "id": "no-horizontal-overflow-mobile-intake",
+      "pass": true,
+      "detail": "375 <= 375"
+    },
+    {
+      "id": "no-horizontal-overflow-mobile-deltas",
+      "pass": true,
+      "detail": "375 <= 375"
+    },
+    {
+      "id": "no-horizontal-overflow-mobile-impact",
+      "pass": true,
+      "detail": "375 <= 375"
+    },
+    {
+      "id": "no-horizontal-overflow-mobile-evaluation",
+      "pass": true,
+      "detail": "375 <= 375"
+    },
+    {
+      "id": "no-horizontal-overflow-mobile-trajectory",
+      "pass": true,
+      "detail": "375 <= 375"
+    },
+    {
+      "id": "decision-controls-visible-mobile",
+      "pass": true,
+      "detail": "approve:ok reject:ok escalate:ok undo:ok"
+    }
+  ],
+  "passed": 38,
+  "failed": 0
+}
