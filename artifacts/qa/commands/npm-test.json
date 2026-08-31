@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
   "artifactKind": "rubricdelta-qa-command",
-  "revision": "cc50c6381b44cbdfaecda6cbcb9928a9c1c793c0",
+  "revision": "70fec754e55b5fa22c45eadcc6d5c11d4a20a0fd",
   "command": "npm test",
   "status": "PASS",
   "exitCode": 0,
-  "startedAt": "2026-08-31T03:28:11.508Z",
-  "endedAt": "2026-08-31T03:35:27.799Z",
+  "startedAt": "2026-08-31T10:26:52.859Z",
+  "endedAt": "2026-08-31T10:31:20.007Z",
   "summary": "Command completed successfully; captured stdout and stderr are bound by SHA-256 hashes and byte counts.",
-  "stdoutSha256": "dc558de7846813d2af142b5815c47e98c68095f14838d65e17b550586e0e681a",
+  "stdoutSha256": "45bb188f087adf8695c19def2466b007d027e6fbda59605165890707d40d6ca2",
   "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "stdoutBytes": 47550,
+  "stdoutBytes": 48549,
   "stderrBytes": 0
 }

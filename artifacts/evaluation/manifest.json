@@ -50,18 +50,18 @@
     }
   },
   "git": {
-    "revision": null,
-    "baseRevision": "353f5c6f725b6a5745393a3f260dc012954ce2b7",
+    "revision": "70fec754e55b5fa22c45eadcc6d5c11d4a20a0fd",
+    "baseRevision": "70fec754e55b5fa22c45eadcc6d5c11d4a20a0fd",
     "branch": "codex/task9-evidence-eol-refreeze",
     "trackedWorkingTreeDirty": true,
     "wholeWorkingTreeDirty": true,
-    "sourceTrackedWorkingTreeDirty": true,
+    "sourceTrackedWorkingTreeDirty": false,
     "sourceUntrackedWorkingTreeDirty": false,
-    "sourceWorkingTreeDirty": true,
+    "sourceWorkingTreeDirty": false,
     "managedArtifactDirty": true,
     "packagingCommit": null,
     "provenanceNote": "revision identifies the clean source commit; generated evidence is added by the subsequent packaging commit",
-    "sourceState": "source-working-tree-dirty"
+    "sourceState": "clean-source-managed-artifacts-dirty"
   },
   "benchmark": {
     "id": "rubricdelta-support-guideline-drift-v1",
@@ -280,8 +280,8 @@
   },
   "execution": {
     "status": "complete",
-    "startedAt": "2026-08-31T10:21:55.567Z",
-    "endedAt": "2026-08-31T10:21:55.896Z",
-    "runtimeMs": 327.299
+    "startedAt": "2026-08-31T10:31:20.515Z",
+    "endedAt": "2026-08-31T10:31:20.874Z",
+    "runtimeMs": 356.878
   }
 }
