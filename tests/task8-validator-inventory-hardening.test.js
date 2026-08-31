@@ -15,7 +15,7 @@ import test from "node:test";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const validator = join(root, "scripts", "validate-submission.js");
 const sourceContractPath = "tests/task8-source-contract.test.js";
-const sourceContractSha256 = "07ca1d4e2fa76b12a2bdd44ed7ebb23a7c52d11e2c4ce9c5add942b155e3a1b6";
+const sourceContractSha256 = "a0e45636de72ac3e0e1bdc66869cee6487b81e85cf6f81bca21f8e86b6d9f01b";
 
 function fixture(t) {
   const destination = join(mkdtempSync(join(tmpdir(), "rubricdelta-inventory-validator-")), "repo");
