@@ -169,8 +169,8 @@
       }
     },
     "protocol": {
-      "effectiveDate": "2026-08-29",
-      "id": "rubricdelta-evaluation-v2",
+      "effectiveDate": "2026-08-31",
+      "id": "rubricdelta-evaluation-v3",
       "primaryMetric": "microAffectedRecallAtReviewBudget",
       "reviewBudget": {
         "calculation": "max(1, floor(recordCount * fraction))",
@@ -178,8 +178,43 @@
         "minimumSlotsForNonemptyCase": 1,
         "rounding": "floor"
       },
-      "supersedes": "rubricdelta-evaluation-v1",
-      "version": 2
+      "secondaryDiagnostics": {
+        "escalationRate": {
+          "applicability": "verifier-support-v1 only; other contracts report applicable=false",
+          "denominator": "selected reviewed claims",
+          "numerator": "selected reviewed advanced claims with verifier.verdict=\"uncertain\"",
+          "zeroDenominator": 0
+        },
+        "reciprocalRankFirstAffected": {
+          "aggregate": "arithmetic mean across every benchmark case (MRR)",
+          "perCase": "1 / rank of the first affected record in the complete submitted ranking; 0 when absent"
+        },
+        "resources": {
+          "aggregate": "sum only when every included per-case value is known; otherwise null",
+          "fields": [
+            "providerCalls",
+            "providerAttempts",
+            "inputTokens",
+            "outputTokens",
+            "totalTokens",
+            "providerLatencyMs",
+            "runtimeMs",
+            "estimatedCostUsd"
+          ],
+          "unknown": null
+        },
+        "rounding": "rates and reciprocal-rank values are rounded to six decimal places",
+        "unsupportedClaimRate": {
+          "advancedSupport": "support verdict, complete evidence, precedence checked, aligned record evidence, and changed-rule citation under verifier-support-v1",
+          "baselineSupport": "nonempty matchedTerms under matched-terms-v1",
+          "comparison": "system-native structural diagnostic; not comparable across support contracts",
+          "denominator": "selected reviewed claims",
+          "missingOrMalformedEvidence": "unsupported",
+          "zeroDenominator": 0
+        }
+      },
+      "supersedes": "rubricdelta-evaluation-v2",
+      "version": 3
     },
     "repeats": 1,
     "source": {
@@ -246,7 +281,7 @@
         },
         {
           "path": "src/evaluation/baseline.js",
-          "sha256": "3db2744d48efb76ae57976e41fcda14c4300283d95bc8ace842fcbaea499fcd5"
+          "sha256": "9ae23b62bd543d6e32f9d1ab4bc77903c3044d564760f08ef52a2e99b691e881"
         },
         {
           "path": "src/evaluation/benchmark.js",
@@ -258,11 +293,11 @@
         },
         {
           "path": "src/evaluation/protocol.js",
-          "sha256": "516a4090f877808330c48988ebf238056e54ac4c723aa3c36f4793596c09da30"
+          "sha256": "492b303585b4c708771d4e09fb457b8363862d58664d6277cdb6ac2fa122917f"
         },
         {
           "path": "src/evaluation/provider-predictions.js",
-          "sha256": "68c6056507107d82cf510c6f97bdb54174281f702a3063bf396d7e85dfb5c86c"
+          "sha256": "df12f0d92abbdab9cd460679691b3fa0f4c99a803a28f23cca0a9f2e19341732"
         },
         {
           "path": "src/providers/contracts.js",
@@ -270,7 +305,7 @@
         }
       ],
       "kind": "deterministic-role-capture",
-      "sha256": "52bdd1845e10719356831545966b55ea9d25b3d77bc28bd3ce15063343402b16",
+      "sha256": "baf0d16f25961dfab3cd7fe010029f822fa8f34e24570dbcc885708af1c396f3",
       "sha256Canonicalization": "utf8-lf"
     }
   },

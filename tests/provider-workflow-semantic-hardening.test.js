@@ -253,13 +253,13 @@ test("partial failure telemetry preserves known attempts and latency while usage
   assert.equal(event.latencyMs, 19);
   assert.equal(event.usage, null);
   assert.equal(predictions.metadata.resources.usage, null);
-  assert.equal(predictions.metadata.resources.latencyMs, 19);
+  assert.equal(predictions.metadata.resources.providerLatencyMs, 19);
 });
 
 test("unknown failure latency is not reported as measured zero", async () => {
   const provider = roleProvider({ throwValue: new ProviderError("Static preflight failure", "OPENAI_INVALID_REQUEST") });
   const predictions = await createProviderAdvancedPredictions(publicBenchmarkOne(), options(provider));
-  assert.equal(predictions.metadata.resources.latencyMs, null);
+  assert.equal(predictions.metadata.resources.providerLatencyMs, null);
   assert.equal(predictions.metadata.resources.usage, null);
 });
 

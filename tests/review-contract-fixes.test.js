@@ -143,6 +143,79 @@ test("declared resource metadata must agree with recomputed per-case resources",
   }), /metadata\.resources must agree/);
 });
 
+test("provider resource contracts derive only from durable result events and keep absent failure telemetry unknown", () => {
+  const benchmark = {
+    benchmarkId: "provider-resource-contract",
+    reviewBudgetFraction: 0.5,
+    cases: [testCase("case-a"), testCase("case-b")],
+  };
+  const complete = {
+    caseId: "case-a",
+    status: "complete",
+    rankedRecordIds: ["case-a-r1", "case-a-r2", "case-a-r3", "case-a-r4"],
+    trajectory: [{
+      type: "provider-result",
+      retry: { transportAttempts: 2 },
+      usage: { inputTokens: 3, outputTokens: 5, totalTokens: 8 },
+      latencyMs: 11,
+      payload: { estimatedCostUsd: 0.03 },
+    }],
+  };
+  const failed = {
+    caseId: "case-b",
+    status: "failed",
+    rankedRecordIds: [],
+    trajectory: [],
+    failure: { code: "TRANSPORT_FAILURE" },
+  };
+  const result = evaluatePredictions(benchmark, {
+    metadata: { resourceContract: "provider-result-trajectory-v1" },
+    cases: [complete, failed],
+  });
+  assert.deepEqual(result.perCase[0].resourceUse, {
+    providerCalls: 1,
+    providerAttempts: 2,
+    inputTokens: 3,
+    outputTokens: 5,
+    totalTokens: 8,
+    providerLatencyMs: 11,
+    runtimeMs: null,
+    estimatedCostUsd: 0.03,
+  });
+  assert.deepEqual(result.perCase[1].resourceUse, {
+    providerCalls: null,
+    providerAttempts: null,
+    inputTokens: null,
+    outputTokens: null,
+    totalTokens: null,
+    providerLatencyMs: null,
+    runtimeMs: null,
+    estimatedCostUsd: null,
+  });
+  assert.equal(result.resourceUse.providerCalls, null);
+  assert.equal(result.resourceUse.providerLatencyMs, null);
+
+  assert.throws(() => evaluatePredictions({ ...benchmark, cases: [testCase("case-a")] }, {
+    metadata: { resourceContract: "provider-result-trajectory-v1" },
+    cases: [{ ...complete, trajectory: [] }],
+  }), /durable provider-result/i);
+
+  assert.throws(() => evaluatePredictions({ ...benchmark, cases: [testCase("case-a")] }, {
+    metadata: { resourceContract: "provider-result-trajectory-v1" },
+    cases: [{
+      ...complete,
+      resources: {
+        providerCalls: 99,
+        providerAttempts: 99,
+        usage: { inputTokens: 99, outputTokens: 99, totalTokens: 198 },
+        providerLatencyMs: 99,
+        runtimeMs: null,
+        estimatedCostUsd: 99,
+      },
+    }],
+  }), /resources must agree with durable/i);
+});
+
 test("deterministic trace v2 explicitly records identities, refs, retry feedback, usage, redaction, and human linkage", () => {
   const trace = createTraceRecorder({ runId: "run-1", scenarioId: "case-1", now: () => "now" });
   const event = trace.record({

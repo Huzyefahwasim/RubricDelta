@@ -39,6 +39,8 @@ Each case records `providerCalls`, `providerAttempts`, `inputTokens`, `outputTok
 
 Aggregates recompute values from durable per-case resources. They do not trust mutable metadata. An aggregate is `null` when any included per-case value is unknown, and writers validate metadata against that recomputation.
 
+Provider predictions declare `resourceContract: "provider-result-trajectory-v1"` and `resourceProvenance: "durable-provider-result-trajectories"`. For that contract, per-case telemetry is derived only from `provider-result` trajectory events; any caller-supplied resource object must match exactly or scoring fails closed. A complete provider case without a durable result event fails closed. A failed provider case without one reports calls, attempts, tokens, provider latency, and cost as `null`; no wall-clock runtime is inferred.
+
 Paired reports retain raw predictions, per-case metrics and diagnostics, resources, incomplete cases, and failed cases. They report primary metrics and secondary diagnostics together without presenting structural-support rates as cross-system comparisons.
 
 The deterministic evaluator uses seed `0`. OpenAI uses `null` because no seed is sent. Replay uses `null` because it replays a fixed capture and applies no seed. The fair-comparison manifest records the same seed value as the provider manifest.

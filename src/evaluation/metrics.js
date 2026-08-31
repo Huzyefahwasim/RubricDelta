@@ -1,6 +1,7 @@
 import { reviewBudgetForCase } from "./benchmark.js";
 
 const SUPPORT_CONTRACTS = new Set(["matched-terms-v1", "verifier-support-v1"]);
+const PROVIDER_RESOURCE_CONTRACT = "provider-result-trajectory-v1";
 
 function divide(numerator, denominator) {
   return denominator === 0 ? 0 : numerator / denominator;
@@ -80,12 +81,8 @@ function claimDiagnostic(contract, evidence) {
   return { supported: false, escalated: false, incomplete: true };
 }
 
-function caseResources(prediction, caseId) {
-  const traceResources = Array.isArray(prediction?.trajectory) ? resourcesFromTrajectory(prediction.trajectory) : null;
-  const resources = prediction?.resources ?? traceResources;
+function resourceValues(resources, caseId) {
   const usage = resources?.usage;
-  const runtime = resources && Object.hasOwn(resources, "runtimeMs") ? resources.runtimeMs : prediction?.runtimeMs;
-  const cost = resources && Object.hasOwn(resources, "estimatedCostUsd") ? resources.estimatedCostUsd : prediction?.estimatedCostUsd;
   return {
     providerCalls: optionalNonNegativeInteger(resources?.providerCalls, `${caseId}.resources.providerCalls`),
     providerAttempts: optionalNonNegativeInteger(resources?.providerAttempts, `${caseId}.resources.providerAttempts`),
@@ -93,13 +90,50 @@ function caseResources(prediction, caseId) {
     outputTokens: optionalNonNegativeInteger(usage?.outputTokens, `${caseId}.resources.usage.outputTokens`),
     totalTokens: optionalNonNegativeInteger(usage?.totalTokens, `${caseId}.resources.usage.totalTokens`),
     providerLatencyMs: optionalNonNegativeNumber(resources?.providerLatencyMs, `${caseId}.resources.providerLatencyMs`),
-    runtimeMs: optionalNonNegativeNumber(runtime, `${caseId}.runtimeMs`),
-    estimatedCostUsd: optionalNonNegativeNumber(cost, `${caseId}.estimatedCostUsd`),
+    runtimeMs: optionalNonNegativeNumber(resources?.runtimeMs, `${caseId}.runtimeMs`),
+    estimatedCostUsd: optionalNonNegativeNumber(resources?.estimatedCostUsd, `${caseId}.estimatedCostUsd`),
   };
+}
+
+function sameResources(left, right) {
+  return Object.keys(left).every((key) => Object.is(left[key], right[key]));
+}
+
+function caseResources(prediction, caseId, resourceContract) {
+  if (resourceContract !== PROVIDER_RESOURCE_CONTRACT) {
+    const resources = prediction?.resources;
+    const legacy = resourceValues(resources, caseId);
+    return {
+      ...legacy,
+      runtimeMs: legacy.runtimeMs ?? optionalNonNegativeNumber(prediction?.runtimeMs, `${caseId}.runtimeMs`),
+      estimatedCostUsd: legacy.estimatedCostUsd ?? optionalNonNegativeNumber(prediction?.estimatedCostUsd, `${caseId}.estimatedCostUsd`),
+    };
+  }
+  const hasTrajectory = Array.isArray(prediction?.trajectory);
+  if (!hasTrajectory) {
+    throw new Error(`Prediction ${caseId} must include a durable provider-result trajectory`);
+  }
+  const durable = resourceValues({ ...resourcesFromTrajectory(prediction.trajectory), runtimeMs: null }, caseId);
+  if (prediction?.status === "complete" && durable.providerCalls === null) {
+    throw new Error(`Prediction ${caseId} must include a durable provider-result trajectory`);
+  }
+  if (prediction?.resources !== undefined && !sameResources(resourceValues(prediction.resources, caseId), durable)) {
+    throw new Error(`Prediction ${caseId}.resources must agree with durable provider-result telemetry`);
+  }
+  return durable;
 }
 
 function resourcesFromTrajectory(trajectory) {
   const resultEvents = trajectory.filter((event) => event?.type === "provider-result");
+  if (resultEvents.length === 0) {
+    return {
+      providerCalls: null,
+      providerAttempts: null,
+      usage: null,
+      providerLatencyMs: null,
+      estimatedCostUsd: null,
+    };
+  }
   const usageKnown = resultEvents.every((event) => event.usage
     && Number.isInteger(event.usage.inputTokens) && event.usage.inputTokens >= 0
     && Number.isInteger(event.usage.outputTokens) && event.usage.outputTokens >= 0
@@ -264,7 +298,7 @@ export function evaluateCase(testCase, prediction, reviewBudgetFraction, options
         rationale: testCase.groundTruth.rationales[recordId],
       };
     }),
-    resourceUse: caseResources(prediction, testCase.id),
+    resourceUse: caseResources(prediction, testCase.id, options.resourceContract),
   };
 }
 
@@ -277,11 +311,12 @@ export function evaluatePredictions(benchmark, predictions) {
   const predictionsByCase = new Map(predictions.cases.map((prediction) => [prediction.caseId, prediction]));
   const missingCaseIds = benchmark.cases.filter((testCase) => !predictionsByCase.has(testCase.id)).map((testCase) => testCase.id);
   const claimSupportContract = predictions.metadata?.claimSupportContract;
+  const resourceContract = predictions.metadata?.resourceContract;
   const perCase = benchmark.cases.map((testCase) => evaluateCase(
     testCase,
     predictionsByCase.get(testCase.id),
     benchmark.reviewBudgetFraction,
-    { claimSupportContract },
+    { claimSupportContract, resourceContract },
   ));
 
   const totals = perCase.reduce((accumulator, result) => {

@@ -153,7 +153,7 @@ test("explicit replay CLI consumes the exact fixture and publishes truthful prov
   assert.deepEqual(manifest.provider, {
     name: "replay",
     model: "deterministic-role-capture-v1",
-    seed: 0,
+    seed: null,
     status: "operational",
   });
   assert.equal(manifest.replay.operational, true);
@@ -166,7 +166,7 @@ test("explicit replay CLI consumes the exact fixture and publishes truthful prov
   assert.equal(manifest.resources.inputTokens, 0);
   assert.equal(manifest.resources.outputTokens, 0);
   assert.equal(manifest.resources.totalTokens, 0);
-  assert.equal(manifest.resources.latencyMs, 0);
+  assert.equal(manifest.resources.providerLatencyMs, 0);
   assert.equal(manifest.resources.estimatedCostUsd, 0);
   assert.deepEqual(manifest.resources.providerAttempts, { baseline: 10, advanced: 40, total: 50 });
   assert.equal(manifest.resources.providerCalls.total, 50);

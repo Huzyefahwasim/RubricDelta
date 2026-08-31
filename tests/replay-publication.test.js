@@ -150,7 +150,7 @@ test("eval:replay publishes the canonical operational bundle with narrow Git pro
   assert.deepEqual(manifest.provider, {
     name: "replay",
     model: "deterministic-role-capture-v1",
-    seed: 0,
+    seed: null,
     status: "operational",
   });
   assert.deepEqual(manifest.resources.providerCalls, { baseline: 10, advanced: 40, total: 50 });
@@ -159,7 +159,7 @@ test("eval:replay publishes the canonical operational bundle with narrow Git pro
   assert.equal(manifest.resources.inputTokens, 0);
   assert.equal(manifest.resources.outputTokens, 0);
   assert.equal(manifest.resources.totalTokens, 0);
-  assert.equal(manifest.resources.latencyMs, 0);
+  assert.equal(manifest.resources.providerLatencyMs, 0);
   assert.equal(manifest.resources.estimatedCostUsd, 0);
   assert.equal(manifest.replay.operational, true);
   assert.equal(manifest.replay.substituted, false);

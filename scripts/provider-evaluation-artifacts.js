@@ -234,10 +234,12 @@ function normalizedIdentically(repetitions, systems) {
 function emptyResource() {
   return {
     calls: 0,
+    callsKnown: true,
     attempts: 0,
+    attemptsKnown: true,
     usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
     usageKnown: true,
-    latencyMs: 0,
+    providerLatencyMs: 0,
     latencyKnown: true,
     estimatedCostUsd: 0,
     costKnown: true,
@@ -249,6 +251,14 @@ function predictionResources(predictions) {
   for (const item of predictions.cases) {
     if (!Array.isArray(item.trajectory)) throw new Error("Provider trajectory is malformed");
     const results = item.trajectory.filter((event) => event?.type === "provider-result");
+    if (results.length === 0 && item.status === "failed") {
+      value.callsKnown = false;
+      value.attemptsKnown = false;
+      value.usageKnown = false;
+      value.latencyKnown = false;
+      value.costKnown = false;
+      continue;
+    }
     value.calls += results.length;
     for (const event of results) {
       const attempts = event?.retry?.transportAttempts;
@@ -269,7 +279,7 @@ function predictionResources(predictions) {
       } else throw new Error("Provider result usage telemetry is malformed");
       if (event.latencyMs === null) value.latencyKnown = false;
       else if (Number.isFinite(event.latencyMs) && event.latencyMs >= 0) {
-        value.latencyMs += event.latencyMs;
+        value.providerLatencyMs += event.latencyMs;
       } else throw new Error("Provider result latency telemetry is malformed");
       const cost = event?.payload?.estimatedCostUsd;
       if (cost === null) value.costKnown = false;
@@ -287,12 +297,14 @@ function resourceSummary(repetitions, systems) {
       const current = predictionResources(repetition[system]);
       const target = bySystem[system];
       target.calls += current.calls;
+      target.callsKnown = target.callsKnown && current.callsKnown;
       target.attempts += current.attempts;
+      target.attemptsKnown = target.attemptsKnown && current.attemptsKnown;
       target.usage.inputTokens += current.usage.inputTokens;
       target.usage.outputTokens += current.usage.outputTokens;
       target.usage.totalTokens += current.usage.totalTokens;
       target.usageKnown = target.usageKnown && current.usageKnown;
-      target.latencyMs += current.latencyMs;
+      target.providerLatencyMs += current.providerLatencyMs;
       target.latencyKnown = target.latencyKnown && current.latencyKnown;
       target.estimatedCostUsd += current.estimatedCostUsd;
       target.costKnown = target.costKnown && current.costKnown;
@@ -301,23 +313,25 @@ function resourceSummary(repetitions, systems) {
   const baseline = bySystem.baseline;
   const advanced = bySystem.advanced;
   const usageKnown = baseline.usageKnown && advanced.usageKnown;
+  const callsKnown = baseline.callsKnown && advanced.callsKnown;
+  const attemptsKnown = baseline.attemptsKnown && advanced.attemptsKnown;
   const latencyKnown = baseline.latencyKnown && advanced.latencyKnown;
   const costKnown = baseline.costKnown && advanced.costKnown;
   return {
     providerCalls: {
-      baseline: baseline.calls,
-      advanced: advanced.calls,
-      total: baseline.calls + advanced.calls,
+      baseline: baseline.callsKnown ? baseline.calls : null,
+      advanced: advanced.callsKnown ? advanced.calls : null,
+      total: callsKnown ? baseline.calls + advanced.calls : null,
     },
     providerAttempts: {
-      baseline: baseline.attempts,
-      advanced: advanced.attempts,
-      total: baseline.attempts + advanced.attempts,
+      baseline: baseline.attemptsKnown ? baseline.attempts : null,
+      advanced: advanced.attemptsKnown ? advanced.attempts : null,
+      total: attemptsKnown ? baseline.attempts + advanced.attempts : null,
     },
     inputTokens: usageKnown ? baseline.usage.inputTokens + advanced.usage.inputTokens : null,
     outputTokens: usageKnown ? baseline.usage.outputTokens + advanced.usage.outputTokens : null,
     totalTokens: usageKnown ? baseline.usage.totalTokens + advanced.usage.totalTokens : null,
-    latencyMs: latencyKnown ? baseline.latencyMs + advanced.latencyMs : null,
+    providerLatencyMs: latencyKnown ? baseline.providerLatencyMs + advanced.providerLatencyMs : null,
     estimatedCostUsd: costKnown
       ? round(baseline.estimatedCostUsd + advanced.estimatedCostUsd)
       : null,
@@ -479,9 +493,7 @@ function createManifest({
   const suppliedReplay = providerName === "replay" ? safeReplayMetadata(replay) : {};
   const base = manifestBase(benchmark, benchmarkSource);
   base.runtimeEnvironment.networkRequired = providerName === "openai";
-  const replayBound = providerName === "replay"
-    && ["binding", "source", "fixture"].every((field) => Object.hasOwn(suppliedReplay, field));
-  const seed = ["deterministic", "capture"].includes(providerName) || replayBound ? 0 : null;
+  const seed = ["deterministic", "capture"].includes(providerName) ? 0 : null;
   return {
     ...base,
     git,

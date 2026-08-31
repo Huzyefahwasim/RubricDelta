@@ -14,6 +14,8 @@ import {
 } from "../providers/contracts.js";
 
 const ZERO_USAGE = Object.freeze({ inputTokens: 0, outputTokens: 0, totalTokens: 0 });
+const PROVIDER_RESOURCE_CONTRACT = "provider-result-trajectory-v1";
+const PROVIDER_RESOURCE_PROVENANCE = "durable-provider-result-trajectories";
 
 function nonblank(value) {
   return typeof value === "string" && value.trim().length > 0;
@@ -105,6 +107,8 @@ function failedCase(caseId, error) {
     trajectory,
     failure: { code: safeCode(errorData(error, "code", null)) },
     substituted: false,
+    resourceContract: PROVIDER_RESOURCE_CONTRACT,
+    resourceProvenance: PROVIDER_RESOURCE_PROVENANCE,
     runtimeMs: null,
     estimatedCostUsd: resources.estimatedCostUsd,
     resources: {
@@ -127,6 +131,8 @@ function completeCase(caseId, rankingEvidence, trace, estimatedCostUsd = null) {
     rankingEvidence,
     trajectory: trace,
     substituted: false,
+    resourceContract: PROVIDER_RESOURCE_CONTRACT,
+    resourceProvenance: PROVIDER_RESOURCE_PROVENANCE,
     runtimeMs: null,
     estimatedCostUsd,
     resources: {
@@ -141,6 +147,16 @@ function completeCase(caseId, rankingEvidence, trace, estimatedCostUsd = null) {
 }
 
 function resourcesFromTrajectory(trajectory) {
+  const results = trajectory.filter((event) => event.type === "provider-result");
+  if (results.length === 0) {
+    return {
+      providerCalls: null,
+      providerAttempts: null,
+      usage: null,
+      providerLatencyMs: null,
+      estimatedCostUsd: null,
+    };
+  }
   const resources = {
     providerCalls: 0,
     providerAttempts: 0,
@@ -151,7 +167,6 @@ function resourcesFromTrajectory(trajectory) {
   let usageKnown = true;
   let latencyKnown = true;
   let costKnown = true;
-  const results = trajectory.filter((event) => event.type === "provider-result");
   resources.providerCalls += results.length;
   for (const event of results) {
       resources.providerAttempts += event.retry.transportAttempts;
@@ -204,6 +219,8 @@ function predictionMetadata({ system, claimSupportContract, resourceNotes, bench
     runtimeMs: null,
     estimatedCostUsd: resources.estimatedCostUsd,
     resourceNotes,
+    resourceContract: PROVIDER_RESOURCE_CONTRACT,
+    resourceProvenance: PROVIDER_RESOURCE_PROVENANCE,
     fairnessManifest: fairnessManifest(benchmark, provider, model, repetition),
     resources,
   };

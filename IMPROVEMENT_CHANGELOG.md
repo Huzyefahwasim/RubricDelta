@@ -159,6 +159,7 @@ Reviewer agreement cannot detect a shared misreading of the same guideline. Team
 - Trigger: A stale-reference audit found release-facing documentation and validation gates still treated v2 as current after the v3 diagnostic contract was introduced.
 - Change: Release and submission gates now consume the canonical v3 protocol object. Current documentation identifies v3 as current and v2 as historical.
 - Frozen-contract handling: This source-only change does not change benchmark cases, ground truth, ranking behavior, primary metric, review budget, prompts, replay inventory, or deterministic seed. Baseline remains `16/20 = 0.80`; advanced remains `18/20 = 0.90`.
-- Required follow-up: A final clean-source bootstrap must regenerate deterministic and replay artifacts plus replay protocol bindings. This entry does not claim that regenerated artifacts already exist.
+- Replay fixture: Refroze `data/benchmark/replay/rubricdelta-deterministic-source.v1.json` through `node scripts/capture-replay.js` under v3. The fixture still has 50 entries in the same sequence, with unchanged request identities, request hashes, result payloads, model, mode, prompts, and benchmark binding. Only protocol and source-file/hash bindings changed (`baseline.js`, `protocol.js`, and `provider-predictions.js`).
+- Required follow-up: A final clean-source bootstrap must regenerate deterministic and operational replay artifacts. This entry does not claim that managed artifacts already exist.
 - Focused verification: `node --test tests/evaluation-protocol.test.js tests/task8-validator.test.js tests/release-evidence.test.js` and `git diff --check`.
 - Decision: Keep the versioned source contract and regenerate evidence only through the documented release flow.

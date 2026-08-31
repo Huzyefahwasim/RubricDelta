@@ -56,6 +56,8 @@ function predictions(benchmark, {
       runtimeMs: null,
       estimatedCostUsd: 0,
       resourceNotes: "test",
+      resourceContract: "provider-result-trajectory-v1",
+      resourceProvenance: "durable-provider-result-trajectories",
       fairnessManifest: {
         benchmarkId: publicBenchmark.benchmarkId,
         caseIds: publicBenchmark.cases.map((item) => item.id),
@@ -71,7 +73,7 @@ function predictions(benchmark, {
         providerCalls: publicBenchmark.cases.length,
         providerAttempts: publicBenchmark.cases.length,
         usage: ZERO_USAGE,
-        latencyMs: 0,
+        providerLatencyMs: 0,
         estimatedCostUsd: 0,
       },
     },
@@ -203,33 +205,18 @@ test("provider artifacts validate the exact paired fairness manifest before pers
   }
 });
 
-test("provider resources are recomputed from durable result traces, not mutable metadata", async (t) => {
-  const result = await runArtifact(t, {
+test("provider artifacts reject forged caller resources instead of persisting them", async (t) => {
+  await assert.rejects(runArtifact(t, {
     mutate(value) {
-      value.metadata.resources = {
+      value.cases[0].resources = {
         providerCalls: 999,
         providerAttempts: 999,
         usage: { inputTokens: 999, outputTokens: 999, totalTokens: 1998 },
-        latencyMs: 999,
+        providerLatencyMs: 999,
         estimatedCostUsd: 999,
       };
     },
-  });
-  assert.deepEqual(result.manifest.resources.providerCalls, {
-    baseline: 10,
-    advanced: 0,
-    total: 10,
-  });
-  assert.deepEqual(result.manifest.resources.providerAttempts, {
-    baseline: 10,
-    advanced: 0,
-    total: 10,
-  });
-  assert.equal(result.manifest.resources.inputTokens, 0);
-  assert.equal(result.manifest.resources.outputTokens, 0);
-  assert.equal(result.manifest.resources.totalTokens, 0);
-  assert.equal(result.manifest.resources.latencyMs, 0);
-  assert.equal(result.manifest.resources.estimatedCostUsd, 0);
+  }), /scoring failed|metadata\.resources must agree|durable/i);
 });
 
 test("caller replay metadata cannot override trusted provider provenance", async (t) => {
