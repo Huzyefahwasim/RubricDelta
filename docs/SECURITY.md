@@ -6,6 +6,22 @@ RubricDelta helps a qualified reviewer find labels that a guideline revision may
 
 `npm start` binds the demo server to `127.0.0.1` by default. The browser workflow runs the deterministic analyzer. Replay and OpenAI belong to the explicit evaluation CLI path; the browser server does not select them.
 
+## Loopback trust boundary
+
+The server answers only requests whose `Host` header names its own bound loopback authority: `127.0.0.1:<port>`, `localhost:<port>`, or `[::1]:<port>`. It compares the header against the port reported by the listening socket, so an ephemeral port bound with `port: 0` is enforced exactly as a fixed port is.
+
+The guard in `src/server/host-guard.js` runs before path resolution, routing, static file service, run creation, decision and undo mutation, and CSV or trajectory export. A refused request reaches no handler, creates no run, appends no ledger event, and writes no artifact.
+
+- A `Host` naming any other address or name, including a rebinding hostname such as `rebind.attacker.invalid`, receives `403 FORBIDDEN_HOST`.
+- A `Host` whose port differs from the bound port receives `403 FORBIDDEN_HOST`.
+- An absent, malformed, or repeated `Host` header receives `400 INVALID_HOST`.
+- When a request carries `Origin`, that value must be an `http:` origin on the same bound loopback authority. Any other value, including `null` and a cross-site origin, receives `403 FORBIDDEN_ORIGIN`.
+- `X-Forwarded-Host`, `X-Forwarded-For`, `X-Forwarded-Proto`, and `Forwarded` are never read. A spoofed forwarding header cannot grant access to a refused `Host` or withdraw access from an accepted one.
+
+This closes a DNS-rebinding path. Before the guard, a page served from an attacker-controlled domain whose name resolved to `127.0.0.1` shared an origin with the demo server. It could create runs, append approve, reject, escalate, and undo events to the ledger, and read `export.csv` and `trajectory.jsonl`. `tests/server-host-guard.test.js` fails four of its seven tests against the pre-guard transport and passes all seven against the current one.
+
+Because the submitted server is a single-user loopback demo, it accepts no other host. A reviewer who reaches it under a different name, such as a machine hostname or a custom `hosts` alias, must use a loopback name instead.
+
 ## Data handling and persistence
 
 - The included benchmark contains 100 synthetic support-ticket records across ten cases.
@@ -57,12 +73,13 @@ The ledger proves that a decision event passed through the server gate. It does 
 - prompt content inside records that attempts to change agent instructions;
 - provider-output schema and citation validation;
 - credential redaction in responses, errors, traces, replay fixtures, and persisted run artifacts;
-- safe response headers and method handling.
+- safe response headers and method handling;
+- loopback `Host` and `Origin` allowlisting, covering DNS rebinding, port mismatch, absent, malformed, and repeated headers, cross-site mutation and export, and untrusted forwarding headers.
 
 ## Known limits before release
 
 - A security scan or review is verified only for the exact source revision bound by `artifacts/qa/release.json`. If that revision-bound release record is absent, the security-review status is unverified.
-- No authentication or reviewer-authorization system exists.
+- No authentication or reviewer-authorization system exists. The loopback host and origin guard blocks cross-origin and rebound browser access; it is not authentication, and any process on the same host can still send a request carrying a correct loopback `Host`.
 - No encryption-at-rest or automated retention control exists for run artifacts.
 - The trusted single-user loopback server has no aggregate run or revision quota and performs no automatic in-process eviction. A same-host client can consume local memory and artifact-disk space by creating runs or decisions. Keep the server bound to `127.0.0.1`, restrict same-host access, monitor `artifacts/runs/`, stop it when unused, and remove run artifacts under the applicable retention policy. This is an accepted same-host availability limitation, not evidence of a remote route.
 - No endpoint writes approved corrections to an external platform.

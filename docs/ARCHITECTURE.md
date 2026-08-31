@@ -10,6 +10,7 @@ Browser workbench
   | loopback HTTP/JSON
   v
 Node demo server
+  +-- loopback host and origin guard
   +-- bounded JSON validation
   +-- deterministic run controller
   +-- append-only decision ledger
@@ -44,7 +45,7 @@ src/agents/             deterministic and async provider orchestration
 src/domain/             rules, deltas, candidates, decisions, and CSV export
 src/providers/          replay and OpenAI provider contracts and adapters
 src/evaluation/         metrics, benchmark execution, and provider predictions
-src/server/             loopback HTTP transport and static server
+src/server/             loopback HTTP transport, host and origin guard, and static server
 data/benchmark/         synthetic benchmark and exact replay fixture
 prompts/                versioned provider role instructions
 scripts/                evaluation, evidence, replay, and validation commands
@@ -121,6 +122,7 @@ Deterministic traces use `action-result` for action outputs. Provider traces use
 
 ## Trust boundaries
 
+- The demo server answers only its own bound loopback authority. It refuses a foreign or rebound `Host`, a mismatched port, and a cross-site `Origin` before routing, and never reads forwarding headers.
 - The demo server accepts bounded JSON scenarios, not file uploads or CSV input.
 - The browser never receives provider credentials.
 - The browser server uses the deterministic orchestrator; only the evaluation CLI can select replay or OpenAI.
@@ -133,6 +135,7 @@ Deterministic traces use `action-result` for action outputs. Provider traces use
 
 ## Failure behavior
 
+- A request whose `Host` or `Origin` falls outside the bound loopback authority is refused with `400` or `403` before path resolution, routing, mutation, and export.
 - Malformed or oversized JSON produces bounded field-level errors without stack or credential disclosure.
 - The deterministic workflow retries eligible failed analysis stages within its fixed budget and preserves retry events.
 - The OpenAI adapter bounds request and response bytes and retries eligible transport failures within its transport budget.

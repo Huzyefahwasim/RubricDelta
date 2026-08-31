@@ -132,6 +132,17 @@ Independent whole-repository review found that the secondary diagnostics already
 
 The release gate now treats v3 as current. A final clean-source bootstrap must regenerate deterministic and replay evidence plus replay protocol bindings before the release validator can accept them. This source-only correction changes no ranking, primary metric, review budget, benchmark case, ground-truth record, prompt, or frozen `0.80` / `0.90` score.
 
+#### Loopback trust-boundary correction
+
+A whole-repository security review of the final source found that the demo server never read the `Host` or `Origin` header. Every route, including run creation, decision and undo mutation, and `export.csv` and `trajectory.jsonl` export, answered any request that reached the listening socket. A page on an attacker-controlled domain whose name resolved to `127.0.0.1` therefore shared an origin with the server and could drive the review API and read its evidence.
+
+- [x] Refuse any request whose `Host` is not the bound loopback authority, before path resolution, routing, static service, mutation, and export.
+- [x] Refuse a present `Origin` that is not an `http:` origin on that same bound authority.
+- [x] Refuse absent, malformed, and repeated `Host` headers, and never read forwarding headers.
+- [x] Prove the boundary with regression tests that fail against the pre-guard transport.
+
+This is a transport-layer correction. It changes no benchmark case, ground-truth record, prompt, seed, review budget, metric formula, ranking, or the frozen `0.80` baseline and `0.90` advanced scores, and it touches no file bound by the replay capture-source inventory. Exit evidence: `tests/server-host-guard.test.js` passes 7/7 on the current transport and fails 4/7 when `src/server/app.js` is reverted to its pre-guard revision.
+
 ## Decision log
 
 | Date | Decision | Reason |
@@ -144,6 +155,7 @@ The release gate now treats v3 as current. A final clean-source bootstrap must r
 | 2026-08-30 | Bootstrap frozen evaluation evidence before recording the release suite | A fresh source revision cannot satisfy the manifest-to-HEAD preflight until the unrecorded deterministic evaluation refreshes managed evidence; the recorded suite remains exactly seven commands |
 | 2026-08-31 | Publish operational replay beside, not inside, the deterministic reference | `reference-comparison.json` remains the non-operational deterministic score reference. `eval:replay` owns a separate canonical `operational-replay/` bundle. Score values remain canonical in comparison/report artifacts rather than being duplicated into the provenance manifest. |
 | 2026-08-31 | Compare normalized operational manifests, not a selected field subset | The isolated replay is the authority for immutable manifest content. Validation permits different Git state, execution timing, and host identity only after those dynamic fields satisfy their own strict schemas. |
+| 2026-08-31 | Enforce a loopback `Host` and `Origin` allowlist before every route | The server read neither header, so a rebound hostname resolving to `127.0.0.1` reached run creation, ledger mutation, and evidence export. A single pre-routing guard closes the boundary without changing any evaluation input |
 | 2026-08-31 | Version the evaluation contract to v3 for defined secondary diagnostics | Independent review found declared diagnostics without exact formulas or complete output. A versioned successor preserves every frozen v2 ranking input, algorithm, seed, budget, primary score, and benchmark value while adding scoring-only diagnostics and honest resource/failure fields. |
 
 ## Risks
@@ -155,4 +167,5 @@ The release gate now treats v3 as current. A final clean-source bootstrap must r
 | Live model output varies | Weak reproduction | Pin model and prompts, store raw results, separate repetitions, and include exact replay |
 | Agent roles add ceremony | Decorative orchestration | Give four stages distinct inputs, outputs, validation, and failure handling |
 | The interface lacks final browser evidence | Unproven end-to-end quality | Record keyboard, accessibility, responsive, and export QA on the final revision |
+| A browser page on a rebound hostname reaches the loopback API | Silent run creation, ledger writes, and evidence export | Refuse any `Host` or `Origin` outside the bound loopback authority before routing, and hold the boundary with regression tests |
 | Rank errors consume the review budget | Missed affected records | Report precision, expose verifier uncertainty, and keep the accessibility failure visible |

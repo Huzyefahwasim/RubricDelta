@@ -1,4 +1,5 @@
 import { createServer } from "node:http";
+import { evaluateRequestAuthority } from "./host-guard.js";
 import { responseHeaders, SECURITY_HEADERS } from "./headers.js";
 import { createRouter, requestPathIsSafe, RequestError, serveStaticFile } from "./router.js";
 
@@ -9,9 +10,19 @@ function sendJson(response, status, value, extraHeaders = {}) {
 
 export function createRubricDeltaApplication({ host, port, publicRoot, artifactRoot, artifactStore, dataService }) {
   let address = null;
+  let boundPort = null;
   const route = createRouter({ artifactRoot, artifactStore, dataService });
   const httpServer = createServer(async (request, response) => {
     try {
+      const authority = evaluateRequestAuthority({
+        headers: request.headers,
+        rawHeaders: request.rawHeaders,
+        boundPort,
+      });
+      if (!authority.allowed) {
+        sendJson(response, authority.status, authority.body, { Connection: "close" });
+        return;
+      }
       if (!requestPathIsSafe(request.url)) {
         sendJson(response, 404, { error: { code: "NOT_FOUND", message: "Resource not found" } });
         return;
@@ -57,12 +68,14 @@ export function createRubricDeltaApplication({ host, port, publicRoot, artifactR
         });
       });
       const bound = httpServer.address();
+      boundPort = bound.port;
       address = `http://${bound.address.includes(":") ? `[${bound.address}]` : bound.address}:${bound.port}`;
     },
     async stop() {
       if (!address) return;
       await new Promise((resolve, reject) => httpServer.close((error) => error ? reject(error) : resolve()));
       address = null;
+      boundPort = null;
     },
     address() {
       return address;
