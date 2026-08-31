@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-clean-checkout-reproduction",
+  "revision": "c82062cbc221bbe69ed1017c3f2d7359f080e131",
+  "performedAt": "2026-08-31T14:37:59Z",
+  "scope": "Engineering clean-checkout reproduction from the published remote. This is not a participant attestation and records no release decision.",
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "architecture": "x64",
+    "runtimeDependencies": 0,
+    "networkRequired": false
+  },
+  "clone": {
+    "remote": "https://github.com/Huzyefahwasim/RubricDelta.git",
+    "command": "git clone https://github.com/Huzyefahwasim/RubricDelta.git RubricDelta-release",
+    "resolvedHead": "c82062cbc221bbe69ed1017c3f2d7359f080e131",
+    "headMatchesPublishedRevision": true,
+    "dirtyPathsAfterClone": 0,
+    "nodeModulesRequired": false
+  },
+  "commands": [
+    {
+      "command": "npm run eval",
+      "startedAt": "2026-08-31T14:38:14Z",
+      "exitCode": 0,
+      "result": "baseline 16/20 = 0.80, advanced 18/20 = 0.90, replayStatus not-selected"
+    },
+    {
+      "command": "npm run replay:check",
+      "startedAt": "2026-08-31T14:38:16Z",
+      "exitCode": 0,
+      "result": "replay capture fixture is exact and current"
+    },
+    {
+      "command": "npm run eval:replay",
+      "startedAt": "2026-08-31T14:38:17Z",
+      "exitCode": 0,
+      "result": "baseline 0.80, advanced 0.90, replayStatus operational"
+    },
+    {
+      "command": "npm run evidence",
+      "startedAt": "2026-08-31T14:38:19Z",
+      "exitCode": 0,
+      "result": "representative evidence generated"
+    },
+    {
+      "command": "npm run validate",
+      "startedAt": "2026-08-31T14:38:20Z",
+      "exitCode": 0,
+      "result": "all twelve build gates PASS"
+    },
+    {
+      "command": "npm test",
+      "startedAt": "2026-08-31T14:39:03Z",
+      "endedAt": "2026-08-31T14:43:54Z",
+      "exitCode": 0,
+      "result": "602 tests, 598 pass, 0 fail, 4 skipped, 289948 ms"
+    }
+  ],
+  "determinism": {
+    "baselinePredictionsByteIdenticalToCommitted": true,
+    "advancedPredictionsByteIdenticalToCommitted": true,
+    "filesDifferingAfterRegeneration": [
+      "artifacts/evaluation/manifest.json",
+      "artifacts/evaluation/report.md"
+    ],
+    "differenceCause": "execution timestamps and measured git state only"
+  },
+  "metrics": {
+    "baseline": {
+      "numerator": 16,
+      "denominator": 20,
+      "value": 0.8
+    },
+    "advanced": {
+      "numerator": 18,
+      "denominator": 20,
+      "value": 0.9
+    },
+    "improvementAbsolute": 0.1
+  },
+  "skippedTests": {
+    "count": 4,
+    "explanation": "Three Windows platform guards for directory junctions and symlinks, plus the cross-drive repository-escape test, which cannot construct its case when the checkout and the OS temporary directory share a drive letter. The source worktree on D: reports 3 skips and 599 passes because that test executes there.",
+    "hiddenFailures": 0
+  },
+  "serverChecks": {
+    "total": 8,
+    "passed": 8,
+    "covered": [
+      "server starts",
+      "serves the workbench",
+      "serves the ten-record benchmark case",
+      "creates a server-owned run",
+      "accepts an approve decision",
+      "exports approved rows only",
+      "refuses a rebinding Host with 403 FORBIDDEN_HOST",
+      "refuses a cross-site Origin with 403 FORBIDDEN_ORIGIN"
+    ]
+  },
+  "conclusion": "A judge can clone the published remote and reproduce baseline 0.80 and advanced 0.90 with no credentials, no network access, and no installed dependencies."
+}
