@@ -39,4 +39,4 @@ The frozen benchmark has 10 cases with 10 records each. Floor and ceiling both y
 - baseline: `16/20 = 0.80` affected-record recall;
 - advanced: `18/20 = 0.90` affected-record recall.
 
-This focused amendment does not overwrite the Task 7 evidence. Task 8 will regenerate protocol-v2 evidence after its source commit and place that evidence in a separate evidence-only commit. Until then, the Task 7 manifest remains a truthful historical artifact from the protocol-v1 implementation.
+The canonical deterministic manifest now records protocol v2. The final release bootstrap will regenerate that evidence for the frozen source revision.
