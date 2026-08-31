@@ -50,7 +50,7 @@ test("deterministic artifacts disclose a non-selected replay path, exact zero re
   assert.equal(manifest.resources.inputTokens, 0);
   assert.equal(manifest.resources.outputTokens, 0);
   assert.equal(manifest.resources.totalTokens, 0);
-  assert.equal(manifest.resources.latencyMs, 0);
+  assert.equal(manifest.resources.providerLatencyMs, 0);
   assert.equal(manifest.resources.estimatedCostUsd, 0);
   assert.deepEqual(manifest.artifacts, {
     baselinePredictionsSha256: sha256File(join(output, "baseline-predictions.json")),

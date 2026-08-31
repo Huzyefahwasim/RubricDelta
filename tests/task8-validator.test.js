@@ -234,7 +234,7 @@ test("build rejects no-op replacements for both fixed replay package scripts", (
 const replayMutations = [
   {
     name: "stale protocol v1",
-    expected: /\[FAIL\].*REPLAY FIXTURE.*protocol.*v2/i,
+    expected: /\[FAIL\].*REPLAY FIXTURE.*protocol.*v3/i,
     mutate(replay) {
       replay.binding.protocol.id = "rubricdelta-evaluation-v1";
       replay.binding.protocol.version = 1;
@@ -343,7 +343,7 @@ test("build rejects stale deterministic manifest replay and protocol disclosures
   const command = run(validationRoot);
   const combined = output(command);
   assert.notEqual(command.status, 0, combined);
-  assert.match(combined, /\[FAIL\].*manifest\.evaluationProtocol.*v2/i);
+  assert.match(combined, /\[FAIL\].*manifest\.evaluationProtocol.*v3/i);
   assert.match(combined, /\[FAIL\].*manifest\.replay.*(?:not-selected|deferred-task-8|stale)/i);
 });
 

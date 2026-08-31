@@ -119,7 +119,7 @@ const TASK8_TEST_HASHES = new Map([
   ["tests/provider-workflow-semantic-hardening.test.js", "9c7d3bf1093275273b638b8520c0ac47361c271de0c2de7bf89a66c37d112911"],
   ["tests/provider-workflow-semantic-review.test.js", "51310cf04e326bdf297acd075a31c0ba7ab265c7ff3354d0679155cc0d2f330f"],
   ["tests/task8-cli.test.js", "598ffe34ce50fb89586ba1cb87e00c9d934b117d51e86bf25fa1905dace9db8d"],
-  ["tests/task8-source-contract.test.js", "07ca1d4e2fa76b12a2bdd44ed7ebb23a7c52d11e2c4ce9c5add942b155e3a1b6"],
+  ["tests/task8-source-contract.test.js", "a0e45636de72ac3e0e1bdc66869cee6487b81e85cf6f81bca21f8e86b6d9f01b"],
   ["tests/capture-replay.test.js", "7eb5fb3476d8951955f63010241e0e055351248bc79cece6103f37c1c3769e3a"],
 ]);
 const TASK8_JS_PATHS = Object.freeze([
