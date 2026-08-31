@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "rubricdelta-human-review-evidence",
+  "revision": "cc50c6381b44cbdfaecda6cbcb9928a9c1c793c0",
+  "runId": "run-d43a1035-4f70-46f9-b9bd-a67e764875a2",
+  "serverRevision": "rev-000005",
+  "reviewer": {
+    "kind": "participant",
+    "id": "Huzyefah"
+  },
+  "ledgerPath": "artifacts/qa/human/ledger.jsonl",
+  "ledgerSha256": "3013da56b1e95a85137f18916bd736011c48d9e6bea54f2d60932c57d5456217",
+  "exportPath": "artifacts/qa/human/export.csv",
+  "exportSha256": "8aa7470b3bbbc236fa0aa73bfe7c62e51fae2f6ac9c523b2c2848119687a6fb6",
+  "trajectoryPath": "artifacts/representative-trajectories/human-checkpoint.jsonl",
+  "trajectorySha256": "75d5c7a2ce5c3799a6ba939a1c72672221faeee7a8bf32e9a2d262736b4cbb57"
+}

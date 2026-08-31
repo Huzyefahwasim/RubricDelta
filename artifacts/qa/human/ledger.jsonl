@@ -1,0 +1,4 @@
+{"sequence":1,"trajectorySequence":43,"timestamp":"2026-08-31T03:52:18.704Z","reviewer":"Huzyefah","recordId":"fraud-08","decision":"approve","reason":null}
+{"sequence":2,"trajectorySequence":44,"timestamp":"2026-08-31T03:53:09.339Z","reviewer":"Huzyefah","recordId":"fraud-03","decision":"escalate","reason":null}
+{"sequence":3,"trajectorySequence":45,"timestamp":"2026-08-31T03:53:50.197Z","reviewer":"Huzyefah","recordId":"fraud-03","action":"undo","undoneSequence":2,"restoredDecision":null,"reason":"Workbench undo"}
+{"sequence":4,"trajectorySequence":46,"timestamp":"2026-08-31T03:54:18.066Z","reviewer":"Huzyefah","recordId":"fraud-03","decision":"reject","reason":null}
